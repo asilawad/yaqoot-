@@ -1,0 +1,335 @@
+Act as a Senior UI/UX Developer. We are building a 'Medical Dashboard' application. I have a predefined design system based on specific colors, spacing, and typography.
+Core Guidelines for all components:
+Theme: Minimalist, clean, and professional medical interface.
+Colors:
+Primary Green: #50C878 (for main buttons/active states)
+Background: #F9FAFB (light grey)
+Text Primary: #171717
+Muted Text: #717182
+Surface/Card Color: #FFFFFF (White)
+Borders: #F1F1F1
+Layout & Spacing: Use a consistent card-based layout. Use 16px padding as the standard container spacing. Cards should have 16px border-radius and subtle shadows (0.05 opacity).
+Typography: Font family is 'Cairo'. Hierarchy: Titles (20px-28px, semi-bold), Body (14px-16px, regular), Labels (10px-12px, muted).
+Inputs: Use #F3F3F5 for input backgrounds, 8px border-radius, and 14px font size.
+Responsiveness: Always design with a sidebar-layout structure.
+
+. Strict Technical & Architectural Guidelines:
+No Hardcoding: You are strictly forbidden from using hardcoded values. You must use the pre-defined constants from AppStrings, ColorManager, and AppSizes (e.g., use AppSizes.p20 instead of 20.0).
+Clean Code & Architecture: Always follow Clean Architecture principles. Separate UI components from business logic entirely.
+Modularity: Do not write monolithic files. Always split complex components into smaller, reusable, and manageable files. File names must be descriptive and meaningful.
+Best Practices: Research and implement the best practices for the task at hand. Write scalable, maintainable, and extensible code.
+Verification: If my request is ambiguous or lacks necessary technical details, stop and ask me for clarification before proceeding. Do not assume or hallucinate features.
+Multi-language: The app must support Arabic (primary) and English.
+Localization Structure: Absolutely NO hardcoded text. All strings must be extracted into a dedicated localization folder with separate files for ar_strings.dart and en_strings.dart.
+Branding: The sidebar/header must always include the 'Yaqoot Medical' logo and the title 'عيادة ياقوت الطبية'. Include the slogan 'رعاية طبية متكاملة، وحياة أفضل' in the designated area.
+
+Desktop-First: This is a Desktop application. Optimize UI/UX for desktop environments.
+Offline-First: The architecture must be fully Offline-first, assuming zero internet connectivity. All data management must be local.
+Code Quality & Maintainability:
+Readable & Clean: The code must be highly readable, self-documenting, and follow clean coding standards.
+Scalable & Extensible: The architecture must be designed to be easily scalable and extensible. Adding new features or modifying existing ones should be straightforward without requiring major refactoring.
+Modification-Friendly: Every component must be loosely coupled to ensure that changes in one part of the application do not negatively impact others.
+Updateability & Deployment:
+Seamless Updates: The application must be architected to support a smooth update mechanism.
+Easy Distribution: Design the project structure so that pushing new updates (features or patches) to the users is straightforward and efficient, ensuring users can migrate to the latest version with minimal friction.
+
+Testing & Reliability:
+Functional Integrity: You are responsible for ensuring that every piece of code you provide is fully functional and bug-free.
+Strict Adherence: Every function must behave exactly as described in my specifications. No deviations, no partial implementations, and no logic errors.
+Validation: Before providing the code, ensure that the logic handles edge cases and that the implementation matches the requirements precisely.
+
+
+Global Rule (Golden Rule for All Components): The application must fully support Localization and dynamic Directionality (RTL/LTR). If the locale is Arabic, the Sidebar must be positioned on the right, with all elements and text aligned to the right. If the locale is English, it must be on the left with left alignment. This principle must be applied to every single component we create.
+Shadows: Use subtle, soft shadows (0.05 opacity) for cards and containers to create a clean elevation effect without visual clutter.
+Icons: Use thin, modern, and minimalist outline icons that match the professional medical theme. Ensure consistent sizing.
+Color Palette: Strictly use the Primary Green (#50C878) for interactive elements and active states. Maintain the background at #F9FAFB for a calm, professional look.
+Micro-Interactions: Implement subtle hover effects for buttons and table rows to provide intuitive feedback, avoiding complex animations.
+Visual Vibe: The design must radiate a professional medical environment (Clean, Calm, Trusted). Prioritize whitespace to ensure the layout breathes and remains uncluttered.
+
+Navigation System: Each 'Patient Name' in the table must be clickable. Clicking it must navigate the user to that specific patient's 'Patient Profile/Portfolio' page, displaying all their medical data, history, and records in a detailed and structured view. 
+
+Current Task: Sidebar Implementation:
+Header Area: Include a circular logo placeholder. Use the following texts (prepare keys for them, do NOT hardcode):
+Title: 'عيادة ياقوت الطبية' / 'Yaqoot Medical Clinic'
+Slogan: 'رعاية طبية متكاملة، وحياة أفضل' / 'Integrated medical care, better life'
+Navigation: Two items: 'قائمة المرضى' / 'Patient List' and 'الإعدادات' / 'Settings'. Labels must switch dynamically based on locale.
+Strict Constraints: NO HARDCODING. You must implement a localization structure (e.g., using keys) so these strings are fetched from localization files. Do not embed the literal strings in the UI code.
+Modularity: Ensure the component is modular and follows Clean Architecture principles.
+Design: Strictly use pre-defined constants for all dimensions, colors, and font styles.
+
+Patient Directory 
+Current Task: Design the 'Patient List' Page (First Page in Sidebar):
+Page Header: Display the title 'سجل المرضى' / 'Patient Directory' and the subtitle 'إدارة وعرض جميع المرضى المسجلين' / 'Manage and view all registered patients'.
+Search & Filter Bar: Place a Search Bar followed by two Dropdown filters:
+Filter 1 (Search Field): Options: 'كل الحقول' / 'All Fields', 'التاريخ' / 'Date', 'رقم الهوية' / 'National ID', 'الاسم' / 'Name', 'مكان السكن' / 'Location', 'رقم الجوال' / 'Mobile Number'.
+Filter 2 (Service Type): Options: 'كل الخدمات' / 'All Services', 'استشارات الباطنة' / 'Internal Medicine', 'الاستشارات الجراحية' / 'Surgery', 'التغذية العلاجية' / 'Clinical Nutrition', 'الخدمات التمريضية' / 'Nursing Care', 'استشارات أمراض الكلى' / 'Nephrology', 'العلاج الطبيعي' / 'Physical Therapy', 'عيادة النساء' / 'Gynecology'.
+Layout Order: Header first, then Search & Filters bar, then the Data Table.
+Constraints: All strings must use localization keys (NO HARDCODING). Everything must strictly follow the Global Rule (RTL/LTR) based on the locale.
+Data Table:
+Columns: (Serial ID, Patient Name, National ID, Mobile, Location, Last Visit Date, Service Type, Complaint).
+Design (Zebra Striping): Alternating row colors (White #FFFFFF / Light Green #E8F5E9).
+Interactivity: 'Patient Name' must be clickable, navigating to the specific Patient Profile.
+
+
+
+Add Patient 
+'Add New Patient' Button: Implement an 'Add New Patient' button with a clear plus (+) icon, positioned at the top-right/top-left (depending on RTL/LTR) of the main content area, precisely matching the location shown in image_1f4455.png. The button color must be retrieved from ColorManager.primaryGreen and strictly NO hardcoded color values are allowed. 
+Current Task: Implement 'Add New Patient' Modal/Form:
+Trigger Button: A green button (#50C878) that opens a modal window.
+Form Fields & Validation:
+Patient Name: String (Required).
+National ID: Numeric only (Required). Critical: On save, check DB. If ID exists, block submission and show an error message: "ID already exists".
+Age: Numeric only (Required).
+Mobile & Alternative Mobile: Numeric only (Required).
+Address: Two fields (Region, Neighborhood).
+Applicant Name: String. Include an option 'Same as Patient' to avoid data duplication.
+Allergies: Dropdown with 'Other' option. 'Other' must trigger a text field. Items: [Dust/Mites, Pollen, Pet Dander, Peanuts/Nuts, Milk/Dairy, Eggs, Wheat/Gluten, Soy, Insect Stings, Penicillin/Antibiotics, NSAIDs, Latex, Cosmetics Chemicals].
+Chronic Diseases: Dropdown with 'Other' option. 'Other' must trigger a text field. Items: [Hypertension, Coronary Artery Disease, Heart Failure, Type 2 Diabetes, Asthma, COPD, Osteoarthritis, Rheumatoid Arthritis, Chronic Kidney Disease].
+Task: Define the structured Dropdown lists for Region and Neighborhood:
+Logic: The lists must be hierarchical; selecting a 'Region' must filter the available 'Neighborhoods' accordingly.
+Data Structure (Gaza Strip):
+Gaza City: [Al-Rimal, An-Nasr, Sheikh Radwan, Al-Maqousi, Al-Mukhabarat, Sheikh Ajlin, Al-Jalaa, As-Saftawi, Tal Al-Hawa, Sabra, Ad-Daraj, Az-Zaitoun, Shuja'iyya, At-Tuffah].
+North Gaza: [Jabalia, Beit Lahia, Beit Hanoun].
+Middle Area: [Deir Al-Balah, Nuseirat, Al-Bureij, Al-Maghazi].
+Khan Yunis: [City Center, Camp, Al-Qarara, Bani Suheila].
+Rafah: [City Center, Tel Al-Sultan, Shaboura].
+'Other' Option: Include an 'Other' option in both Region and Neighborhood dropdowns. Selecting 'Other' must dynamically trigger a free-text input field (Text Field).
+Constraints:
+Localization: Use localization keys for all region and neighborhood names. NO HARDCODING.
+Clean Architecture: Ensure the logic for filtering neighborhoods based on the selected region is separated from the UI component.
+Input Handling: The UI must be responsive to the 'Other' selection and display the text field for manual input.
+
+
+
+Constraints:
+NO HARDCODING. Fetch all labels, options, and validation messages from localization files (ar_strings.dart / en_strings.dart).
+Data Integrity: All fields are mandatory. Enforce correct input types (numeric for IDs/Mobile).
+Clean Architecture: Separate the UI form component from the validation and data-saving logic.
+Global Rule (RTL/LTR): Maintain strict RTL/LTR alignment based on current locale.
+Additional Point (English):
+Data Counter: Directly above the table, implement a dynamic text indicator formatted as: 'Showing X of Y patients'. Where Y represents the total number of patients in the database, and X represents the number of patients currently displayed after applying filters or search queries. This counter must update automatically in real-time based on the user's interaction with the filters/search.
+
+Visual Specifications for 'Patient Profile Page':
+Card Containers: Soft rounded corners (Border Radius: 12px). Background must be pure white (#FFFFFF). Shadows: Subtle and soft (Box Shadow: 0px 4px 12px rgba(0, 0, 0, 0.05)).
+Color Palette:
+Primary: #50C878 (For action buttons, active icons, and card borders).
+Global Background: #F9FAFB (Cool light grey).
+Text: Primary headings #1F2937, secondary/body text #6B7280.
+Typography: Font family: Cairo. Sizes: 20px for headings, 16px for subheadings, 14px for body. Weights: Bold for headers, Medium for content.
+Spacing & Layout: Uniform padding of 20px inside all cards. Consistent gap of 16px between components to maintain a clean, breathable whitespace.
+Icons: 24px Outline Icons with a stroke width of 1.5px. Icons must use secondary text
+
+Basic Info Card : 
+Task: Implement the 'Patient Header Card':
+Navigation: 'Back to Patient List' button at the top (aligned according to RTL/LTR).
+Card Design: White background card (#FFFFFF) with soft shadows. Position a subtle 'Edit' button (pencil icon + text) in a corner (non-central).
+Data Fields: Patient Name, National ID, Mobile, Alt Mobile, Location (Region + Neighborhood), Age, Applicant Name, Chronic Diseases, Allergies.
+Visual Emphasis: Apply a subtle 'Pill' style background (#E8F5E9) to 'Age' and 'Chronic Diseases' to make them pop immediately for the doctor without cluttering the UI.
+Edit Mode Logic: Clicking 'Edit' toggles fields into an editable state.
+Data Integrity (Localization):
+UI labels/headers must use localization keys and switch dynamically.
+User-inputted data (data entry) must be stored and displayed 'as-is'. It must never be translated or altered when the language changes (e.g., Arabic input stays Arabic in English UI).
+Constraints: Use clean, professional typography and strictly follow the Global Rule (RTL/LTR). No hardcoded strings.
+
+
+
+
+Vital Signs 
+Final Prompt (English Version)
+Task: Implement the 'Vital Signs' dashboard component as a READ-ONLY data display for the Yaqoot Medical system.
+Main Container: A card titled "Vital Signs" containing exactly 7 sub-cards (one for each vital sign).
+Dynamic Intelligence:
+Evaluation logic must NOT be hardcoded. It must dynamically fetch thresholds from the 'System Settings' page where the user defines medical ranges. Any update in those settings must instantly re-evaluate the status of existing readings.
+Status Reference Table:
+Blood Pressure (mmHg): Normal / Hypertension / Hypotension
+Heart Rate (bpm): Normal / Tachycardia / Bradycardia
+Temperature (°C): Normal / Hyperthermia / Hypothermia
+Oxygen Saturation (%): Normal / Hypoxia / Hypoxia
+Respiratory Rate (/min): Normal / Tachypnea / Bradypnea
+Blood Glucose (mg/dL): Normal / Hyperglycemia / Hypoglycemia
+
+
+with a chronological list of readings. Include a "Clear History" button with a mandatory Confirmation Dialog before permanent deletion from the database.
+Technical Constraints: Strict READ-ONLY interface (no input fields). Integrate with a single centralized database table. All labels, units, and scientific names must use dynamic localization keys. No hardcoded data.
+
+
+
+
+
+
+
+
+
+Add new Visit :
+System Task: Develop a 'New Visit Management Page' for the Yaqoot Medical system. This page is the single source of truth for visit data.
+1. Core Functionality & UX:
+Entry Point: Accessed from a specific patient's profile. Navigation includes a 'Back' button to return to the Patient Profile.
+State: Full-page view, not a modal. Highly editable; all fields are optional (non-required) to allow for asynchronous data entry as the patient moves through clinical stages.
+2. Visit Fields (Data Architecture):
+Basic Info:
+Visit Date: Auto-filled with current date, editable for future/past appointments.
+Doctor/Provider Name: Optional text field.
+Payment Status: Dropdown (Default: 'Unpaid' - Red, Options: 'Paid' - Green, 'Unpaid' - Red).
+Chief Complaint: Optional text field.
+Service Hierarchy (Dynamic Lists):
+Main Service (Dropdown + 'Other'): 'Internal Medicine Consultations' (استشارات الباطنة), 'Surgical Consultations' (الاستشارات الجراحية), 'Physical Therapy & Rehab' (العلاج الطبيعي والتأهيل), 'OB/GYN Clinic' (عيادة النساء والتوليد), 'Clinical Nutrition' (التغذية العلاجية), 'Nephrology Consultations' (استشارات أمراض الكلى), 'Nursing Services' (الخدمات التمريضية).
+Sub-Service (Dependent Dropdown + 'Other'):
+Internal Medicine: Cardiology (أمراض القلب), Gastroenterology (الجهاز الهضمي), Pulmonology (الصدر), Endocrinology (الغدد), Nephrology (الكلى), Rheumatology (الروماتيزم), Hematology (أمراض الدم), Infectious Diseases (الأمراض المعدية), Oncology (أورام), Immunology (المناعة), Geriatrics (طب المسنين), Neurology (الأعصاب).
+Surgery: General Surgery (الجراحة العامة), Neurosurgery (جراحة المخ والأعصاب), Urology (المسالك البولية), Pediatric Surgery (جراحة الأطفال).
+Nursing: Vital Signs Monitoring, Medication Administration, IV Therapy & Cannulation, Wound Care, Catheterization & Fluid Output, Airway & Oxygen Therapy, Patient Hygiene & Bed Sore Prevention, Post-Operative Care, Feeding Tube Care, ECG Monitoring, Emergency Response & CPR, Patient & Family Education, Nebulization (تبخيرة).
+OB/GYN: Antenatal/Prenatal Care, High-Risk Pregnancy Management, Recurrent Miscarriage Investigation, Infertility & Delayed Conception, PCOS Care, Menstrual Disorders, Contraception Counseling, Gynecological Infections, Menopause/Climacteric Management, Cancer Screening/Pap Smear, 3D/4D Ultrasound.
+Clinical Data:
+Diagnosis: Optional, editable text field.
+Treatments: Section with an 'Add Treatment' button. Opens a simple input for medicine name. Displayed as a list of cards.
+Investigations: Section with 'Add Investigation'. Opens a Modal with: (Dropdown of specific tests: CBC, FBS, HbA1c, Lipid Profile, KFT, LFT, Thyroid Profile, Electrolytes, Vit D3/B12, Iron/Ferritin, Uric Acid, Urine Analysis, Stool Analysis, CRP/ESR, Coagulation Profile, 'Other') + Result field + Notes. Each test is a card showing details, clickable to edit/update results later.
+Vital Signs: Section with 'Add Range' button. Opens a Modal for the 7 vital signs. Only entered values are displayed in this section.
+3. Data Synchronization & Persistence:
+All inputs must be bound to a unique visit_id.
+Upon saving, data propagates to the patient's 'Visit Timeline'.
+Visit Timeline Card (in Profile): Displays Date, Service, Doctor, and Payment Status Badge (Paid/Unpaid). Clickable to re-open the full Visit Page for further edits.
+4. Localization & UI Requirements:
+Strictly NO hardcoded text. Use localization keys for all labels, dropdowns, and status badges (Arabic/English).
+Task: Develop the 'Detailed Visit Page' for the Yaqoot Medical system, focusing on granular data management.
+1. In-Page Data Management Logic:
+CRUD Operations for Clinical Items: Every item added within the 'Detailed Visit Page' (Treatments, Investigations) must feature:
+Edit Button: Triggers the respective Modal, pre-populated with current data for immediate updates.
+Delete Button: Allows direct removal of the record from the visit history. Critical: Must trigger a 'Confirm/Cancel' confirmation modal to prevent accidental data loss.
+Real-time Synchronization: All CRUD actions (Add, Edit, Delete) performed within this page must propagate instantly to the 'Patient Records' tabs (Investigations, Treatments) and the 'Visit Timeline' on the Patient Profile.
+
+
+
+
+
+
+Add Patient Records (Patient profile) :
+
+
+Task: Develop the 'Patient Records' interface for the Yaqoot Medical system, focusing on an efficient data visualization and management system across four primary tabs.
+1. UI/UX Design:
+Main Container: Large, clean White Card with soft shadows and rounded corners, following a professional medical design system.
+Navigation (Tabs): Four navigation tabs (Visit History, Investigations, Treatments, Quick Notes). Active tab is highlighted with a clear underline and distinct text color; inactive tabs are neutral gray.
+Color Palette: High-contrast, clean professional white background (#FFFFFF) with dark grey typography for data and brand-consistent colors for buttons/actions.
+2. Data Logic & Functionality:
+Visit History: A chronological timeline of visit cards (Date, Complaint, Diagnosis, Doctor, Notes). Clicking a card navigates to the 'Detailed Visit Page' for editing.
+Investigations Tab (Aggregated View): Displays all lab tests from all visits, sorted by date (latest first). Each card shows: Test Name, Result, Date, and Notes.
+Edit: Clickable to update lab results.
+Delete: Prohibited here; deletion is restricted to the original 'Visit Page'.
+Treatments Tab: Aggregated list of all prescribed medications across all visits, sorted by date. Read/Display mode only. Deletion restricted to the 'Visit Page'.
+Quick Notes: Dedicated tab for general patient notes. Includes an 'Add Note' button. Each note card has a delete icon that triggers a mandatory Confirmation Modal (Confirm/Cancel) before permanent database deletion.
+3. Technical Integrity:
+Bi-directional Sync: Data modified in the 'Detailed Visit Page' must instantly update in the 'Patient Records' tabbed views.
+Localization: No hardcoding. Use localization keys for every UI label, text, and alert message.
+Safety: All critical deletions must require explicit user confirmation to prevent accidental data loss.
+
+Task: Develop the "Settings" 
+Task: Design and implement the "Settings Page" in the Yaqoot Medical Clinic application.
+1. Main Grid Architecture:
+Create a dashboard containing 4 main interactive cards:
+Clinic Analytics: Navigates to the Analytics Dashboard (KPIs + Service Demand Chart).
+Vital Signs Configuration:Navigates to the "Reference Values Manager. This page must allow updating Min/Max thresholds for 7 vitals: [Blood Pressure, Heart Rate, Temperature, Oxygen Saturation, Respiratory Rate, Blood Glucose, Current Weight].
+Data Management: Backup & Restore tools.
+System Info: Application version, storage path, and status.
+2. Design Requirements:
+Use a clean, 'Cyber-Clean' minimalist aesthetic.
+Ensure all navigation links are intuitive and provide immediate feedback.
+Maintain modularity for future additions.
+
+
+Analytics Dashboard (Navigation & Content):
+Navigation: Clicking the "Clinic Analytics" card must push the user to a dedicated "Analytics Dashboard" page. This page must include a clear "Back" button (or arrow) to return to the Settings page.
+KPI Section (Top): Display 4 summary cards:
+Total Patients: count(all records in Patients table).
+Total Visits (All time): count(all records in Visits table).
+Current Month Visits: count(visits where date >= 1st day of current month).
+Pending Payments: count(visits where payment_status == 'pending').
+Chart Section (Bottom): Implement a simple fl_chart Bar Chart to visualize service demand.
+Data: Aggregate visit data by service_type.
+Categories: [Internal Medicine, Surgical, Physical Therapy, OB/GYN, Nutrition, Nephrology, Nursing].
+Logic: Dynamically sort bars from highest demand to lowest demand for immediate visibility.
+3. Design Requirements:
+Follow a 'Cyber-Clean' minimalist aesthetic.
+Ensure the "Back" navigation is intuitive.
+Calculations must be reactive (update instantly when database/JSON state changes).
+No complex design libraries; rely on clean, performant Flutter code.
+
+
+2. Vital Signs Reference Values Manager:
+This page must display the 7 vital signs in a structured list/table.
+Vital Signs Data (Default Values):
+Blood Pressure: mmHg | Systolic: 110-135, Diastolic: 60-85 | Normal | Hypertension | Hypotension
+Heart Rate: bpm | 60-100 | Normal | Tachycardia | Bradycardia
+Temperature: °C | 36.5-37.5 | Normal | Hyperthermia | Hypothermia
+Oxygen Saturation: % | 95-100 | Normal | N/A | Hypoxia
+Respiratory Rate: /min | 12-20 | Normal | Tachypnea | Bradypnea
+Blood Glucose: mg/dL | 70-130 | Normal | Hyperglycemia | Hypoglycemia
+Current Weight: kg | 50-90 | Normal | Overweight | Underweight
+3. Technical Architecture:
+Model: Use a VitalSignConfig model class (id, name, unit, minThreshold, maxThreshold, highLabel, lowLabel). For Blood Pressure, use two pairs of thresholds (Systolic Min/Max, Diastolic Min/Max).
+Localization: Use keys for all strings (names/labels) to support multi-language output.
+Reactivity: Implement a VitalConfigController that loads the above values from a vital_settings.json file.
+Dynamic Evaluation: Create a function evaluateStatus(currentValue, vitalId) that compares incoming patient data against the saved min/max thresholds from the config. The system must NOT use hardcoded values.
+Persistence: Include a "Save Thresholds" button to update the JSON file, and a "Reset to Defaults" button to restore original values.
+ 
+
+
+
+
+4. Data Management Module:
+Task: Develop the "Data Management" module for the Yaqoot Medical Clinic application.
+1. Settings Dashboard Integration:
+Within the Settings page, include a dedicated "Data Management" Card.
+Navigation: Clicking this card must trigger a navigation to a standalone "Data Management Page" containing all backup, restore, and storage information tools.
+2. Data Management Page Features:
+Backup Tool: Implement a function to collect all local JSON files (patients.json, visits.json, vital_settings.json), compress them into a single .zip archive, and prompt the user to download/save it locally.
+Restore Tool: Implement a function allowing the user to select a previously saved backup file. The system must:
+Validate the file format (JSON/Zip).
+Display a Critical Warning Prompt before restoring to prevent accidental data overwriting.
+Overwrite current local data with the restored data and trigger an immediate UI/State refresh.
+Storage Info: Display the local file directory path and the calculated total size of all database files.
+3. Design Requirements:
+Use a minimalist and clean aesthetic consistent with the rest of the application.
+Buttons: Clear, primary "Backup Now" button and a secondary "Restore Data" button.
+User Experience: Ensure feedback indicators (loading states/success/error toasts) are used for backup/restore operations.
+
+Task: Develop the "System Information" module for the Yaqoot Medical Clinic application.
+1. Settings Dashboard Integration:
+Within the Settings page, include a "System Information" Card.
+Navigation: Clicking this card must trigger a navigation to a clean "System Info Page" dedicated to displaying technical application details.
+2. System Info Page Features:
+Application Version: Display the current build version of the application (e.g., v1.0.0).
+Storage Path: Display the local file directory path where the application stores its database and configuration files.
+Status: Display a real-time status indicator showing if the system is "Operational," along with a summary of total storage usage (in MB/GB).
+Action Button: Include a "Check for Updates" button (placeholder functionality).
+3. Design Requirements:
+Minimalist Aesthetic: Use a simple list view with icons for each piece of information.
+Clarity: Ensure all data is easy to read. Use labels (e.g., "Version: 1.0.0") clearly separated from values.
+Consistency:
+ Maintain the same 'Cyber-Clean' design language applied in the previous settings modules.
+
+
+Role: Senior Full-Stack Architect. Task: Implement the database schema, storage strategy, and repository layer for the Yaqoot Medical Clinic desktop application.
+1. Data Architecture & Storage Strategy (Offline-First):
+Storage Model: Implement a file-based JSON storage system. All data must reside in a dedicated Yaqoot_Data folder, strictly separated from the application code (ensuring persistence during app updates).
+Separation of Concerns: > * patients.json: Contains primary patient data.
+visits/: A directory containing structured JSON files (partitioned by year/month) for visit records.
+system/: Contains index.json (for fast lookups) and audit_logs.
+settings/: vital_settings.json for medical thresholds.
+Scalability: Implement "Lazy Loading" to ensure data is only fetched upon navigation. For large datasets, use the index.json file for search/lookup rather than scanning primary files.
+2. Technical Specifications:
+Primary Keys: Use UUIDs for all identifiers (patientId, visitId). Never use auto-incrementing integers.
+Auditability: Every record must include created_at and updated_at timestamps.
+Repository Pattern: All data operations (CRUD) must pass through a Repository layer. This layer must abstract the data source, allowing future migration from JSON to Cloud (REST/GraphQL) without changing UI components.
+Data Serialization: All models must support fromJson and toJson methods.
+3. Business Logic & Dynamic Evaluation:
+Medical Logic: No hardcoded medical ranges. The evaluateStatus function must always fetch thresholds from vital_settings.json dynamically.
+Localization: Absolutely NO hardcoded strings. All UI data labels, dropdown options, and validation messages must use keys mapped to ar_strings.dart and en_strings.dart.
+Data Integrity: Implement strict validation for mandatory fields (e.g., National ID uniqueness, phone number formats) before any database write.
+4. Performance & Reliability:
+Backup/Restore: Implement a function to zip the Yaqoot_Data folder. The Restore process must include a critical warning prompt, validate file integrity, and trigger a complete state refresh.
+Global Directionality (RTL/LTR): The database logic must be agnostic of language, but the UI layer fetching this data must dynamically respect the current locale directionality.
+Error Handling: All CRUD operations must be wrapped in error-handling blocks to prevent data corruption during write operations.
+5. Deployment & Updates:
+The architecture must ensure that the Yaqoot_Data folder remains untouched when the application executable (code) is updated.
+
+
+
