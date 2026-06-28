@@ -1,38 +1,90 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle } from "lucide-react";
+import {
+  ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle,
+  Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
+} from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import AddPatientModal from "@/components/patients/AddPatientModal";
 import * as repo from "@/lib/db/repository";
-import { Visit, Investigation, Treatment, QuickNote, VitalSigns } from "@/lib/db/types";
 
-function VitalStatusBadge({ value, vitalId, vitalSettings, t }: {
+/* ─── Vital status badge ─── */
+function VitalStatusBadge({
+  value, vitalId, vitalSettings, t,
+}: {
   value: number | undefined;
   vitalId: string;
   vitalSettings: any[];
   t: (k: string) => string;
 }) {
-  if (value === undefined) return <span style={{ color: "#717182", fontSize: 12 }}>—</span>;
+  if (value === undefined) return null;
   const cfg = vitalSettings.find((s: any) => s.id === vitalId);
-  if (!cfg) return <span style={{ fontSize: 12 }}>{value}</span>;
+  if (!cfg) return null;
+
   let status = "normal";
   if (value > cfg.maxNormal) status = "high";
   if (value < cfg.minNormal) status = "low";
-  const colors: Record<string, { bg: string; text: string; label: string }> = {
-    normal: { bg: "#E8F5E9", text: "#2e7d32", label: t("vitals.normal") },
-    high: { bg: "#FFEBEE", text: "#c62828", label: t(cfg.highLabel) },
-    low: { bg: "#EFF6FF", text: "#1e40af", label: t(cfg.lowLabel) },
+
+  const palette: Record<string, { bg: string; text: string; label: string }> = {
+    normal: { bg: "#E8F5E9", text: "#2e7d32",  label: t("vitals.normal") },
+    high:   { bg: "#FFEBEE", text: "#c62828",  label: t(cfg.highLabel) },
+    low:    { bg: "#EFF6FF", text: "#1e40af",  label: t(cfg.lowLabel) },
   };
-  const c = colors[status];
+  const c = palette[status];
   return (
-    <span style={{ background: c.bg, color: c.text, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>
+    <span style={{
+      background: c.bg, color: c.text,
+      padding: "3px 10px", borderRadius: 999,
+      fontSize: 11, fontWeight: 700,
+      display: "inline-block", marginTop: 6,
+    }}>
       {c.label}
     </span>
   );
 }
 
+/* ─── Vital card ─── */
+function VitalCard({
+  icon: Icon, iconColor, iconBg, label, displayValue, unit, badge,
+}: {
+  icon: React.ElementType; iconColor: string; iconBg: string;
+  label: string; displayValue: string; unit: string; badge: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: "#fff",
+      borderRadius: 12,
+      border: "1px solid #F1F1F1",
+      boxShadow: "0px 4px 12px rgba(0,0,0,0.05)",
+      padding: 20,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 9,
+        background: iconBg,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon size={18} strokeWidth={1.8} color={iconColor} />
+      </div>
+      <div>
+        <div style={{ fontSize: 12, color: "#717182", fontWeight: 600, marginBottom: 4 }}>{label}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#171717", lineHeight: 1 }}>
+          {displayValue}
+          {displayValue !== "—" && (
+            <span style={{ fontSize: 12, fontWeight: 500, color: "#717182", marginInlineStart: 5 }}>{unit}</span>
+          )}
+        </div>
+        {badge}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─── */
 export default function PatientProfile() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
@@ -41,9 +93,8 @@ export default function PatientProfile() {
   const { toast } = useToast();
   const { createQuickNote, deleteQuickNote, clearVitalSignsByPatient } = useData();
 
-  const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "investigations" | "treatments" | "notes">("history");
-  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [showClearVitalsConfirm, setShowClearVitalsConfirm] = useState(false);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
@@ -51,39 +102,89 @@ export default function PatientProfile() {
   const patient = patients.find(p => p.id === params.id);
   if (!patient) {
     return (
-      <div style={{ padding: 40, textAlign: "center" }}>
-        <p style={{ color: "#717182" }}>Patient not found</p>
-        <button onClick={() => setLocation("/")} style={{ marginTop: 16, color: "#50C878", background: "none", border: "none", cursor: "pointer", fontSize: 14 }}>← Back</button>
+      <div style={{ padding: 60, textAlign: "center" }}>
+        <p style={{ color: "#717182", fontSize: 16 }}>Patient not found</p>
+        <button onClick={() => setLocation("/")} style={{ marginTop: 16, color: "#50C878", background: "none", border: "none", cursor: "pointer", fontSize: 15 }}>← Back</button>
       </div>
     );
   }
 
-  const patientVisits = repo.getVisitsByPatient(patient.id);
+  const patientVisits       = repo.getVisitsByPatient(patient.id);
   const patientInvestigations = repo.getInvestigationsByPatient(patient.id);
-  const patientTreatments = repo.getTreatmentsByPatient(patient.id);
-  const patientNotes = repo.getQuickNotes(patient.id);
-  const patientVitals = repo.getVitalSignsByPatient(patient.id);
-  const latestVitals = patientVitals[0];
+  const patientTreatments   = repo.getTreatmentsByPatient(patient.id);
+  const patientNotes        = repo.getQuickNotes(patient.id);
+  const latestVitals        = repo.getVitalSignsByPatient(patient.id)[0];
 
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
-  const cardStyle: React.CSSProperties = {
+  /* shared card style */
+  const card: React.CSSProperties = {
     background: "#fff",
     borderRadius: 16,
     border: "1px solid #F1F1F1",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-    padding: 24,
-    marginBottom: 20,
+    boxShadow: "0px 4px 12px rgba(0,0,0,0.05)",
+    padding: 28,
+    marginBottom: 24,
   };
 
-  const labelStyle: React.CSSProperties = { fontSize: 11, color: "#717182", fontWeight: 600, marginBottom: 4, display: "block" };
-  const valueStyle: React.CSSProperties = { fontSize: 14, color: "#171717", fontWeight: 500 };
+  const label: React.CSSProperties = {
+    fontSize: 12, color: "#717182", fontWeight: 600,
+    marginBottom: 5, display: "block", letterSpacing: "0.2px",
+  };
+  const value: React.CSSProperties = { fontSize: 15, color: "#171717", fontWeight: 500 };
 
   const tabs = [
-    { id: "history" as const, label: t("profile.tab.history") },
+    { id: "history"        as const, label: t("profile.tab.history") },
     { id: "investigations" as const, label: t("profile.tab.investigations") },
-    { id: "treatments" as const, label: t("profile.tab.treatments") },
-    { id: "notes" as const, label: t("profile.tab.notes") },
+    { id: "treatments"     as const, label: t("profile.tab.treatments") },
+    { id: "notes"          as const, label: t("profile.tab.notes") },
+  ];
+
+  /* vital card definitions */
+  const vitalCards = [
+    {
+      id: "bp", icon: Heart, iconColor: "#e53e3e", iconBg: "#FFF5F5",
+      label: t("vitals.bp"),
+      display: latestVitals?.bpSystolic
+        ? `${latestVitals.bpSystolic}/${latestVitals.bpDiastolic}` : "—",
+      unit: "mmHg", badgeValue: latestVitals?.bpSystolic,
+    },
+    {
+      id: "hr", icon: Activity, iconColor: "#e53e3e", iconBg: "#FFF5F5",
+      label: t("vitals.hr"),
+      display: latestVitals?.heartRate?.toString() ?? "—",
+      unit: "bpm", badgeValue: latestVitals?.heartRate,
+    },
+    {
+      id: "temp", icon: Thermometer, iconColor: "#dd6b20", iconBg: "#FFFAF0",
+      label: t("vitals.temp"),
+      display: latestVitals?.temperature?.toString() ?? "—",
+      unit: "°C", badgeValue: latestVitals?.temperature,
+    },
+    {
+      id: "spo2", icon: Droplets, iconColor: "#3182ce", iconBg: "#EBF8FF",
+      label: t("vitals.spo2"),
+      display: latestVitals?.oxygenSat?.toString() ?? "—",
+      unit: "%", badgeValue: latestVitals?.oxygenSat,
+    },
+    {
+      id: "rr", icon: Wind, iconColor: "#6b46c1", iconBg: "#FAF5FF",
+      label: t("vitals.rr"),
+      display: latestVitals?.respiratoryRate?.toString() ?? "—",
+      unit: "/min", badgeValue: latestVitals?.respiratoryRate,
+    },
+    {
+      id: "glucose", icon: Droplet, iconColor: "#d69e2e", iconBg: "#FFFFF0",
+      label: t("vitals.glucose"),
+      display: latestVitals?.bloodGlucose?.toString() ?? "—",
+      unit: "mg/dL", badgeValue: latestVitals?.bloodGlucose,
+    },
+    {
+      id: "weight", icon: Scale, iconColor: "#38a169", iconBg: "#F0FFF4",
+      label: t("vitals.weight"),
+      display: latestVitals?.currentWeight?.toString() ?? "—",
+      unit: "kg", badgeValue: latestVitals?.currentWeight,
+    },
   ];
 
   const handleAddNote = () => {
@@ -94,109 +195,72 @@ export default function PatientProfile() {
     toast({ title: "Note added" });
   };
 
-  const handleDeleteNote = (id: string) => {
-    deleteQuickNote(id);
-    refreshData();
-    setDeleteNoteId(null);
-  };
-
-  const handleClearVitals = () => {
-    clearVitalSignsByPatient(patient.id);
-    refreshData();
-    setShowClearVitalsConfirm(false);
-    toast({ title: "Vitals cleared" });
-  };
-
-  const vitalsConfig = [
-    { id: "bp", label: t("vitals.bp"), unit: "mmHg", systolic: latestVitals?.bpSystolic, diastolic: latestVitals?.bpDiastolic },
-    { id: "hr", label: t("vitals.hr"), unit: "bpm", value: latestVitals?.heartRate },
-    { id: "temp", label: t("vitals.temp"), unit: "°C", value: latestVitals?.temperature },
-    { id: "spo2", label: t("vitals.spo2"), unit: "%", value: latestVitals?.oxygenSat },
-    { id: "rr", label: t("vitals.rr"), unit: "/min", value: latestVitals?.respiratoryRate },
-    { id: "glucose", label: t("vitals.glucose"), unit: "mg/dL", value: latestVitals?.bloodGlucose },
-    { id: "weight", label: t("vitals.weight"), unit: "kg", value: latestVitals?.currentWeight },
-  ];
-
   return (
-    <div style={{ direction: isRTL ? "rtl" : "ltr" }}>
+    <div style={{ direction: isRTL ? "rtl" : "ltr", maxWidth: 1024 }}>
+
       {/* Back */}
       <button
         onClick={() => setLocation("/")}
         data-testid="btn-back-profile"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 20, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 15, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
       >
         <Arrow size={16} />
         {t("profile.back")}
       </button>
 
-      {/* Patient Info Card */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: 0 }}>{t("profile.info")}</h2>
+      {/* ── HERO: Patient Name Header ── */}
+      <div style={{
+        background: "#fff",
+        borderRadius: 16,
+        border: "2px solid #E8F5E9",
+        boxShadow: "0px 4px 12px rgba(80,200,120,0.08)",
+        padding: "28px 32px",
+        marginBottom: 24,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexDirection: isRTL ? "row-reverse" : "row",
+      }}>
+        <div style={{ textAlign: isRTL ? "right" : "left" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#50C878", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 6 }}>
+            {t("profile.info")}
+          </div>
+          <h1 style={{ fontSize: 30, fontWeight: 800, color: "#171717", margin: 0, lineHeight: 1.2 }}>
+            {patient.name}
+          </h1>
+          <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <span style={{ fontSize: 14, color: "#717182" }}>
+              {t("addPatient.age")}: <strong style={{ color: "#171717" }}>{patient.age}</strong>
+            </span>
+            <span style={{ color: "#D1D5DB" }}>·</span>
+            <span style={{ fontSize: 14, color: "#717182" }}>
+              ID: <strong style={{ color: "#171717" }}>{patient.nationalId}</strong>
+            </span>
+            <span style={{ color: "#D1D5DB" }}>·</span>
+            <span style={{ fontSize: 14, color: "#717182" }}>
+              {patient.region} – {patient.neighborhood}
+            </span>
+            {patient.serviceType && (
+              <>
+                <span style={{ color: "#D1D5DB" }}>·</span>
+                <span className="pill-green">{patient.serviceType}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
           <button
-            onClick={() => setShowAddPatientModal(true)}
+            onClick={() => setShowEditModal(true)}
             data-testid="btn-edit-patient"
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
           >
-            <Pencil size={14} strokeWidth={1.5} />
+            <Pencil size={15} strokeWidth={1.5} />
             {t("common.edit")}
           </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-          <div>
-            <span style={labelStyle}>{t("table.name")}</span>
-            <span style={valueStyle}>{patient.name}</span>
-          </div>
-          <div>
-            <span style={labelStyle}>{t("table.nationalId")}</span>
-            <span style={valueStyle}>{patient.nationalId}</span>
-          </div>
-          <div>
-            <span style={labelStyle}>{t("addPatient.age")}</span>
-            <span className="pill-green">{patient.age}</span>
-          </div>
-          <div>
-            <span style={labelStyle}>{t("table.mobile")}</span>
-            <span style={valueStyle}>{patient.mobile}</span>
-          </div>
-          {patient.altMobile && (
-            <div>
-              <span style={labelStyle}>{t("addPatient.altMobile")}</span>
-              <span style={valueStyle}>{patient.altMobile}</span>
-            </div>
-          )}
-          <div>
-            <span style={labelStyle}>{t("table.location")}</span>
-            <span style={valueStyle}>{patient.region} - {patient.neighborhood}</span>
-          </div>
-          <div>
-            <span style={labelStyle}>{t("addPatient.applicantName")}</span>
-            <span style={valueStyle}>{patient.applicantName}</span>
-          </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <span style={labelStyle}>{t("addPatient.chronicDiseases")}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-              {patient.chronicDiseases.length > 0 ? patient.chronicDiseases.map(d => (
-                <span key={d} className="pill-green">{d}</span>
-              )) : <span style={{ fontSize: 13, color: "#717182" }}>—</span>}
-            </div>
-          </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <span style={labelStyle}>{t("addPatient.allergies")}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-              {patient.allergies.length > 0 ? patient.allergies.map(a => (
-                <span key={a} style={{ background: "#FFF3E0", color: "#f59e0b", padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>{a}</span>
-              )) : <span style={{ fontSize: 13, color: "#717182" }}>—</span>}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #F1F1F1", display: "flex", justifyContent: isRTL ? "flex-start" : "flex-end" }}>
           <button
             onClick={() => setLocation(`/patients/${patient.id}/visits/new`)}
             data-testid="btn-add-visit"
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
           >
             <Plus size={16} />
             {t("profile.addVisit")}
@@ -204,99 +268,212 @@ export default function PatientProfile() {
         </div>
       </div>
 
-      {/* Vital Signs Card */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
+      {/* ── Patient Info Details ── */}
+      <div style={card}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div>
+            <span style={label}>{t("table.mobile")}</span>
+            <span style={value}>{patient.mobile}</span>
+          </div>
+          {patient.altMobile && (
+            <div>
+              <span style={label}>{t("addPatient.altMobile")}</span>
+              <span style={value}>{patient.altMobile}</span>
+            </div>
+          )}
+          <div>
+            <span style={label}>{t("addPatient.applicantName")}</span>
+            <span style={value}>{patient.applicantName}</span>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span style={label}>{t("addPatient.chronicDiseases")}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              {patient.chronicDiseases.length > 0
+                ? patient.chronicDiseases.map(d => <span key={d} className="pill-green">{d}</span>)
+                : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
+            </div>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span style={label}>{t("addPatient.allergies")}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              {patient.allergies.length > 0
+                ? patient.allergies.map(a => (
+                    <span key={a} style={{ background: "#FFF3E0", color: "#f59e0b", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600 }}>{a}</span>
+                  ))
+                : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Vital Signs — redesigned cards ── */}
+      <div style={{ ...card, paddingBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: 0 }}>{t("profile.vitals")}</h2>
           <button
             onClick={() => setShowClearVitalsConfirm(true)}
             data-testid="btn-clear-vitals"
-            style={{ background: "none", border: "1px solid #F1F1F1", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, color: "#ef4444", fontFamily: "'Cairo', sans-serif" }}
+            style={{ background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "'Cairo', sans-serif" }}
           >
             {t("profile.clearVitals")}
           </button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          {/* BP */}
-          <div style={{ background: "#F9FAFB", borderRadius: 12, padding: 16, textAlign: isRTL ? "right" : "left" }}>
-            <div style={{ fontSize: 11, color: "#717182", fontWeight: 600, marginBottom: 6 }}>{t("vitals.bp")}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
-              {latestVitals?.bpSystolic ? `${latestVitals.bpSystolic}/${latestVitals.bpDiastolic}` : "—"} <span style={{ fontSize: 11, color: "#717182" }}>mmHg</span>
-            </div>
-            {latestVitals?.bpSystolic && <VitalStatusBadge value={latestVitals.bpSystolic} vitalId="bp" vitalSettings={vitalSettings} t={t} />}
-          </div>
-          {vitalsConfig.slice(1).map(({ id, label, unit, value }) => (
-            <div key={id} style={{ background: "#F9FAFB", borderRadius: 12, padding: 16, textAlign: isRTL ? "right" : "left" }}>
-              <div style={{ fontSize: 11, color: "#717182", fontWeight: 600, marginBottom: 6 }}>{label}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
-                {value !== undefined ? value : "—"} <span style={{ fontSize: 11, color: "#717182" }}>{unit}</span>
-              </div>
-              <VitalStatusBadge value={value} vitalId={id} vitalSettings={vitalSettings} t={t} />
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Visit Timeline */}
-      <div style={cardStyle}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 16, textAlign: isRTL ? "right" : "left" }}>{t("profile.visitTimeline")}</h2>
-        {patientVisits.length === 0 ? (
-          <p style={{ color: "#717182", fontSize: 14, textAlign: isRTL ? "right" : "left" }}>No visits yet</p>
+        {!latestVitals ? (
+          <p style={{ color: "#717182", fontSize: 15, textAlign: isRTL ? "right" : "left" }}>
+            No vital signs recorded yet.
+          </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientVisits.map(v => (
-              <button
-                key={v.id}
-                onClick={() => setLocation(`/visits/${v.id}`)}
-                data-testid={`card-visit-${v.id}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  background: "#F9FAFB",
-                  borderRadius: 10,
-                  border: "1px solid #F1F1F1",
-                  cursor: "pointer",
-                  textAlign: isRTL ? "right" : "left",
-                  fontFamily: "'Cairo', sans-serif",
-                  transition: "all 0.15s ease",
-                  flexDirection: isRTL ? "row-reverse" : "row",
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#50C878"; (e.currentTarget as HTMLButtonElement).style.background = "#E8F5E9"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#F1F1F1"; (e.currentTarget as HTMLButtonElement).style.background = "#F9FAFB"; }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
-                  <div style={{ fontSize: 12, color: "#717182" }}>{v.mainService || "—"}{v.doctor ? ` · ${v.doctor}` : ""}</div>
-                </div>
-                <span className={v.paymentStatus === "paid" ? "pill-green" : "pill-red"}>
-                  {t(`visit.${v.paymentStatus}`)}
-                </span>
-              </button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+            {vitalCards.map(({ id, icon, iconColor, iconBg, label: lbl, display, unit, badgeValue }) => (
+              <VitalCard
+                key={id}
+                icon={icon}
+                iconColor={iconColor}
+                iconBg={iconBg}
+                label={lbl}
+                displayValue={display}
+                unit={unit}
+                badge={
+                  <VitalStatusBadge
+                    value={badgeValue}
+                    vitalId={id}
+                    vitalSettings={vitalSettings}
+                    t={t}
+                  />
+                }
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Patient Records Tabs */}
-      <div style={cardStyle}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 16, textAlign: isRTL ? "right" : "left" }}>{t("profile.records")}</h2>
+      {/* ── Visit Timeline ── */}
+      <div style={card}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: isRTL ? "right" : "left" }}>
+          {t("profile.visitTimeline")}
+        </h2>
+
+        {patientVisits.length === 0 ? (
+          <p style={{ color: "#717182", fontSize: 15, textAlign: isRTL ? "right" : "left" }}>No visits yet</p>
+        ) : (
+          <div style={{ position: "relative" }}>
+            {/* Vertical timeline line */}
+            <div style={{
+              position: "absolute",
+              top: 10,
+              bottom: 10,
+              [isRTL ? "right" : "left"]: 15,
+              width: 2,
+              background: "#F1F1F1",
+              borderRadius: 2,
+            }} />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {patientVisits.map((v, idx) => (
+                <div
+                  key={v.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 20,
+                    flexDirection: isRTL ? "row-reverse" : "row",
+                  }}
+                >
+                  {/* Timeline dot */}
+                  <div style={{ flexShrink: 0, position: "relative", zIndex: 1, marginTop: 14 }}>
+                    <div style={{
+                      width: 32, height: 32,
+                      borderRadius: "50%",
+                      background: idx === 0 ? "#50C878" : "#fff",
+                      border: `2px solid ${idx === 0 ? "#50C878" : "#D1D5DB"}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <div style={{
+                        width: 10, height: 10, borderRadius: "50%",
+                        background: idx === 0 ? "#fff" : "#D1D5DB",
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Visit card */}
+                  <button
+                    onClick={() => setLocation(`/visits/${v.id}`)}
+                    data-testid={`card-visit-${v.id}`}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "16px 20px",
+                      background: "#F9FAFB",
+                      borderRadius: 12,
+                      border: "1px solid #F1F1F1",
+                      cursor: "pointer",
+                      textAlign: isRTL ? "right" : "left",
+                      fontFamily: "'Cairo', sans-serif",
+                      transition: "all 0.15s ease",
+                      flexDirection: isRTL ? "row-reverse" : "row",
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLButtonElement;
+                      el.style.borderColor = "#50C878";
+                      el.style.background = "#F0FDF4";
+                      el.style.boxShadow = "0 4px 12px rgba(80,200,120,0.12)";
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLButtonElement;
+                      el.style.borderColor = "#F1F1F1";
+                      el.style.background = "#F9FAFB";
+                      el.style.boxShadow = "none";
+                    }}
+                  >
+                    <div style={{ textAlign: isRTL ? "right" : "left" }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
+                        {new Date(v.visitDate).toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: 13, color: "#717182" }}>
+                        {v.mainService || "—"}
+                        {v.doctor ? ` · ${v.doctor}` : ""}
+                      </div>
+                      {v.diagnosis && (
+                        <div style={{ fontSize: 13, color: "#50C878", fontWeight: 600, marginTop: 4 }}>
+                          {v.diagnosis}
+                        </div>
+                      )}
+                    </div>
+                    <span className={v.paymentStatus === "paid" ? "pill-green" : "pill-red"}>
+                      {t(`visit.${v.paymentStatus}`)}
+                    </span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Records Tabs ── */}
+      <div style={card}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: isRTL ? "right" : "left" }}>
+          {t("profile.records")}
+        </h2>
+
         {/* Tab Nav */}
-        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #F1F1F1", marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #F1F1F1", marginBottom: 24, flexDirection: isRTL ? "row-reverse" : "row" }}>
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               data-testid={`tab-${tab.id}`}
               style={{
-                padding: "8px 16px",
+                padding: "10px 18px",
                 background: "none",
                 border: "none",
                 borderBottom: activeTab === tab.id ? "2px solid #50C878" : "2px solid transparent",
                 marginBottom: -2,
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: activeTab === tab.id ? 700 : 500,
                 color: activeTab === tab.id ? "#50C878" : "#717182",
                 fontFamily: "'Cairo', sans-serif",
@@ -308,16 +485,18 @@ export default function PatientProfile() {
 
         {/* Visit History */}
         {activeTab === "history" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientVisits.length === 0 ? <p style={{ color: "#717182", fontSize: 14 }}>No records</p> : patientVisits.map(v => (
-              <div key={v.id} style={{ padding: "14px 16px", background: "#F9FAFB", borderRadius: 10, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row", marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
-                  <button onClick={() => setLocation(`/visits/${v.id}`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 12, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.edit")} →</button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {patientVisits.length === 0 ? (
+              <p style={{ color: "#717182", fontSize: 15 }}>No records</p>
+            ) : patientVisits.map(v => (
+              <div key={v.id} style={{ padding: "18px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row", marginBottom: 8 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
+                  <button onClick={() => setLocation(`/visits/${v.id}`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif", fontWeight: 600 }}>{t("common.edit")} →</button>
                 </div>
-                {v.chiefComplaint && <div style={{ fontSize: 13, color: "#717182" }}>{t("visit.complaint")}: {v.chiefComplaint}</div>}
-                {v.diagnosis && <div style={{ fontSize: 13, color: "#171717", marginTop: 4, fontWeight: 500 }}>{t("visit.diagnosis")}: {v.diagnosis}</div>}
-                {v.doctor && <div style={{ fontSize: 12, color: "#717182", marginTop: 2 }}>{t("visit.doctor")}: {v.doctor}</div>}
+                {v.chiefComplaint && <div style={{ fontSize: 14, color: "#717182", marginBottom: 4 }}>{t("visit.complaint")}: {v.chiefComplaint}</div>}
+                {v.diagnosis && <div style={{ fontSize: 14, color: "#171717", fontWeight: 600 }}>{t("visit.diagnosis")}: {v.diagnosis}</div>}
+                {v.doctor && <div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>{t("visit.doctor")}: {v.doctor}</div>}
               </div>
             ))}
           </div>
@@ -325,13 +504,15 @@ export default function PatientProfile() {
 
         {/* Investigations */}
         {activeTab === "investigations" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientInvestigations.length === 0 ? <p style={{ color: "#717182", fontSize: 14 }}>No investigations</p> : patientInvestigations.map(inv => (
-              <div key={inv.id} style={{ padding: "12px 16px", background: "#F9FAFB", borderRadius: 10, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{inv.testName}</div>
-                {inv.result && <div style={{ fontSize: 13, color: "#717182", marginTop: 2 }}>Result: {inv.result}</div>}
-                {inv.notes && <div style={{ fontSize: 12, color: "#717182", marginTop: 2 }}>{inv.notes}</div>}
-                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{new Date(inv.createdAt).toLocaleDateString()}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {patientInvestigations.length === 0 ? (
+              <p style={{ color: "#717182", fontSize: 15 }}>No investigations</p>
+            ) : patientInvestigations.map(inv => (
+              <div key={inv.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>{inv.testName}</div>
+                {inv.result && <div style={{ fontSize: 14, color: "#717182", marginBottom: 2 }}>Result: {inv.result}</div>}
+                {inv.notes && <div style={{ fontSize: 13, color: "#aaa" }}>{inv.notes}</div>}
+                <div style={{ fontSize: 12, color: "#bbb", marginTop: 6 }}>{new Date(inv.createdAt).toLocaleDateString()}</div>
               </div>
             ))}
           </div>
@@ -339,12 +520,14 @@ export default function PatientProfile() {
 
         {/* Treatments */}
         {activeTab === "treatments" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientTreatments.length === 0 ? <p style={{ color: "#717182", fontSize: 14 }}>No treatments</p> : patientTreatments.map(tr => (
-              <div key={tr.id} style={{ padding: "12px 16px", background: "#F9FAFB", borderRadius: 10, border: "1px solid #F1F1F1", display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {patientTreatments.length === 0 ? (
+              <p style={{ color: "#717182", fontSize: 15 }}>No treatments</p>
+            ) : patientTreatments.map(tr => (
+              <div key={tr.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
                 <div style={{ textAlign: isRTL ? "right" : "left" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#171717" }}>{tr.medicineName}</div>
-                  <div style={{ fontSize: 11, color: "#aaa" }}>{new Date(tr.createdAt).toLocaleDateString()}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "#171717" }}>{tr.medicineName}</div>
+                  <div style={{ fontSize: 12, color: "#bbb", marginTop: 3 }}>{new Date(tr.createdAt).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}
@@ -354,9 +537,14 @@ export default function PatientProfile() {
         {/* Quick Notes */}
         {activeTab === "notes" && (
           <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <input
-                style={{ flex: 1, background: "#F3F3F5", border: "1px solid #F1F1F1", borderRadius: 8, padding: "9px 12px", fontSize: 13, fontFamily: "'Cairo', sans-serif", outline: "none", direction: isRTL ? "rtl" : "ltr" }}
+                style={{
+                  flex: 1, background: "#F3F3F5", border: "1px solid #F1F1F1",
+                  borderRadius: 10, padding: "11px 14px", fontSize: 14,
+                  fontFamily: "'Cairo', sans-serif", outline: "none",
+                  direction: isRTL ? "rtl" : "ltr",
+                }}
                 placeholder="Add a note..."
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
@@ -365,20 +553,22 @@ export default function PatientProfile() {
               <button
                 onClick={handleAddNote}
                 data-testid="btn-add-note"
-                style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#50C878", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+                style={{ padding: "11px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
               >
                 <Plus size={16} />
               </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {patientNotes.length === 0 ? <p style={{ color: "#717182", fontSize: 14 }}>No notes</p> : patientNotes.map(n => (
-                <div key={n.id} style={{ padding: "12px 16px", background: "#F9FAFB", borderRadius: 10, border: "1px solid #F1F1F1", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {patientNotes.length === 0 ? (
+                <p style={{ color: "#717182", fontSize: 15 }}>No notes</p>
+              ) : patientNotes.map(n => (
+                <div key={n.id} style={{ padding: "14px 18px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
                   <div style={{ textAlign: isRTL ? "right" : "left" }}>
-                    <div style={{ fontSize: 13, color: "#171717" }}>{n.text}</div>
-                    <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 14, color: "#171717" }}>{n.text}</div>
+                    <div style={{ fontSize: 12, color: "#bbb", marginTop: 5 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
                   </div>
                   <button onClick={() => setDeleteNoteId(n.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4, flexShrink: 0 }}>
-                    <Trash2 size={14} strokeWidth={1.5} />
+                    <Trash2 size={15} strokeWidth={1.5} />
                   </button>
                 </div>
               ))}
@@ -387,38 +577,36 @@ export default function PatientProfile() {
         )}
       </div>
 
-      {/* Edit Patient Modal */}
-      {showAddPatientModal && (
+      {/* ── Modals ── */}
+      {showEditModal && (
         <AddPatientModal
           editPatient={patient}
-          onClose={() => setShowAddPatientModal(false)}
-          onSaved={() => { setShowAddPatientModal(false); refreshData(); }}
+          onClose={() => setShowEditModal(false)}
+          onSaved={() => { setShowEditModal(false); refreshData(); }}
         />
       )}
 
-      {/* Delete Note Confirm */}
       {deleteNoteId && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}>
-            <AlertTriangle size={28} color="#ef4444" style={{ margin: "0 auto 12px" }} />
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#171717", marginBottom: 12 }}>Delete Note?</div>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 36, maxWidth: 400, width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <AlertTriangle size={32} color="#ef4444" style={{ margin: "0 auto 14px" }} />
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#171717", marginBottom: 24 }}>Delete Note?</div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button onClick={() => setDeleteNoteId(null)} style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
-              <button onClick={() => handleDeleteNote(deleteNoteId)} data-testid="btn-confirm-delete-note" style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.delete")}</button>
+              <button onClick={() => setDeleteNoteId(null)} style={{ padding: "10px 22px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
+              <button onClick={() => { deleteQuickNote(deleteNoteId); refreshData(); setDeleteNoteId(null); }} data-testid="btn-confirm-delete-note" style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.delete")}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Clear Vitals Confirm */}
       {showClearVitalsConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 440, width: "90%", textAlign: "center" }}>
-            <AlertTriangle size={28} color="#ef4444" style={{ margin: "0 auto 12px" }} />
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>{t("profile.clearVitalsConfirm")}</div>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button onClick={() => setShowClearVitalsConfirm(false)} style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
-              <button onClick={handleClearVitals} data-testid="btn-confirm-clear-vitals" style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.yes")}</button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 36, maxWidth: 460, width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <AlertTriangle size={32} color="#ef4444" style={{ margin: "0 auto 14px" }} />
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>{t("profile.clearVitalsConfirm")}</div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 20 }}>
+              <button onClick={() => setShowClearVitalsConfirm(false)} style={{ padding: "10px 22px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
+              <button onClick={() => { clearVitalSignsByPatient(patient.id); refreshData(); setShowClearVitalsConfirm(false); toast({ title: "Vitals cleared" }); }} data-testid="btn-confirm-clear-vitals" style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.yes")}</button>
             </div>
           </div>
         </div>

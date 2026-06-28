@@ -1,0 +1,34 @@
+Prompt: Refined UI/UX & Visual Aesthetics Upgrade
+Task: Elevate the application's UI/UX to match the professional medical aesthetic (Modern, Calm, Trustworthy).
+
+1. Visual Aesthetics & Polish (Vital Signs & Visits):
+
+Vital Signs Upgrade: The current Vital Signs cards feel flat and lifeless. Redesign them to match the high-end look of the reference Figma design (Image_24dfa6).
+
+Implementation: Apply clean card containers with consistent padding (20px), subtle soft shadows (0px 4px 12px rgba(0,0,0,0.05)), and a crisp border-radius (12px). Use clear icons and bold typography for values.
+
+Hierarchy: Ensure the "Status" label (e.g., Normal/Hypertension) is styled as a "Pill" badge (soft background color matching the status: light green for normal, light red for alerts) to provide immediate, intuitive feedback.
+
+Visit Timeline Polish: Enhance the "Visit Timeline" (Image_24dfc5) to be more breathable. Increase the space between individual visit cards, use a clearer timeline indicator (the dot and vertical line), and ensure the diagnosis and notes stand out with proper font weights.
+
+2. Sidebar & Global Layout:
+
+Logo Removal: Delete the logo container entirely.
+
+Title Emphasis: Make "Yaqoot Medical Clinic" the dominant element in the sidebar with high-weight typography.
+
+RTL/LTR Dynamic Positioning: Strictly ensure the sidebar moves between the right and left based on the active locale.
+
+3. Typography & Patient Profile:
+
+Global Scaling: Increase the base font size for all UI components. Clinical systems require larger, legible text to prevent errors.
+
+Patient Name Profile: The patient name on the profile page must be the "Hero" element. Place it in a dedicated header card with a distinct background (e.g., white with a subtle accent border), using a large, bold font to ensure it is never missed.
+
+4. Design Philosophy (Constraints):
+
+Whitespace: Prioritize "Negative Space." If a component feels cluttered, increase the padding.
+
+No Hardcoding: All shadows, border-radii, and font sizes must be pulled from AppSizes and ThemeManager constants.
+
+Professional Vibe: The app must look calm and clean. Maintain a strictly professional palette (#50C878 for accents, #F9FAFB for background).
