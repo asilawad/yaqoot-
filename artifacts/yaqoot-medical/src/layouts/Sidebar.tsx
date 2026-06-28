@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { Users, Settings } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import logoSrc from "@assets/yaqoot_logo_nobg.png";
+import logoSrc from "@assets/yaqoot logo 1.png";
 
 export default function Sidebar() {
   const { t, locale, setLocale, isRTL } = useTranslation();
