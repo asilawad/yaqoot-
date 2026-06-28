@@ -46,7 +46,7 @@ export default function Sidebar() {
             background: "#F9FAFB",
             padding: 2,
           }}
-        />
+          className="pl-[1px] pr-[1px] pt-[1px] pb-[1px]" />
         <div style={{ textAlign: isRTL ? "right" : "left" }}>
           <div
             style={{
@@ -70,10 +70,8 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-
       {/* Divider */}
       <div style={{ borderBottom: "1px solid #F1F1F1", marginBottom: 16 }} />
-
       {/* Nav */}
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map(({ key, href, icon: Icon }) => (
@@ -89,7 +87,6 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
-
       {/* Language Toggle */}
       <div style={{ borderTop: "1px solid #F1F1F1", paddingTop: 12, marginTop: 8 }}>
         <button
