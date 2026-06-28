@@ -251,32 +251,6 @@ export default function PatientProfile() {
         </div>
         <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
           <button
-            onClick={() => setShowDeleteConfirm(true)}
-            data-testid="btn-delete-patient"
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "#FFF5F5", border: "1px solid #fca5a5",
-              borderRadius: 10, padding: "9px 16px", cursor: "pointer",
-              fontSize: 14, color: "#dc2626",
-              fontFamily: "'Cairo', sans-serif",
-              flexDirection: isRTL ? "row-reverse" : "row",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = "#FEE2E2";
-              el.style.borderColor = "#dc2626";
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = "#FFF5F5";
-              el.style.borderColor = "#fca5a5";
-            }}
-          >
-            <Trash2 size={15} strokeWidth={1.5} />
-            {t("deletePatient.btn")}
-          </button>
-          <button
             onClick={() => setShowEditModal(true)}
             data-testid="btn-edit-patient"
             style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
@@ -602,6 +576,48 @@ export default function PatientProfile() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Administrative Zone — Delete Patient ── */}
+      <div style={{
+        borderTop: "1px solid #F1F1F1",
+        marginTop: 8,
+        paddingTop: 24,
+        marginBottom: 32,
+        display: "flex",
+        justifyContent: isRTL ? "flex-start" : "flex-end",
+      }}>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          data-testid="btn-delete-patient"
+          style={{
+            display: "flex", alignItems: "center", gap: 7,
+            background: "transparent",
+            border: "1px solid #fca5a5",
+            borderRadius: 10,
+            padding: "9px 18px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#dc2626",
+            fontFamily: "'Cairo', sans-serif",
+            flexDirection: isRTL ? "row-reverse" : "row",
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLButtonElement;
+            el.style.background = "#FFF5F5";
+            el.style.borderColor = "#dc2626";
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLButtonElement;
+            el.style.background = "transparent";
+            el.style.borderColor = "#fca5a5";
+          }}
+        >
+          <Trash2 size={14} strokeWidth={1.6} />
+          {t("deletePatient.btn")}
+        </button>
       </div>
 
       {/* ── Delete Patient Confirmation ── */}
