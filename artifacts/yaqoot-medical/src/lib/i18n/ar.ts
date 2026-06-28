@@ -168,5 +168,12 @@ export const ar = {
   'service.obgyn': 'النساء والولادة',
   'service.nutrition': 'التغذية العلاجية',
   'service.nephrology': 'الكلى',
-  'service.nursing': 'التمريض'
+  'service.nursing': 'التمريض',
+
+  // Delete Patient
+  'deletePatient.btn': 'حذف ملف المريض',
+  'deletePatient.modalTitle': 'حذف ملف المريض نهائياً؟',
+  'deletePatient.modalBody': 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المريض، الزيارات، العلاجات، والفحوصات بشكل دائم.',
+  'deletePatient.confirm': 'نعم، احذف الملف',
+  'deletePatient.success': 'تم حذف ملف المريض بنجاح'
 };

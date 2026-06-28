@@ -14,6 +14,7 @@ interface DataContextType {
   // Repos functions bound to refresh
   createPatient: (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => Patient;
   updatePatient: (id: string, data: Partial<Patient>) => Patient;
+  deletePatient: (id: string) => void;
   createVisit: (data: Omit<Visit, 'id' | 'createdAt' | 'updatedAt'>) => Visit;
   updateVisit: (id: string, data: Partial<Visit>) => Visit;
   createTreatment: (data: Omit<Treatment, 'id' | 'createdAt'>) => Treatment;
@@ -71,6 +72,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     refreshData,
     createPatient: wrap(repo.createPatient),
     updatePatient: wrap(repo.updatePatient),
+    deletePatient: wrap(repo.deletePatient),
     createVisit: wrap(repo.createVisit),
     updateVisit: wrap(repo.updateVisit),
     createTreatment: wrap(repo.createTreatment),

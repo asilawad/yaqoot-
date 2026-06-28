@@ -56,9 +56,12 @@ export const updatePatient = (id: string, data: Partial<Patient>): Patient => {
   return patients[index];
 };
 export const deletePatient = (id: string): void => {
-  const patients = getPatients().filter(p => p.id !== id);
-  saveList(KEYS.PATIENTS, patients);
-  // Also delete related data? We might just keep them orphaned for simplicity or do cascade here.
+  saveList(KEYS.PATIENTS, getPatients().filter(p => p.id !== id));
+  saveList(KEYS.VISITS, getList<Visit>(KEYS.VISITS).filter(v => v.patientId !== id));
+  saveList(KEYS.TREATMENTS, getList<Treatment>(KEYS.TREATMENTS).filter(t => t.patientId !== id));
+  saveList(KEYS.INVESTIGATIONS, getList<Investigation>(KEYS.INVESTIGATIONS).filter(i => i.patientId !== id));
+  saveList(KEYS.VITALS, getList<VitalSigns>(KEYS.VITALS).filter(v => v.patientId !== id));
+  saveList(KEYS.NOTES, getList<QuickNote>(KEYS.NOTES).filter(n => n.patientId !== id));
 };
 
 // Visits

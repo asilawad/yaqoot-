@@ -168,5 +168,12 @@ export const en = {
   'service.obgyn': 'OB/GYN',
   'service.nutrition': 'Clinical Nutrition',
   'service.nephrology': 'Nephrology',
-  'service.nursing': 'Nursing'
+  'service.nursing': 'Nursing',
+
+  // Delete Patient
+  'deletePatient.btn': 'Delete Patient File',
+  'deletePatient.modalTitle': 'Permanently Delete Patient File?',
+  'deletePatient.modalBody': 'This action cannot be undone. All patient data, visits, treatments, and investigations will be permanently deleted.',
+  'deletePatient.confirm': 'Yes, Delete File',
+  'deletePatient.success': 'Patient file deleted successfully'
 };

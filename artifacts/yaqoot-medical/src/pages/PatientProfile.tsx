@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
-  ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle,
+  ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -91,10 +91,11 @@ export default function PatientProfile() {
   const params = useParams<{ id: string }>();
   const { patients, visits, vitalSettings, refreshData } = useData();
   const { toast } = useToast();
-  const { createQuickNote, deleteQuickNote, clearVitalSignsByPatient } = useData();
+  const { createQuickNote, deleteQuickNote, clearVitalSignsByPatient, deletePatient } = useData();
 
   const [activeTab, setActiveTab] = useState<"history" | "investigations" | "treatments" | "notes">("history");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [showClearVitalsConfirm, setShowClearVitalsConfirm] = useState(false);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
@@ -248,7 +249,33 @@ export default function PatientProfile() {
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            data-testid="btn-delete-patient"
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "#FFF5F5", border: "1px solid #fca5a5",
+              borderRadius: 10, padding: "9px 16px", cursor: "pointer",
+              fontSize: 14, color: "#dc2626",
+              fontFamily: "'Cairo', sans-serif",
+              flexDirection: isRTL ? "row-reverse" : "row",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "#FEE2E2";
+              el.style.borderColor = "#dc2626";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "#FFF5F5";
+              el.style.borderColor = "#fca5a5";
+            }}
+          >
+            <Trash2 size={15} strokeWidth={1.5} />
+            {t("deletePatient.btn")}
+          </button>
           <button
             onClick={() => setShowEditModal(true)}
             data-testid="btn-edit-patient"
@@ -576,6 +603,43 @@ export default function PatientProfile() {
           </div>
         )}
       </div>
+
+      {/* ── Delete Patient Confirmation ── */}
+      {showDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, direction: isRTL ? "rtl" : "ltr" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "40px 36px", maxWidth: 460, width: "90%", textAlign: "center", boxShadow: "0 24px 64px rgba(0,0,0,0.18)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FFF5F5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <ShieldAlert size={28} color="#dc2626" strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#171717", marginBottom: 10 }}>
+              {t("deletePatient.modalTitle")}
+            </div>
+            <div style={{ fontSize: 14, color: "#717182", lineHeight: 1.7, marginBottom: 28 }}>
+              {t("deletePatient.modalBody")}
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ padding: "11px 24px", borderRadius: 10, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182" }}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={() => {
+                  deletePatient(patient.id);
+                  toast({ title: t("deletePatient.success") });
+                  setLocation("/");
+                }}
+                data-testid="btn-confirm-delete-patient"
+                style={{ padding: "11px 24px", borderRadius: 10, border: "none", background: "#dc2626", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif", display: "flex", alignItems: "center", gap: 8 }}
+              >
+                <Trash2 size={15} strokeWidth={2} />
+                {t("deletePatient.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modals ── */}
       {showEditModal && (
