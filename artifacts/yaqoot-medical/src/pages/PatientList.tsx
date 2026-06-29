@@ -34,6 +34,11 @@ export default function PatientList() {
   const [serviceFilter, setServiceFilter] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
+  const getLastVisit = (patientId: string) => {
+    const pvs = visits.filter((v) => v.patientId === patientId).sort((a, b) => b.visitDate.localeCompare(a.visitDate));
+    return pvs[0];
+  };
+
   const filtered = useMemo(() => {
     return patients.filter((p) => {
       const q = search.toLowerCase();
@@ -50,15 +55,11 @@ export default function PatientList() {
         else if (searchField === "mobile") matchSearch = p.mobile.includes(q);
         else if (searchField === "location") matchSearch = `${p.region} ${p.neighborhood}`.toLowerCase().includes(q);
       }
-      const matchService = !serviceFilter || (p.serviceType || "").toLowerCase().includes(serviceFilter.toLowerCase());
+      const latestVisitService = getLastVisit(p.id)?.mainService || "";
+      const matchService = !serviceFilter || latestVisitService.toLowerCase().includes(serviceFilter.toLowerCase());
       return matchSearch && matchService;
     });
   }, [patients, search, searchField, serviceFilter]);
-
-  const getLastVisit = (patientId: string) => {
-    const pvs = visits.filter((v) => v.patientId === patientId).sort((a, b) => b.visitDate.localeCompare(a.visitDate));
-    return pvs[0];
-  };
 
   const getLastComplaint = (patientId: string) => {
     const lv = getLastVisit(patientId);
@@ -229,7 +230,7 @@ export default function PatientList() {
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
                         {lv ? new Date(lv.visitDate).toLocaleDateString() : "-"}
                       </td>
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.serviceType || "-"}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{lv?.mainService || "-"}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getLastComplaint(p.id)}</td>
                     </tr>
                   );

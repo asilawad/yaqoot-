@@ -170,6 +170,10 @@ export const en = {
   'service.nephrology': 'Nephrology',
   'service.nursing': 'Nursing',
 
+  // Profile extras
+  'profile.years': 'yrs',
+  'profile.idLabel': 'ID',
+
   // Delete Patient
   'deletePatient.btn': 'Delete Patient File',
   'deletePatient.modalTitle': 'Permanently Delete Patient File?',

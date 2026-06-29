@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import {
   ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
+  User, Phone, MapPin, UserCheck,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
@@ -209,100 +210,143 @@ export default function PatientProfile() {
         {t("profile.back")}
       </button>
 
-      {/* ── HERO: Patient Name Header ── */}
+      {/* ── Unified Hero Card ── */}
       <div style={{
         background: "#fff",
         borderRadius: 16,
-        border: "2px solid #E8F5E9",
-        boxShadow: "0px 4px 12px rgba(80,200,120,0.08)",
+        border: "1px solid #F1F1F1",
+        boxShadow: "0px 4px 12px rgba(0,0,0,0.05)",
         padding: "28px 32px",
         marginBottom: 24,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexDirection: isRTL ? "row-reverse" : "row",
       }}>
-        <div style={{ textAlign: isRTL ? "right" : "left" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#50C878", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 6 }}>
-            {t("profile.info")}
+        {/* Name row + actions */}
+        <div style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: 28,
+          flexDirection: isRTL ? "row-reverse" : "row",
+        }}>
+          {/* Avatar + name */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: "#E8F5E9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <User size={28} color="#50C878" strokeWidth={1.6} />
+            </div>
+            <div style={{ textAlign: isRTL ? "right" : "left" }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: "#171717", margin: 0, lineHeight: 1.2 }}>
+                {patient.name}
+              </h1>
+              <div style={{ fontSize: 13, color: "#717182", marginTop: 5 }}>
+                {t("profile.idLabel")}: <strong style={{ color: "#171717" }}>{patient.nationalId}</strong>
+              </div>
+            </div>
           </div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: "#171717", margin: 0, lineHeight: 1.2 }}>
-            {patient.name}
-          </h1>
-          <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row" }}>
-            <span style={{ fontSize: 14, color: "#717182" }}>
-              {t("addPatient.age")}: <strong style={{ color: "#171717" }}>{patient.age}</strong>
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <button
+              onClick={() => setShowEditModal(true)}
+              data-testid="btn-edit-patient"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+            >
+              <Pencil size={15} strokeWidth={1.5} />
+              {t("common.edit")}
+            </button>
+            <button
+              onClick={() => setLocation(`/patients/${patient.id}/visits/new`)}
+              data-testid="btn-add-visit"
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+            >
+              <Plus size={16} />
+              {t("profile.addVisit")}
+            </button>
+          </div>
+        </div>
+
+        {/* 4-column info grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 24,
+          marginBottom: 24,
+        }}>
+          {/* Age */}
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <User size={13} color="#717182" strokeWidth={1.8} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.age")}</span>
+            </div>
+            <span className="pill-green" style={{ fontSize: 13, padding: "4px 12px" }}>
+              {patient.age} {t("profile.years")}
             </span>
-            <span style={{ color: "#D1D5DB" }}>·</span>
-            <span style={{ fontSize: 14, color: "#717182" }}>
-              ID: <strong style={{ color: "#171717" }}>{patient.nationalId}</strong>
-            </span>
-            <span style={{ color: "#D1D5DB" }}>·</span>
-            <span style={{ fontSize: 14, color: "#717182" }}>
-              {patient.region} – {patient.neighborhood}
-            </span>
-            {patient.serviceType && (
-              <>
-                <span style={{ color: "#D1D5DB" }}>·</span>
-                <span className="pill-green">{patient.serviceType}</span>
-              </>
+          </div>
+
+          {/* Mobile */}
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <Phone size={13} color="#717182" strokeWidth={1.8} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("table.mobile")}</span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#171717" }}>{patient.mobile}</div>
+            {patient.altMobile && (
+              <div style={{ fontSize: 13, color: "#717182", marginTop: 3 }}>{patient.altMobile}</div>
             )}
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
-          <button
-            onClick={() => setShowEditModal(true)}
-            data-testid="btn-edit-patient"
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
-          >
-            <Pencil size={15} strokeWidth={1.5} />
-            {t("common.edit")}
-          </button>
-          <button
-            onClick={() => setLocation(`/patients/${patient.id}/visits/new`)}
-            data-testid="btn-add-visit"
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
-          >
-            <Plus size={16} />
-            {t("profile.addVisit")}
-          </button>
-        </div>
-      </div>
 
-      {/* ── Patient Info Details ── */}
-      <div style={card}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          <div>
-            <span style={label}>{t("table.mobile")}</span>
-            <span style={value}>{patient.mobile}</span>
-          </div>
-          {patient.altMobile && (
-            <div>
-              <span style={label}>{t("addPatient.altMobile")}</span>
-              <span style={value}>{patient.altMobile}</span>
+          {/* Region */}
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <MapPin size={13} color="#717182" strokeWidth={1.8} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.region")}</span>
             </div>
-          )}
-          <div>
-            <span style={label}>{t("addPatient.applicantName")}</span>
-            <span style={value}>{patient.applicantName}</span>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#171717" }}>{patient.region} / {patient.neighborhood}</div>
           </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <span style={label}>{t("addPatient.chronicDiseases")}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-              {patient.chronicDiseases.length > 0
-                ? patient.chronicDiseases.map(d => <span key={d} className="pill-green">{d}</span>)
-                : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
+
+          {/* Applicant Name */}
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <UserCheck size={13} color="#717182" strokeWidth={1.8} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.applicantName")}</span>
             </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#171717" }}>{patient.applicantName}</div>
           </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <span style={label}>{t("addPatient.allergies")}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-              {patient.allergies.length > 0
-                ? patient.allergies.map(a => (
-                    <span key={a} style={{ background: "#FFF3E0", color: "#f59e0b", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600 }}>{a}</span>
-                  ))
-                : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
-            </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: "1px solid #F1F1F1", marginBottom: 20 }} />
+
+        {/* Chronic Diseases */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <Heart size={14} color="#717182" strokeWidth={1.8} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.chronicDiseases")}</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: isRTL ? "flex-end" : "flex-start" }}>
+            {patient.chronicDiseases.length > 0
+              ? patient.chronicDiseases.map(d => (
+                  <span key={d} className="pill-green" style={{ fontSize: 12, padding: "4px 12px" }}>{d}</span>
+                ))
+              : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
+          </div>
+        </div>
+
+        {/* Allergies */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <AlertTriangle size={14} color="#f59e0b" strokeWidth={1.8} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.allergies")}</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: isRTL ? "flex-end" : "flex-start" }}>
+            {patient.allergies.length > 0
+              ? patient.allergies.map(a => (
+                  <span key={a} style={{ background: "#FFF3E0", color: "#d97706", padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600 }}>{a}</span>
+                ))
+              : <span style={{ fontSize: 14, color: "#717182" }}>—</span>}
           </div>
         </div>
       </div>

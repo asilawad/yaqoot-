@@ -16,8 +16,6 @@ const REGIONS: Record<string, string[]> = {
 
 const ALLERGIES = ["Dust/Mites", "Pollen", "Pet Dander", "Peanuts/Nuts", "Milk/Dairy", "Eggs", "Wheat/Gluten", "Soy", "Insect Stings", "Penicillin/Antibiotics", "NSAIDs", "Latex", "Cosmetics Chemicals"];
 const CHRONIC = ["Hypertension", "Coronary Artery Disease", "Heart Failure", "Type 2 Diabetes", "Asthma", "COPD", "Osteoarthritis", "Rheumatoid Arthritis", "Chronic Kidney Disease"];
-const SERVICES = ["Internal Medicine", "Surgery", "Clinical Nutrition", "Nursing Care", "Nephrology", "Physical Therapy", "OB/GYN Clinic"];
-
 interface Props {
   onClose: () => void;
   onSaved: () => void;
@@ -45,7 +43,6 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
     allergyOther: editPatient?.allergies?.find(a => a.startsWith("Other:"))?.replace("Other: ", "") || "",
     chronicDiseases: editPatient?.chronicDiseases?.filter(c => !c.startsWith("Other:")) || [] as string[],
     chronicOther: editPatient?.chronicDiseases?.find(c => c.startsWith("Other:"))?.replace("Other: ", "") || "",
-    serviceType: editPatient?.serviceType || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -103,7 +100,6 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
         applicantName: form.sameAsPatient ? form.name.trim() : form.applicantName.trim(),
         allergies: allAllergies,
         chronicDiseases: allChronic,
-        serviceType: form.serviceType,
       };
 
       if (editPatient) {
@@ -250,15 +246,6 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
               {!form.sameAsPatient && (
                 <input style={inputStyle} value={form.applicantName} onChange={e => set("applicantName", e.target.value)} />
               )}
-            </div>
-
-            {/* Service Type */}
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#717182", display: "block", marginBottom: 6 }}>{t("patients.serviceType")}</label>
-              <select style={inputStyle} value={form.serviceType} onChange={e => set("serviceType", e.target.value)}>
-                <option value="">—</option>
-                {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
             </div>
 
             {/* Allergies */}

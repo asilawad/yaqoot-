@@ -170,6 +170,10 @@ export const ar = {
   'service.nephrology': 'الكلى',
   'service.nursing': 'التمريض',
 
+  // Profile extras
+  'profile.years': 'سنة',
+  'profile.idLabel': 'رقم الهوية',
+
   // Delete Patient
   'deletePatient.btn': 'حذف ملف المريض',
   'deletePatient.modalTitle': 'حذف ملف المريض نهائياً؟',
