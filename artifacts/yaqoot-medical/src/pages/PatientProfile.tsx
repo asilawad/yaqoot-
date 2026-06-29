@@ -11,6 +11,17 @@ import { useToast } from "@/hooks/use-toast";
 import AddPatientModal from "@/components/patients/AddPatientModal";
 import * as repo from "@/lib/db/repository";
 
+/* ─── Timestamp formatter ─── */
+function fmtTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const dy = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${mo}-${dy} ${h}:${mi}`;
+}
+
 /* ─── Vital status badge ─── */
 function VitalStatusBadge({
   value, vitalId, vitalSettings, t,
@@ -29,9 +40,9 @@ function VitalStatusBadge({
   if (value < cfg.minNormal) status = "low";
 
   const palette: Record<string, { bg: string; text: string; label: string }> = {
-    normal: { bg: "#E8F5E9", text: "#2e7d32",  label: t("vitals.normal") },
-    high:   { bg: "#FFEBEE", text: "#c62828",  label: t(cfg.highLabel) },
-    low:    { bg: "#EFF6FF", text: "#1e40af",  label: t(cfg.lowLabel) },
+    normal: { bg: "#DCFCE7", text: "#166534", label: t("vitals.normal") },
+    high:   { bg: "#FFE4E6", text: "#be123c", label: t(cfg.highLabel) },
+    low:    { bg: "#EFF6FF", text: "#1e40af", label: t(cfg.lowLabel) },
   };
   const c = palette[status];
   return (
@@ -39,7 +50,7 @@ function VitalStatusBadge({
       background: c.bg, color: c.text,
       padding: "3px 10px", borderRadius: 999,
       fontSize: 11, fontWeight: 700,
-      display: "inline-block", marginTop: 6,
+      display: "inline-block",
     }}>
       {c.label}
     </span>
@@ -48,70 +59,69 @@ function VitalStatusBadge({
 
 /* ─── Vital card ─── */
 function VitalCard({
-  icon: Icon, iconColor, iconBg, accentColor, label, displayValue, unit, badge, onHistory, t,
+  icon: Icon, iconColor, cardBg, cardBorder, label, unit, displayValue, timestamp, badge, onHistory, isRTL, t,
 }: {
-  icon: React.ElementType; iconColor: string; iconBg: string; accentColor: string;
-  label: string; displayValue: string; unit: string; badge: React.ReactNode;
-  onHistory: () => void; t: (k: string) => string;
+  icon: React.ElementType; iconColor: string; cardBg: string; cardBorder: string;
+  label: string; unit: string; displayValue: string; timestamp: string | null;
+  badge: React.ReactNode; onHistory: () => void; isRTL: boolean;
+  t: (k: string) => string;
 }) {
   return (
     <div style={{
-      background: "#fff",
-      borderRadius: 12,
-      border: "1px solid #F1F1F1",
-      borderTop: `3px solid ${accentColor}`,
-      boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-      padding: "16px 18px",
+      background: cardBg,
+      borderRadius: 14,
+      border: `1.5px solid ${cardBorder}`,
+      padding: "18px 20px",
       display: "flex",
       flexDirection: "column",
-      gap: 12,
-      position: "relative",
+      minHeight: 160,
     }}>
-      {/* Top row: icon + history button */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 9,
-          background: iconBg,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <Icon size={18} strokeWidth={1.8} color={iconColor} />
+      {/* Top row: icon + label | clock */}
+      <div style={{
+        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+        marginBottom: 12, flexDirection: isRTL ? "row-reverse" : "row",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <Icon size={20} strokeWidth={1.8} color={iconColor} />
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", lineHeight: 1.3 }}>{label}</div>
+            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{unit}</div>
+          </div>
         </div>
         <button
           onClick={onHistory}
           title={t("vitals.history")}
-          style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "#717182", padding: 4, borderRadius: 6,
-            display: "flex", alignItems: "center",
-            transition: "color 0.15s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = accentColor)}
-          onMouseLeave={e => (e.currentTarget.style.color = "#717182")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
         >
-          <Clock size={15} strokeWidth={1.7} />
+          <Clock size={16} strokeWidth={1.7} />
         </button>
       </div>
 
-      {/* Label */}
-      <div>
-        <div style={{ fontSize: 11, color: "#717182", fontWeight: 700, marginBottom: 6, letterSpacing: "0.5px", textTransform: "uppercase" }}>
-          {label}
+      {/* Value */}
+      <div style={{
+        fontSize: displayValue === "—" ? 28 : 34,
+        fontWeight: 800, color: "#111827", lineHeight: 1,
+        marginBottom: 5, textAlign: isRTL ? "right" : "left",
+      }}>
+        {displayValue}
+      </div>
+
+      {/* Timestamp */}
+      {timestamp && displayValue !== "—" && (
+        <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10, textAlign: isRTL ? "right" : "left" }}>
+          {timestamp}
         </div>
-        {/* Value */}
-        <div style={{ fontSize: 24, fontWeight: 800, color: "#171717", lineHeight: 1 }}>
-          {displayValue}
-          {displayValue !== "—" && (
-            <span style={{ fontSize: 12, fontWeight: 500, color: "#717182", marginInlineStart: 5 }}>{unit}</span>
-          )}
-        </div>
+      )}
+
+      {/* Status badge */}
+      <div style={{ textAlign: isRTL ? "right" : "left", marginTop: "auto" }}>
         {badge}
       </div>
     </div>
   );
 }
 
-/* ─── Helper: extract a vital's numeric value and display string from a record ─── */
+/* ─── Helper: extract a vital's value from a record ─── */
 function getVitalFieldValue(record: any, vitalId: string): { display: string; numeric: number | undefined } {
   switch (vitalId) {
     case "bp":      return { display: record.bpSystolic ? `${record.bpSystolic}/${record.bpDiastolic}` : "—", numeric: record.bpSystolic };
@@ -144,88 +154,88 @@ function VitalHistoryModal({
   return (
     <div style={{
       position: "fixed", inset: 0,
-      background: "rgba(0,0,0,0.5)",
+      background: "rgba(0,0,0,0.45)",
       display: "flex", alignItems: "center", justifyContent: "center",
       zIndex: 9999, direction: isRTL ? "rtl" : "ltr",
     }}>
       <div style={{
         background: "#fff", borderRadius: 16,
-        width: "90%", maxWidth: 520, maxHeight: "80vh",
+        width: "90%", maxWidth: 560, maxHeight: "82vh",
         display: "flex", flexDirection: "column",
         boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
         overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
-          padding: "20px 24px",
-          borderBottom: "1px solid #F1F1F1",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 24px 14px",
+          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
           flexDirection: isRTL ? "row-reverse" : "row",
           flexShrink: 0,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
-            <Clock size={18} color="#50C878" strokeWidth={1.8} />
-            <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>
-              {t("vitals.history")} — {vitalLabel}
-            </span>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>□</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: "#111827" }}>
+                {vitalLabel} {t("vitals.historyWord")}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0, paddingInlineStart: isRTL ? 0 : 30 }}>
+              {t("vitals.historySubtitle")}
+            </p>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#717182", padding: 4, display: "flex", alignItems: "center" }}>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+          >
             <X size={20} strokeWidth={1.8} />
           </button>
         </div>
 
-        {/* Timeline list */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+        {/* Divider */}
+        <div style={{ height: 1, background: "#F3F4F6", flexShrink: 0 }} />
+
+        {/* Entries */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
           {records.length === 0 ? (
-            <p style={{ color: "#717182", fontSize: 15, textAlign: "center", padding: "32px 0" }}>
+            <p style={{ color: "#9CA3AF", fontSize: 15, textAlign: "center", padding: "40px 0" }}>
               {t("vitals.noHistory")}
             </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {records.map((r, i) => (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  flexDirection: isRTL ? "row-reverse" : "row",
-                  padding: "12px 16px",
-                  background: i === 0 ? "#F0FDF4" : "#F9FAFB",
-                  borderRadius: 10,
-                  border: `1px solid ${i === 0 ? "#bbf7d0" : "#F1F1F1"}`,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexDirection: isRTL ? "row-reverse" : "row" }}>
-                    {i === 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 700, background: "#50C878", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>
-                        {t("vitals.latest")}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 13, color: "#717182" }}>
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
-                    <span style={{ fontSize: 18, fontWeight: 800, color: "#171717" }}>
-                      {r.display}
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#717182", marginInlineStart: 4 }}>{unit}</span>
-                    </span>
-                    <VitalStatusBadge
-                      value={r.numeric}
-                      vitalId={vitalId}
-                      vitalSettings={vitalSettings}
-                      t={t}
-                    />
-                  </div>
+          ) : records.map((r, i) => (
+            <div key={i} style={{
+              background: "#fff",
+              border: "1px solid #E5E7EB",
+              borderRadius: 12,
+              padding: "14px 18px",
+            }}>
+              {/* Main row */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                flexDirection: isRTL ? "row-reverse" : "row",
+              }}>
+                {/* Left: dot + value + unit + badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexDirection: isRTL ? "row-reverse" : "row" }}>
+                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
+                  <span style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>{r.display}</span>
+                  <span style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500 }}>{unit}</span>
+                  <VitalStatusBadge value={r.numeric} vitalId={vitalId} vitalSettings={vitalSettings} t={t} />
                 </div>
-              ))}
+                {/* Right: clock + timestamp */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
+                  <Clock size={13} strokeWidth={1.7} color="#9CA3AF" />
+                  <span style={{ fontSize: 12, color: "#6B7280" }}>{fmtTimestamp(r.createdAt)}</span>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Footer */}
+        {/* Footer — Clear History */}
         <div style={{
-          padding: "16px 24px",
-          borderTop: "1px solid #F1F1F1",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexDirection: isRTL ? "row-reverse" : "row",
+          padding: "14px 24px",
+          borderTop: "1px solid #F3F4F6",
           flexShrink: 0,
+          display: "flex", alignItems: "center",
+          flexDirection: isRTL ? "row-reverse" : "row",
         }}>
           {!confirmClear ? (
             <button
@@ -233,7 +243,7 @@ function VitalHistoryModal({
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "none", border: "1px solid #fca5a5",
-                borderRadius: 8, padding: "8px 14px",
+                borderRadius: 8, padding: "8px 16px",
                 cursor: "pointer", fontSize: 13, color: "#ef4444",
                 fontFamily: "'Cairo', sans-serif",
                 flexDirection: isRTL ? "row-reverse" : "row",
@@ -243,28 +253,22 @@ function VitalHistoryModal({
               {t("vitals.clearHistory")}
             </button>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: isRTL ? "row-reverse" : "row" }}>
-              <span style={{ fontSize: 13, color: "#717182" }}>{t("vitals.clearHistoryConfirm")}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <span style={{ fontSize: 13, color: "#6B7280" }}>{t("vitals.clearHistoryConfirm")}</span>
               <button
                 onClick={() => { onClearHistory(); setConfirmClear(false); }}
-                style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+                style={{ padding: "7px 16px", borderRadius: 8, background: "#ef4444", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
               >
                 {t("common.yes")}
               </button>
               <button
                 onClick={() => setConfirmClear(false)}
-                style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+                style={{ padding: "7px 16px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
               >
                 {t("common.no")}
               </button>
             </div>
           )}
-          <button
-            onClick={onClose}
-            style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182" }}
-          >
-            {t("common.cancel")}
-          </button>
         </div>
       </div>
     </div>
@@ -328,50 +332,58 @@ export default function PatientProfile() {
     { id: "notes"          as const, label: t("profile.tab.notes") },
   ];
 
+  const ts = latestVitals?.createdAt ? fmtTimestamp(latestVitals.createdAt) : null;
+
   /* vital card definitions */
   const vitalCards = [
     {
-      id: "bp", icon: Heart, iconColor: "#e53e3e", iconBg: "#FFF5F5", accentColor: "#e53e3e",
+      id: "bp", icon: Heart, iconColor: "#e53e3e",
+      cardBg: "#FFF5F5", cardBorder: "#FECACA",
       label: t("vitals.bp"),
-      display: latestVitals?.bpSystolic
-        ? `${latestVitals.bpSystolic}/${latestVitals.bpDiastolic}` : "—",
-      unit: "mmHg", badgeValue: latestVitals?.bpSystolic,
+      display: latestVitals?.bpSystolic ? `${latestVitals.bpSystolic}/${latestVitals.bpDiastolic}` : "—",
+      unit: "mmHg", badgeValue: latestVitals?.bpSystolic, timestamp: ts,
     },
     {
-      id: "hr", icon: Activity, iconColor: "#e53e3e", iconBg: "#FFF5F5", accentColor: "#e53e3e",
+      id: "hr", icon: Activity, iconColor: "#e53e3e",
+      cardBg: "#FFF5F5", cardBorder: "#FECACA",
       label: t("vitals.hr"),
       display: latestVitals?.heartRate?.toString() ?? "—",
-      unit: "bpm", badgeValue: latestVitals?.heartRate,
+      unit: "bpm", badgeValue: latestVitals?.heartRate, timestamp: ts,
     },
     {
-      id: "temp", icon: Thermometer, iconColor: "#dd6b20", iconBg: "#FFFAF0", accentColor: "#dd6b20",
+      id: "temp", icon: Thermometer, iconColor: "#c2410c",
+      cardBg: "#FFFBF0", cardBorder: "#FED7AA",
       label: t("vitals.temp"),
       display: latestVitals?.temperature?.toString() ?? "—",
-      unit: "°C", badgeValue: latestVitals?.temperature,
+      unit: "°C", badgeValue: latestVitals?.temperature, timestamp: ts,
     },
     {
-      id: "spo2", icon: Droplets, iconColor: "#3182ce", iconBg: "#EBF8FF", accentColor: "#3182ce",
+      id: "spo2", icon: Droplets, iconColor: "#2563eb",
+      cardBg: "#EFF6FF", cardBorder: "#BFDBFE",
       label: t("vitals.spo2"),
       display: latestVitals?.oxygenSat?.toString() ?? "—",
-      unit: "%", badgeValue: latestVitals?.oxygenSat,
+      unit: "%", badgeValue: latestVitals?.oxygenSat, timestamp: ts,
     },
     {
-      id: "rr", icon: Wind, iconColor: "#6b46c1", iconBg: "#FAF5FF", accentColor: "#6b46c1",
+      id: "rr", icon: Wind, iconColor: "#0891b2",
+      cardBg: "#F0F9FF", cardBorder: "#BAE6FD",
       label: t("vitals.rr"),
       display: latestVitals?.respiratoryRate?.toString() ?? "—",
-      unit: "/min", badgeValue: latestVitals?.respiratoryRate,
+      unit: "/min", badgeValue: latestVitals?.respiratoryRate, timestamp: ts,
     },
     {
-      id: "glucose", icon: Droplet, iconColor: "#d69e2e", iconBg: "#FFFFF0", accentColor: "#d69e2e",
+      id: "glucose", icon: Droplet, iconColor: "#16a34a",
+      cardBg: "#F0FFF4", cardBorder: "#BBF7D0",
       label: t("vitals.glucose"),
       display: latestVitals?.bloodGlucose?.toString() ?? "—",
-      unit: "mg/dL", badgeValue: latestVitals?.bloodGlucose,
+      unit: "mg/dL", badgeValue: latestVitals?.bloodGlucose, timestamp: ts,
     },
     {
-      id: "weight", icon: Scale, iconColor: "#38a169", iconBg: "#F0FFF4", accentColor: "#38a169",
+      id: "weight", icon: Scale, iconColor: "#374151",
+      cardBg: "#FAFAFA", cardBorder: "#E5E7EB",
       label: t("vitals.weight"),
       display: latestVitals?.currentWeight?.toString() ?? "—",
-      unit: "kg", badgeValue: latestVitals?.currentWeight,
+      unit: "kg", badgeValue: latestVitals?.currentWeight, timestamp: ts,
     },
   ];
 
@@ -553,17 +565,19 @@ export default function PatientProfile() {
             {t("vitals.noData")}
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-            {vitalCards.map(({ id, icon, iconColor, iconBg, accentColor, label: lbl, display, unit, badgeValue }) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            {vitalCards.map(({ id, icon, iconColor, cardBg, cardBorder, label: lbl, display, unit, badgeValue, timestamp: cardTs }) => (
               <VitalCard
                 key={id}
                 icon={icon}
                 iconColor={iconColor}
-                iconBg={iconBg}
-                accentColor={accentColor}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
                 label={lbl}
                 displayValue={display}
                 unit={unit}
+                timestamp={cardTs}
+                isRTL={isRTL}
                 onHistory={() => setVitalHistoryModal(id)}
                 t={t}
                 badge={

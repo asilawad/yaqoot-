@@ -147,9 +147,11 @@ export const en = {
 
   // Vitals UI
   'vitals.history': 'Vital History',
+  'vitals.historyWord': 'History',
+  'vitals.historySubtitle': 'Complete chronological timeline of all readings.',
   'vitals.clearHistory': 'Clear History',
-  'vitals.clearHistoryConfirm': 'Are you sure?',
-  'vitals.noHistory': 'No readings recorded for this vital',
+  'vitals.clearHistoryConfirm': 'Are you sure? This will permanently delete all readings.',
+  'vitals.noHistory': 'No readings recorded for this vital.',
   'vitals.latest': 'Latest',
   'vitals.readOnly': 'View only — added through visits',
   'vitals.noData': 'No vital signs recorded yet',

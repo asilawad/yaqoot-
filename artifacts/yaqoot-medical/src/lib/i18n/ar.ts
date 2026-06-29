@@ -147,9 +147,11 @@ export const ar = {
 
   // Vitals UI
   'vitals.history': 'سجل المؤشر',
+  'vitals.historyWord': 'السجل',
+  'vitals.historySubtitle': 'سجل زمني كامل لجميع القراءات.',
   'vitals.clearHistory': 'مسح السجل',
-  'vitals.clearHistoryConfirm': 'هل أنت متأكد؟',
-  'vitals.noHistory': 'لا توجد قراءات مسجلة لهذا المؤشر',
+  'vitals.clearHistoryConfirm': 'هل أنت متأكد؟ سيتم حذف جميع القراءات نهائياً.',
+  'vitals.noHistory': 'لا توجد قراءات مسجلة لهذا المؤشر.',
   'vitals.latest': 'الأحدث',
   'vitals.readOnly': 'عرض فقط — يُضاف عبر الزيارة',
   'vitals.noData': 'لم يتم تسجيل أي مؤشرات حيوية بعد',
