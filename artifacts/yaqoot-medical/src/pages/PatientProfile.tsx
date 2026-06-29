@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import {
   ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
-  User, Phone, MapPin, UserCheck,
+  User, Phone, MapPin, UserCheck, Clock, X,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
@@ -48,38 +48,224 @@ function VitalStatusBadge({
 
 /* ─── Vital card ─── */
 function VitalCard({
-  icon: Icon, iconColor, iconBg, label, displayValue, unit, badge,
+  icon: Icon, iconColor, iconBg, accentColor, label, displayValue, unit, badge, onHistory, t,
 }: {
-  icon: React.ElementType; iconColor: string; iconBg: string;
+  icon: React.ElementType; iconColor: string; iconBg: string; accentColor: string;
   label: string; displayValue: string; unit: string; badge: React.ReactNode;
+  onHistory: () => void; t: (k: string) => string;
 }) {
   return (
     <div style={{
       background: "#fff",
       borderRadius: 12,
       border: "1px solid #F1F1F1",
-      boxShadow: "0px 4px 12px rgba(0,0,0,0.05)",
-      padding: 20,
+      borderTop: `3px solid ${accentColor}`,
+      boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+      padding: "16px 18px",
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 12,
+      position: "relative",
     }}>
-      <div style={{
-        width: 36, height: 36, borderRadius: 9,
-        background: iconBg,
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <Icon size={18} strokeWidth={1.8} color={iconColor} />
+      {/* Top row: icon + history button */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 9,
+          background: iconBg,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <Icon size={18} strokeWidth={1.8} color={iconColor} />
+        </div>
+        <button
+          onClick={onHistory}
+          title={t("vitals.history")}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "#717182", padding: 4, borderRadius: 6,
+            display: "flex", alignItems: "center",
+            transition: "color 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = accentColor)}
+          onMouseLeave={e => (e.currentTarget.style.color = "#717182")}
+        >
+          <Clock size={15} strokeWidth={1.7} />
+        </button>
       </div>
+
+      {/* Label */}
       <div>
-        <div style={{ fontSize: 12, color: "#717182", fontWeight: 600, marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "#171717", lineHeight: 1 }}>
+        <div style={{ fontSize: 11, color: "#717182", fontWeight: 700, marginBottom: 6, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+          {label}
+        </div>
+        {/* Value */}
+        <div style={{ fontSize: 24, fontWeight: 800, color: "#171717", lineHeight: 1 }}>
           {displayValue}
           {displayValue !== "—" && (
             <span style={{ fontSize: 12, fontWeight: 500, color: "#717182", marginInlineStart: 5 }}>{unit}</span>
           )}
         </div>
         {badge}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Helper: extract a vital's numeric value and display string from a record ─── */
+function getVitalFieldValue(record: any, vitalId: string): { display: string; numeric: number | undefined } {
+  switch (vitalId) {
+    case "bp":      return { display: record.bpSystolic ? `${record.bpSystolic}/${record.bpDiastolic}` : "—", numeric: record.bpSystolic };
+    case "hr":      return { display: record.heartRate?.toString() ?? "—", numeric: record.heartRate };
+    case "temp":    return { display: record.temperature?.toString() ?? "—", numeric: record.temperature };
+    case "spo2":    return { display: record.oxygenSat?.toString() ?? "—", numeric: record.oxygenSat };
+    case "rr":      return { display: record.respiratoryRate?.toString() ?? "—", numeric: record.respiratoryRate };
+    case "glucose": return { display: record.bloodGlucose?.toString() ?? "—", numeric: record.bloodGlucose };
+    case "weight":  return { display: record.currentWeight?.toString() ?? "—", numeric: record.currentWeight };
+    default:        return { display: "—", numeric: undefined };
+  }
+}
+
+/* ─── Vital History Modal ─── */
+function VitalHistoryModal({
+  vitalId, vitalLabel, unit, allVitals, vitalSettings, isRTL, t,
+  onClose, onClearHistory,
+}: {
+  vitalId: string; vitalLabel: string; unit: string;
+  allVitals: any[]; vitalSettings: any[]; isRTL: boolean;
+  t: (k: string) => string;
+  onClose: () => void; onClearHistory: () => void;
+}) {
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const records = allVitals
+    .map(v => ({ ...getVitalFieldValue(v, vitalId), createdAt: v.createdAt }))
+    .filter(r => r.numeric !== undefined);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, direction: isRTL ? "rtl" : "ltr",
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 16,
+        width: "90%", maxWidth: 520, maxHeight: "80vh",
+        display: "flex", flexDirection: "column",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
+        overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "20px 24px",
+          borderBottom: "1px solid #F1F1F1",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexDirection: isRTL ? "row-reverse" : "row",
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+            <Clock size={18} color="#50C878" strokeWidth={1.8} />
+            <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>
+              {t("vitals.history")} — {vitalLabel}
+            </span>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#717182", padding: 4, display: "flex", alignItems: "center" }}>
+            <X size={20} strokeWidth={1.8} />
+          </button>
+        </div>
+
+        {/* Timeline list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+          {records.length === 0 ? (
+            <p style={{ color: "#717182", fontSize: 15, textAlign: "center", padding: "32px 0" }}>
+              {t("vitals.noHistory")}
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {records.map((r, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  flexDirection: isRTL ? "row-reverse" : "row",
+                  padding: "12px 16px",
+                  background: i === 0 ? "#F0FDF4" : "#F9FAFB",
+                  borderRadius: 10,
+                  border: `1px solid ${i === 0 ? "#bbf7d0" : "#F1F1F1"}`,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexDirection: isRTL ? "row-reverse" : "row" }}>
+                    {i === 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 700, background: "#50C878", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>
+                        {t("vitals.latest")}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 13, color: "#717182" }}>
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: "#171717" }}>
+                      {r.display}
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "#717182", marginInlineStart: 4 }}>{unit}</span>
+                    </span>
+                    <VitalStatusBadge
+                      value={r.numeric}
+                      vitalId={vitalId}
+                      vitalSettings={vitalSettings}
+                      t={t}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: "16px 24px",
+          borderTop: "1px solid #F1F1F1",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexDirection: isRTL ? "row-reverse" : "row",
+          flexShrink: 0,
+        }}>
+          {!confirmClear ? (
+            <button
+              onClick={() => setConfirmClear(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "none", border: "1px solid #fca5a5",
+                borderRadius: 8, padding: "8px 14px",
+                cursor: "pointer", fontSize: 13, color: "#ef4444",
+                fontFamily: "'Cairo', sans-serif",
+                flexDirection: isRTL ? "row-reverse" : "row",
+              }}
+            >
+              <Trash2 size={13} strokeWidth={1.6} />
+              {t("vitals.clearHistory")}
+            </button>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <span style={{ fontSize: 13, color: "#717182" }}>{t("vitals.clearHistoryConfirm")}</span>
+              <button
+                onClick={() => { onClearHistory(); setConfirmClear(false); }}
+                style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+              >
+                {t("common.yes")}
+              </button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+              >
+                {t("common.no")}
+              </button>
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182" }}
+          >
+            {t("common.cancel")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -98,8 +284,8 @@ export default function PatientProfile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteText, setNoteText] = useState("");
-  const [showClearVitalsConfirm, setShowClearVitalsConfirm] = useState(false);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+  const [vitalHistoryModal, setVitalHistoryModal] = useState<string | null>(null);
 
   const patient = patients.find(p => p.id === params.id);
   if (!patient) {
@@ -145,49 +331,51 @@ export default function PatientProfile() {
   /* vital card definitions */
   const vitalCards = [
     {
-      id: "bp", icon: Heart, iconColor: "#e53e3e", iconBg: "#FFF5F5",
+      id: "bp", icon: Heart, iconColor: "#e53e3e", iconBg: "#FFF5F5", accentColor: "#e53e3e",
       label: t("vitals.bp"),
       display: latestVitals?.bpSystolic
         ? `${latestVitals.bpSystolic}/${latestVitals.bpDiastolic}` : "—",
       unit: "mmHg", badgeValue: latestVitals?.bpSystolic,
     },
     {
-      id: "hr", icon: Activity, iconColor: "#e53e3e", iconBg: "#FFF5F5",
+      id: "hr", icon: Activity, iconColor: "#e53e3e", iconBg: "#FFF5F5", accentColor: "#e53e3e",
       label: t("vitals.hr"),
       display: latestVitals?.heartRate?.toString() ?? "—",
       unit: "bpm", badgeValue: latestVitals?.heartRate,
     },
     {
-      id: "temp", icon: Thermometer, iconColor: "#dd6b20", iconBg: "#FFFAF0",
+      id: "temp", icon: Thermometer, iconColor: "#dd6b20", iconBg: "#FFFAF0", accentColor: "#dd6b20",
       label: t("vitals.temp"),
       display: latestVitals?.temperature?.toString() ?? "—",
       unit: "°C", badgeValue: latestVitals?.temperature,
     },
     {
-      id: "spo2", icon: Droplets, iconColor: "#3182ce", iconBg: "#EBF8FF",
+      id: "spo2", icon: Droplets, iconColor: "#3182ce", iconBg: "#EBF8FF", accentColor: "#3182ce",
       label: t("vitals.spo2"),
       display: latestVitals?.oxygenSat?.toString() ?? "—",
       unit: "%", badgeValue: latestVitals?.oxygenSat,
     },
     {
-      id: "rr", icon: Wind, iconColor: "#6b46c1", iconBg: "#FAF5FF",
+      id: "rr", icon: Wind, iconColor: "#6b46c1", iconBg: "#FAF5FF", accentColor: "#6b46c1",
       label: t("vitals.rr"),
       display: latestVitals?.respiratoryRate?.toString() ?? "—",
       unit: "/min", badgeValue: latestVitals?.respiratoryRate,
     },
     {
-      id: "glucose", icon: Droplet, iconColor: "#d69e2e", iconBg: "#FFFFF0",
+      id: "glucose", icon: Droplet, iconColor: "#d69e2e", iconBg: "#FFFFF0", accentColor: "#d69e2e",
       label: t("vitals.glucose"),
       display: latestVitals?.bloodGlucose?.toString() ?? "—",
       unit: "mg/dL", badgeValue: latestVitals?.bloodGlucose,
     },
     {
-      id: "weight", icon: Scale, iconColor: "#38a169", iconBg: "#F0FFF4",
+      id: "weight", icon: Scale, iconColor: "#38a169", iconBg: "#F0FFF4", accentColor: "#38a169",
       label: t("vitals.weight"),
       display: latestVitals?.currentWeight?.toString() ?? "—",
       unit: "kg", badgeValue: latestVitals?.currentWeight,
     },
   ];
+
+  const allPatientVitals = repo.getVitalSignsByPatient(patient.id);
 
   const handleAddNote = () => {
     if (!noteText.trim()) return;
@@ -351,34 +539,33 @@ export default function PatientProfile() {
         </div>
       </div>
 
-      {/* ── Vital Signs — redesigned cards ── */}
+      {/* ── Vital Signs ── */}
       <div style={{ ...card, paddingBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: 0 }}>{t("profile.vitals")}</h2>
-          <button
-            onClick={() => setShowClearVitalsConfirm(true)}
-            data-testid="btn-clear-vitals"
-            style={{ background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "'Cairo', sans-serif" }}
-          >
-            {t("profile.clearVitals")}
-          </button>
+          <span style={{ fontSize: 12, color: "#717182" }}>
+            {t("vitals.readOnly")}
+          </span>
         </div>
 
-        {!latestVitals ? (
+        {allPatientVitals.length === 0 ? (
           <p style={{ color: "#717182", fontSize: 15, textAlign: isRTL ? "right" : "left" }}>
-            No vital signs recorded yet.
+            {t("vitals.noData")}
           </p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-            {vitalCards.map(({ id, icon, iconColor, iconBg, label: lbl, display, unit, badgeValue }) => (
+            {vitalCards.map(({ id, icon, iconColor, iconBg, accentColor, label: lbl, display, unit, badgeValue }) => (
               <VitalCard
                 key={id}
                 icon={icon}
                 iconColor={iconColor}
                 iconBg={iconBg}
+                accentColor={accentColor}
                 label={lbl}
                 displayValue={display}
                 unit={unit}
+                onHistory={() => setVitalHistoryModal(id)}
+                t={t}
                 badge={
                   <VitalStatusBadge
                     value={badgeValue}
@@ -723,18 +910,28 @@ export default function PatientProfile() {
         </div>
       )}
 
-      {showClearVitalsConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 36, maxWidth: 460, width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-            <AlertTriangle size={32} color="#ef4444" style={{ margin: "0 auto 14px" }} />
-            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>{t("profile.clearVitalsConfirm")}</div>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 20 }}>
-              <button onClick={() => setShowClearVitalsConfirm(false)} style={{ padding: "10px 22px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
-              <button onClick={() => { clearVitalSignsByPatient(patient.id); refreshData(); setShowClearVitalsConfirm(false); toast({ title: "Vitals cleared" }); }} data-testid="btn-confirm-clear-vitals" style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.yes")}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Vital History Modal ── */}
+      {vitalHistoryModal && (() => {
+        const vc = vitalCards.find(c => c.id === vitalHistoryModal)!;
+        return (
+          <VitalHistoryModal
+            vitalId={vitalHistoryModal}
+            vitalLabel={vc.label}
+            unit={vc.unit}
+            allVitals={allPatientVitals}
+            vitalSettings={vitalSettings}
+            isRTL={isRTL}
+            t={t}
+            onClose={() => setVitalHistoryModal(null)}
+            onClearHistory={() => {
+              clearVitalSignsByPatient(patient.id);
+              refreshData();
+              setVitalHistoryModal(null);
+              toast({ title: t("vitals.clearedSuccess") });
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

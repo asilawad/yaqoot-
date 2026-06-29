@@ -145,6 +145,16 @@ export const en = {
   'vitals.glucose': 'Blood Glucose',
   'vitals.weight': 'Current Weight',
 
+  // Vitals UI
+  'vitals.history': 'Vital History',
+  'vitals.clearHistory': 'Clear History',
+  'vitals.clearHistoryConfirm': 'Are you sure?',
+  'vitals.noHistory': 'No readings recorded for this vital',
+  'vitals.latest': 'Latest',
+  'vitals.readOnly': 'View only — added through visits',
+  'vitals.noData': 'No vital signs recorded yet',
+  'vitals.clearedSuccess': 'Vital signs history cleared',
+
   // Vitals Labels
   'vitals.hypertension': 'Hypertension',
   'vitals.hypotension': 'Hypotension',

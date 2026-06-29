@@ -145,6 +145,16 @@ export const ar = {
   'vitals.glucose': 'سكر الدم',
   'vitals.weight': 'الوزن',
 
+  // Vitals UI
+  'vitals.history': 'سجل المؤشر',
+  'vitals.clearHistory': 'مسح السجل',
+  'vitals.clearHistoryConfirm': 'هل أنت متأكد؟',
+  'vitals.noHistory': 'لا توجد قراءات مسجلة لهذا المؤشر',
+  'vitals.latest': 'الأحدث',
+  'vitals.readOnly': 'عرض فقط — يُضاف عبر الزيارة',
+  'vitals.noData': 'لم يتم تسجيل أي مؤشرات حيوية بعد',
+  'vitals.clearedSuccess': 'تم مسح سجل المؤشرات الحيوية',
+
   // Vitals Labels
   'vitals.hypertension': 'ارتفاع ضغط الدم',
   'vitals.hypotension': 'انخفاض ضغط الدم',
