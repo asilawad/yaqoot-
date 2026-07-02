@@ -29,7 +29,11 @@ export const en = {
   'patients.allFields': 'All Fields',
   'patients.serviceType': 'Service Type',
   'patients.allServices': 'All Services',
-  'patients.visitDate': 'Visit Date',
+  'patients.visitSpecificDate': 'Search by Date',
+  'patients.visitMonth': 'Search by Month',
+  'patients.allMonths': 'All Months',
+  'patients.visitDatePlaceholder': 'e.g. 2026-07',
+  'patients.showingResults': 'Showing {count} results',
   
   // Patient Table
   'table.serial': '#',

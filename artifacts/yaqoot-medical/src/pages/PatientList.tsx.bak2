@@ -5,8 +5,6 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import AddPatientModal from "@/components/patients/AddPatientModal";
 import * as repo from "@/lib/db/repository";
-import type { Visit } from "@/lib/db/types";
-import type { Patient } from "@/lib/db/types";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
@@ -25,19 +23,12 @@ const SEARCH_FIELDS = [
   { key: "table.nationalId", value: "nationalId" },
   { key: "table.mobile", value: "mobile" },
   { key: "table.location", value: "location" },
-  { key: "patients.visitSpecificDate", value: "visitSpecificDate" },
-  { key: "patients.visitMonth", value: "visitMonth" },
+  { key: "patients.visitDate", value: "visitDate" },
 ];
 
 function normalizeDateQuery(q: string): string {
   return q.replace(/\s*-\s*/g, "-").trim();
 }
-
-type TableRow = {
-  patient: Patient;
-  visit: Visit | null;
-  rowKey: string;
-};
 
 export default function PatientList() {
   const { t, isRTL } = useTranslation();
@@ -45,74 +36,16 @@ export default function PatientList() {
   const { patients, visits } = useData();
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const monthNames = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(2000, i, 1);
-      return {
-        value: String(i + 1),
-        label: d.toLocaleString(isRTL ? "ar-SA" : "en-US", { month: "long" }),
-      };
-    }),
-  [isRTL]);
-
-  const getLastVisit = (patientId: string): Visit | undefined => {
-    const pvs = visits
-      .filter((v) => v.patientId === patientId)
-      .sort((a, b) => b.visitDate.localeCompare(a.visitDate));
+  const getLastVisit = (patientId: string) => {
+    const pvs = visits.filter((v) => v.patientId === patientId).sort((a, b) => b.visitDate.localeCompare(a.visitDate));
     return pvs[0];
   };
 
-  const isDateSearchMode = searchField === "visitSpecificDate" || searchField === "visitMonth";
-
-  const filteredRows = useMemo((): TableRow[] => {
-    if (searchField === "visitSpecificDate") {
-      const normalizedQ = normalizeDateQuery(search.toLowerCase());
-      if (!normalizedQ) {
-        return patients.map((p) => ({
-          patient: p,
-          visit: getLastVisit(p.id) ?? null,
-          rowKey: p.id,
-        }));
-      }
-      const rows: TableRow[] = [];
-      for (const v of visits) {
-        if (!v.visitDate.includes(normalizedQ)) continue;
-        if (serviceFilter && !v.mainService.toLowerCase().includes(serviceFilter.toLowerCase())) continue;
-        const patient = patients.find((p) => p.id === v.patientId);
-        if (!patient) continue;
-        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id ?? v.visitDate}` });
-      }
-      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
-      return rows;
-    }
-
-    if (searchField === "visitMonth") {
-      if (!selectedMonth) {
-        return patients.map((p) => ({
-          patient: p,
-          visit: getLastVisit(p.id) ?? null,
-          rowKey: p.id,
-        }));
-      }
-      const targetMonth = parseInt(selectedMonth);
-      const rows: TableRow[] = [];
-      for (const v of visits) {
-        const vMonth = new Date(v.visitDate).getMonth() + 1;
-        if (vMonth !== targetMonth) continue;
-        if (serviceFilter && !v.mainService.toLowerCase().includes(serviceFilter.toLowerCase())) continue;
-        const patient = patients.find((p) => p.id === v.patientId);
-        if (!patient) continue;
-        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id ?? v.visitDate}` });
-      }
-      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
-      return rows;
-    }
-
-    const filteredPatients = patients.filter((p) => {
+  const filtered = useMemo(() => {
+    return patients.filter((p) => {
       const q = search.toLowerCase();
       let matchSearch = true;
       if (q) {
@@ -126,18 +59,24 @@ export default function PatientList() {
         else if (searchField === "nationalId") matchSearch = p.nationalId.includes(q);
         else if (searchField === "mobile") matchSearch = p.mobile.includes(q);
         else if (searchField === "location") matchSearch = `${p.region} ${p.neighborhood}`.toLowerCase().includes(q);
+        else if (searchField === "visitDate") {
+          const normalizedQ = normalizeDateQuery(q);
+          if (normalizedQ) {
+            const patientVisits = visits.filter((v) => v.patientId === p.id);
+            matchSearch = patientVisits.some((v) => v.visitDate.includes(normalizedQ));
+          }
+        }
       }
       const latestVisitService = getLastVisit(p.id)?.mainService || "";
       const matchService = !serviceFilter || latestVisitService.toLowerCase().includes(serviceFilter.toLowerCase());
       return matchSearch && matchService;
     });
+  }, [patients, visits, search, searchField, serviceFilter]);
 
-    return filteredPatients.map((p) => ({
-      patient: p,
-      visit: getLastVisit(p.id) ?? null,
-      rowKey: p.id,
-    }));
-  }, [patients, visits, search, searchField, selectedMonth, serviceFilter]);
+  const getLastComplaint = (patientId: string) => {
+    const lv = getLastVisit(patientId);
+    return lv?.chiefComplaint || "-";
+  };
 
   const selectStyle: React.CSSProperties = {
     background: "#F3F3F5",
@@ -152,14 +91,6 @@ export default function PatientList() {
     appearance: "none" as const,
     WebkitAppearance: "none" as const,
   };
-
-  const isExpanded = isDateSearchMode &&
-    ((searchField === "visitSpecificDate" && normalizeDateQuery(search.toLowerCase()) !== "") ||
-     (searchField === "visitMonth" && selectedMonth !== ""));
-
-  const countLabel = isExpanded
-    ? t("patients.showingResults", { count: filteredRows.length })
-    : t("patients.showing", { count: filteredRows.length, total: patients.length });
 
   return (
     <div>
@@ -197,66 +128,45 @@ export default function PatientList() {
       {/* Search & Filters */}
       <div className="medical-card" style={{ marginBottom: 16, padding: 14 }}>
         <div style={{ display: "flex", gap: 10, flexDirection: isRTL ? "row-reverse" : "row", flexWrap: "wrap" }}>
-          {/* Search input or month dropdown */}
-          {searchField === "visitMonth" ? (
-            <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                data-testid="select-visit-month"
-                style={{ ...selectStyle, width: "100%", padding: "9px 32px 9px 12px" }}
-              >
-                <option value="">{t("patients.allMonths")}</option>
-                {monthNames.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-            </div>
-          ) : (
-            <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
-              <Search
-                size={15}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  [isRTL ? "right" : "left"]: 10,
-                  color: "#717182",
-                  pointerEvents: "none",
-                }}
-              />
-              <input
-                type="search"
-                placeholder={searchField === "visitSpecificDate" ? t("patients.visitDatePlaceholder") : t("common.search")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                data-testid="input-search-patients"
-                style={{
-                  width: "100%",
-                  background: "#F3F3F5",
-                  border: "1px solid #F1F1F1",
-                  borderRadius: 8,
-                  padding: isRTL ? "9px 32px 9px 12px" : "9px 12px 9px 32px",
-                  fontSize: 13,
-                  fontFamily: "'Cairo', sans-serif",
-                  color: "#171717",
-                  outline: "none",
-                  direction: isRTL ? "rtl" : "ltr",
-                }}
-              />
-            </div>
-          )}
+          {/* Search box */}
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search
+              size={15}
+              style={{
+                position: "absolute",
+                top: "50%",
+                transform: "translateY(-50%)",
+                [isRTL ? "right" : "left"]: 10,
+                color: "#717182",
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="search"
+              placeholder={t("common.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="input-search-patients"
+              style={{
+                width: "100%",
+                background: "#F3F3F5",
+                border: "1px solid #F1F1F1",
+                borderRadius: 8,
+                padding: isRTL ? "9px 32px 9px 12px" : "9px 12px 9px 32px",
+                fontSize: 13,
+                fontFamily: "'Cairo', sans-serif",
+                color: "#171717",
+                outline: "none",
+                direction: isRTL ? "rtl" : "ltr",
+              }}
+            />
+          </div>
 
           {/* Search field filter */}
           <div style={{ position: "relative" }}>
             <select
               value={searchField}
-              onChange={(e) => {
-                setSearchField(e.target.value);
-                setSearch("");
-                setSelectedMonth("");
-              }}
+              onChange={(e) => setSearchField(e.target.value)}
               data-testid="select-search-field"
               style={selectStyle}
             >
@@ -286,7 +196,7 @@ export default function PatientList() {
 
       {/* Count */}
       <div style={{ marginBottom: 10, fontSize: 13, color: "#717182", textAlign: isRTL ? "right" : "left" }}>
-        {countLabel}
+        {t("patients.showing", { count: filtered.length, total: patients.length })}
       </div>
 
       {/* Table */}
@@ -301,16 +211,16 @@ export default function PatientList() {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#717182", fontSize: 14 }}>{t("table.empty")}</td>
                 </tr>
               ) : (
-                filteredRows.map((row, idx) => {
-                  const { patient: p, visit: v } = row;
+                filtered.map((p, idx) => {
+                  const lv = getLastVisit(p.id);
                   return (
                     <tr
-                      key={row.rowKey}
+                      key={p.id}
                       data-testid={`row-patient-${p.id}`}
                       style={{ background: idx % 2 === 0 ? "#fff" : "#E8F5E9", borderBottom: "1px solid #F1F1F1", transition: "background 0.1s ease" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#d4edda"; }}
@@ -330,10 +240,10 @@ export default function PatientList() {
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.mobile}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.region} - {p.neighborhood}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
-                        {v ? new Date(v.visitDate).toLocaleDateString() : "-"}
+                        {lv ? new Date(lv.visitDate).toLocaleDateString() : "-"}
                       </td>
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{v?.mainService || "-"}</td>
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v?.chiefComplaint || "-"}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{lv?.mainService || "-"}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getLastComplaint(p.id)}</td>
                     </tr>
                   );
                 })
