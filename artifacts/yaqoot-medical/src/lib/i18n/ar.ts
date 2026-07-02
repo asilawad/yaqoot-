@@ -29,6 +29,7 @@ export const ar = {
   'patients.allFields': 'جميع الحقول',
   'patients.serviceType': 'نوع الخدمة',
   'patients.allServices': 'جميع الخدمات',
+  'patients.visitDate': 'تاريخ الزيارة',
   
   // Patient Table
   'table.serial': '#',

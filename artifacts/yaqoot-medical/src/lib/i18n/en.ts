@@ -29,6 +29,7 @@ export const en = {
   'patients.allFields': 'All Fields',
   'patients.serviceType': 'Service Type',
   'patients.allServices': 'All Services',
+  'patients.visitDate': 'Visit Date',
   
   // Patient Table
   'table.serial': '#',

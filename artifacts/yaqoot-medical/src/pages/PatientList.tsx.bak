@@ -23,12 +23,7 @@ const SEARCH_FIELDS = [
   { key: "table.nationalId", value: "nationalId" },
   { key: "table.mobile", value: "mobile" },
   { key: "table.location", value: "location" },
-  { key: "patients.visitDate", value: "visitDate" },
 ];
-
-function normalizeDateQuery(q: string): string {
-  return q.replace(/\s*-\s*/g, "-").trim();
-}
 
 export default function PatientList() {
   const { t, isRTL } = useTranslation();
@@ -59,19 +54,12 @@ export default function PatientList() {
         else if (searchField === "nationalId") matchSearch = p.nationalId.includes(q);
         else if (searchField === "mobile") matchSearch = p.mobile.includes(q);
         else if (searchField === "location") matchSearch = `${p.region} ${p.neighborhood}`.toLowerCase().includes(q);
-        else if (searchField === "visitDate") {
-          const normalizedQ = normalizeDateQuery(q);
-          if (normalizedQ) {
-            const patientVisits = visits.filter((v) => v.patientId === p.id);
-            matchSearch = patientVisits.some((v) => v.visitDate.includes(normalizedQ));
-          }
-        }
       }
       const latestVisitService = getLastVisit(p.id)?.mainService || "";
       const matchService = !serviceFilter || latestVisitService.toLowerCase().includes(serviceFilter.toLowerCase());
       return matchSearch && matchService;
     });
-  }, [patients, visits, search, searchField, serviceFilter]);
+  }, [patients, search, searchField, serviceFilter]);
 
   const getLastComplaint = (patientId: string) => {
     const lv = getLastVisit(patientId);
