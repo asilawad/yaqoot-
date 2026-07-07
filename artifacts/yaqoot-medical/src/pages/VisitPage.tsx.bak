@@ -32,10 +32,9 @@ const inputStyle: React.CSSProperties = {
 };
 
 function SectionCard({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  const { isRTL } = useTranslation();
   return (
     <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F1F1F1", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", padding: 24, marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#171717", margin: 0 }}>{title}</h3>
         {action}
       </div>
@@ -399,7 +398,7 @@ export default function VisitPage() {
       {/* Treatment Modal */}
       {showTreatmentModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", direction: isRTL ? "rtl" : "ltr" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{editTreatment ? t("common.edit") : t("visit.addTreatment")}</h3>
               <button onClick={() => setShowTreatmentModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} /></button>
@@ -422,7 +421,7 @@ export default function VisitPage() {
       {/* Investigation Modal */}
       {showInvModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 480, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", direction: isRTL ? "rtl" : "ltr" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 480, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{editInvestigation ? t("common.edit") : t("visit.addInvestigation")}</h3>
               <button onClick={() => setShowInvModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} /></button>
@@ -455,7 +454,7 @@ export default function VisitPage() {
       {/* Vitals Modal */}
       {showVitalsModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 560, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", direction: isRTL ? "rtl" : "ltr" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 560, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{t("visit.addVitals")}</h3>
               <button onClick={() => setShowVitalsModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} /></button>
@@ -493,7 +492,7 @@ export default function VisitPage() {
       {/* Delete Confirmations */}
       {(deleteTreatmentId || deleteInvId) && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 360, width: "90%", textAlign: "center", direction: isRTL ? "rtl" : "ltr" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 360, width: "90%", textAlign: "center" }}>
             <AlertTriangle size={28} color="#ef4444" style={{ margin: "0 auto 12px" }} />
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Confirm Delete?</div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
