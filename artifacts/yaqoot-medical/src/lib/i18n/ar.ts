@@ -29,10 +29,11 @@ export const ar = {
   'patients.allFields': 'جميع الحقول',
   'patients.serviceType': 'نوع الخدمة',
   'patients.allServices': 'جميع الخدمات',
-  'patients.visitSpecificDate': 'بحث بتاريخ محدد',
-  'patients.visitMonth': 'بحث بالشهر',
-  'patients.allMonths': 'جميع الأشهر',
-  'patients.visitDatePlaceholder': 'مثال: 2026-07',
+  'patients.searchExactDate': 'بحث بيوم محدد',
+  'patients.searchMonthYear': 'بحث بالشهر والسنة',
+  'patients.dayPlaceholder': 'اليوم',
+  'patients.selectMonth': 'الشهر',
+  'patients.selectYear': 'السنة',
   'patients.showingResults': 'عرض {count} نتيجة',
   
   // Patient Table
