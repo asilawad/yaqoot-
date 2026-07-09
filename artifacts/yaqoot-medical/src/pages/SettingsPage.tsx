@@ -10,12 +10,12 @@ const cards = [
 ];
 
 export default function SettingsPage() {
-  const { t, isRTL, locale } = useTranslation();
+  const { t, locale } = useTranslation();
   const [, setLocation] = useLocation();
 
   return (
     <div>
-      <div style={{ marginBottom: 32, textAlign: isRTL ? "right" : "left" }}>
+      <div style={{ marginBottom: 32, textAlign: "start" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "#171717" }}>{t("settings.title")}</h1>
       </div>
 
@@ -32,7 +32,7 @@ export default function SettingsPage() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
               padding: 28,
               cursor: "pointer",
-              textAlign: isRTL ? "right" : "left",
+              textAlign: "start",
               display: "flex",
               flexDirection: "column",
               gap: 16,
@@ -52,7 +52,7 @@ export default function SettingsPage() {
               el.style.transform = "translateY(0)";
             }}
           >
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "center", alignSelf: isRTL ? "flex-end" : "flex-start" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "center", alignSelf: "flex-start" }}>
               <Icon size={24} strokeWidth={1.5} color="#50C878" />
             </div>
             <div>

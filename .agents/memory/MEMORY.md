@@ -1,0 +1,1 @@
+- [RTL logical CSS refactor](rtl-logical-css.md) — remove flexDirection double-reversal; use insetInlineStart/End, borderInlineEnd, textAlign:start; keep direction on modals only.

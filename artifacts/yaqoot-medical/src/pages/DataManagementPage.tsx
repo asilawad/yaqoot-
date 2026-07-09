@@ -74,7 +74,7 @@ export default function DataManagementPage() {
     border: "1px solid #F1F1F1",
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
     padding: 24,
-    textAlign: isRTL ? "right" : "left",
+    textAlign: "start",
   };
 
   return (
@@ -82,18 +82,18 @@ export default function DataManagementPage() {
       <button
         onClick={() => setLocation("/settings")}
         data-testid="btn-back-data"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
       >
         <Arrow size={16} />
         {t("common.back")}
       </button>
 
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: isRTL ? "right" : "left" }}>{t("data.title")}</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("data.title")}</h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {/* Backup */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: "row" }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Download size={20} strokeWidth={1.5} color="#50C878" />
             </div>
@@ -113,7 +113,7 @@ export default function DataManagementPage() {
 
         {/* Restore */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: "row" }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FFF3E0", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Upload size={20} strokeWidth={1.5} color="#f59e0b" />
             </div>
@@ -134,7 +134,7 @@ export default function DataManagementPage() {
 
         {/* Storage info */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: isRTL ? "row-reverse" : "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexDirection: "row" }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <HardDrive size={20} strokeWidth={1.5} color="#6366f1" />
             </div>

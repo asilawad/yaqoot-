@@ -49,19 +49,19 @@ export default function AnalyticsPage() {
       <button
         onClick={() => setLocation("/settings")}
         data-testid="btn-back-analytics"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
       >
         <Arrow size={16} />
         {t("common.back")}
       </button>
 
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: isRTL ? "right" : "left" }}>{t("settings.analytics")}</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("settings.analytics")}</h1>
 
       {/* KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
         {kpis.map(({ key, value, icon: Icon, color }) => (
-          <div key={key} className="medical-card" style={{ textAlign: isRTL ? "right" : "left" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row", marginBottom: 12 }}>
+          <div key={key} className="medical-card" style={{ textAlign: "start" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: "row", marginBottom: 12 }}>
               <span style={{ fontSize: 13, color: "#717182", fontWeight: 500 }}>{t(key)}</span>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icon size={18} strokeWidth={1.5} color={color} />
@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
 
       {/* Bar Chart */}
       <div className="medical-card">
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: isRTL ? "right" : "left" }}>{t("analytics.serviceDemand")}</h2>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: "start" }}>{t("analytics.serviceDemand")}</h2>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F1F1" />

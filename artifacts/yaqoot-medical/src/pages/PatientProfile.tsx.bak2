@@ -79,11 +79,11 @@ function VitalCard({
       {/* Top row: icon + label | clock */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: 12, flexDirection: "row",
+        marginBottom: 12, flexDirection: isRTL ? "row-reverse" : "row",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: "row" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: isRTL ? "row-reverse" : "row" }}>
           <Icon size={20} strokeWidth={1.8} color={iconColor} />
-          <div style={{ textAlign: "start" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", lineHeight: 1.3 }}>{label}</div>
             <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{unit}</div>
           </div>
@@ -101,20 +101,20 @@ function VitalCard({
       <div style={{
         fontSize: displayValue === "—" ? 28 : 34,
         fontWeight: 800, color: "#111827", lineHeight: 1,
-        marginBottom: 5, textAlign: "start",
+        marginBottom: 5, textAlign: isRTL ? "right" : "left",
       }}>
         {displayValue}
       </div>
 
       {/* Timestamp */}
       {timestamp && displayValue !== "—" && (
-        <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10, textAlign: "start" }}>
+        <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10, textAlign: isRTL ? "right" : "left" }}>
           {timestamp}
         </div>
       )}
 
       {/* Status badge */}
-      <div style={{ textAlign: "start", marginTop: "auto" }}>
+      <div style={{ textAlign: isRTL ? "right" : "left", marginTop: "auto" }}>
         {badge}
       </div>
     </div>
@@ -169,11 +169,11 @@ function VitalHistoryModal({
         <div style={{
           padding: "20px 24px 14px",
           display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-          flexDirection: "row",
+          flexDirection: isRTL ? "row-reverse" : "row",
           flexShrink: 0,
         }}>
-          <div style={{ textAlign: "start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexDirection: "row" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <span style={{ fontSize: 22, lineHeight: 1 }}>□</span>
               <span style={{ fontSize: 17, fontWeight: 700, color: "#111827" }}>
                 {vitalLabel} {t("vitals.historyWord")}
@@ -210,17 +210,17 @@ function VitalHistoryModal({
               {/* Main row */}
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                flexDirection: "row",
+                flexDirection: isRTL ? "row-reverse" : "row",
               }}>
                 {/* Left: dot + value + unit + badge */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexDirection: "row" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexDirection: isRTL ? "row-reverse" : "row" }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
                   <span style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>{r.display}</span>
                   <span style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500 }}>{unit}</span>
                   <VitalStatusBadge value={r.numeric} vitalId={vitalId} vitalSettings={vitalSettings} t={t} />
                 </div>
                 {/* Right: clock + timestamp */}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, flexDirection: "row" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
                   <Clock size={13} strokeWidth={1.7} color="#9CA3AF" />
                   <span style={{ fontSize: 12, color: "#6B7280" }}>{fmtTimestamp(r.createdAt)}</span>
                 </div>
@@ -235,7 +235,7 @@ function VitalHistoryModal({
           borderTop: "1px solid #F3F4F6",
           flexShrink: 0,
           display: "flex", alignItems: "center",
-          flexDirection: "row",
+          flexDirection: isRTL ? "row-reverse" : "row",
         }}>
           {!confirmClear ? (
             <button
@@ -246,14 +246,14 @@ function VitalHistoryModal({
                 borderRadius: 8, padding: "8px 16px",
                 cursor: "pointer", fontSize: 13, color: "#ef4444",
                 fontFamily: "'Cairo', sans-serif",
-                flexDirection: "row",
+                flexDirection: isRTL ? "row-reverse" : "row",
               }}
             >
               <Trash2 size={13} strokeWidth={1.6} />
               {t("vitals.clearHistory")}
             </button>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: "row" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <span style={{ fontSize: 13, color: "#6B7280" }}>{t("vitals.clearHistoryConfirm")}</span>
               <button
                 onClick={() => { onClearHistory(); setConfirmClear(false); }}
@@ -398,13 +398,13 @@ export default function PatientProfile() {
   };
 
   return (
-    <div style={{ maxWidth: 1024 }}>
+    <div style={{ direction: isRTL ? "rtl" : "ltr", maxWidth: 1024 }}>
 
       {/* Back */}
       <button
         onClick={() => setLocation("/")}
         data-testid="btn-back-profile"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 15, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 15, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
       >
         <Arrow size={16} />
         {t("profile.back")}
@@ -425,10 +425,10 @@ export default function PatientProfile() {
           alignItems: "flex-start",
           justifyContent: "space-between",
           marginBottom: 28,
-          flexDirection: "row",
+          flexDirection: isRTL ? "row-reverse" : "row",
         }}>
           {/* Avatar + name */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexDirection: "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
             <div style={{
               width: 60, height: 60, borderRadius: "50%",
               background: "#E8F5E9",
@@ -437,7 +437,7 @@ export default function PatientProfile() {
             }}>
               <User size={28} color="#50C878" strokeWidth={1.6} />
             </div>
-            <div style={{ textAlign: "start" }}>
+            <div style={{ textAlign: isRTL ? "right" : "left" }}>
               <h1 style={{ fontSize: 28, fontWeight: 800, color: "#171717", margin: 0, lineHeight: 1.2 }}>
                 {patient.name}
               </h1>
@@ -448,11 +448,11 @@ export default function PatientProfile() {
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: "row" }}>
+          <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: isRTL ? "row-reverse" : "row" }}>
             <button
               onClick={() => setShowEditModal(true)}
               data-testid="btn-edit-patient"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
             >
               <Pencil size={15} strokeWidth={1.5} />
               {t("common.edit")}
@@ -460,7 +460,7 @@ export default function PatientProfile() {
             <button
               onClick={() => setLocation(`/patients/${patient.id}/visits/new`)}
               data-testid="btn-add-visit"
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
             >
               <Plus size={16} />
               {t("profile.addVisit")}
@@ -476,8 +476,8 @@ export default function PatientProfile() {
           marginBottom: 24,
         }}>
           {/* Age */}
-          <div style={{ textAlign: "start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <User size={13} color="#717182" strokeWidth={1.8} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.age")}</span>
             </div>
@@ -487,8 +487,8 @@ export default function PatientProfile() {
           </div>
 
           {/* Mobile */}
-          <div style={{ textAlign: "start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <Phone size={13} color="#717182" strokeWidth={1.8} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("table.mobile")}</span>
             </div>
@@ -499,8 +499,8 @@ export default function PatientProfile() {
           </div>
 
           {/* Region */}
-          <div style={{ textAlign: "start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <MapPin size={13} color="#717182" strokeWidth={1.8} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.region")}</span>
             </div>
@@ -508,8 +508,8 @@ export default function PatientProfile() {
           </div>
 
           {/* Applicant Name */}
-          <div style={{ textAlign: "start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <UserCheck size={13} color="#717182" strokeWidth={1.8} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.applicantName")}</span>
             </div>
@@ -522,11 +522,11 @@ export default function PatientProfile() {
 
         {/* Chronic Diseases */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
             <Heart size={14} color="#717182" strokeWidth={1.8} />
             <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.chronicDiseases")}</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-start" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: isRTL ? "flex-end" : "flex-start" }}>
             {patient.chronicDiseases.length > 0
               ? patient.chronicDiseases.map(d => (
                   <span key={d} className="pill-green" style={{ fontSize: 12, padding: "4px 12px" }}>{d}</span>
@@ -537,11 +537,11 @@ export default function PatientProfile() {
 
         {/* Allergies */}
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexDirection: isRTL ? "row-reverse" : "row" }}>
             <AlertTriangle size={14} color="#f59e0b" strokeWidth={1.8} />
             <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.allergies")}</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-start" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: isRTL ? "flex-end" : "flex-start" }}>
             {patient.allergies.length > 0
               ? patient.allergies.map(a => (
                   <span key={a} style={{ background: "#FFF3E0", color: "#d97706", padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600 }}>{a}</span>
@@ -553,7 +553,7 @@ export default function PatientProfile() {
 
       {/* ── Vital Signs ── */}
       <div style={{ ...card, paddingBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexDirection: "row" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: 0 }}>{t("profile.vitals")}</h2>
           <span style={{ fontSize: 12, color: "#717182" }}>
             {t("vitals.readOnly")}
@@ -561,7 +561,7 @@ export default function PatientProfile() {
         </div>
 
         {allPatientVitals.length === 0 ? (
-          <p style={{ color: "#717182", fontSize: 15, textAlign: "start" }}>
+          <p style={{ color: "#717182", fontSize: 15, textAlign: isRTL ? "right" : "left" }}>
             {t("vitals.noData")}
           </p>
         ) : (
@@ -596,12 +596,12 @@ export default function PatientProfile() {
 
       {/* ── Visit Timeline ── */}
       <div style={card}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: isRTL ? "right" : "left" }}>
           {t("profile.visitTimeline")}
         </h2>
 
         {patientVisits.length === 0 ? (
-          <p style={{ color: "#717182", fontSize: 15, textAlign: "start" }}>No visits yet</p>
+          <p style={{ color: "#717182", fontSize: 15, textAlign: isRTL ? "right" : "left" }}>No visits yet</p>
         ) : (
           <div style={{ position: "relative" }}>
             {/* Vertical timeline line */}
@@ -609,7 +609,7 @@ export default function PatientProfile() {
               position: "absolute",
               top: 10,
               bottom: 10,
-              insetInlineStart: 15,
+              [isRTL ? "right" : "left"]: 15,
               width: 2,
               background: "#F1F1F1",
               borderRadius: 2,
@@ -623,7 +623,7 @@ export default function PatientProfile() {
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 20,
-                    flexDirection: "row",
+                    flexDirection: isRTL ? "row-reverse" : "row",
                   }}
                 >
                   {/* Timeline dot */}
@@ -656,10 +656,10 @@ export default function PatientProfile() {
                       borderRadius: 12,
                       border: "1px solid #F1F1F1",
                       cursor: "pointer",
-                      textAlign: "start",
+                      textAlign: isRTL ? "right" : "left",
                       fontFamily: "'Cairo', sans-serif",
                       transition: "all 0.15s ease",
-                      flexDirection: "row",
+                      flexDirection: isRTL ? "row-reverse" : "row",
                     }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLButtonElement;
@@ -674,7 +674,7 @@ export default function PatientProfile() {
                       el.style.boxShadow = "none";
                     }}
                   >
-                    <div style={{ textAlign: "start" }}>
+                    <div style={{ textAlign: isRTL ? "right" : "left" }}>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
                         {new Date(v.visitDate).toLocaleDateString()}
                       </div>
@@ -701,12 +701,12 @@ export default function PatientProfile() {
 
       {/* ── Records Tabs ── */}
       <div style={card}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: "start" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: isRTL ? "right" : "left" }}>
           {t("profile.records")}
         </h2>
 
         {/* Tab Nav */}
-        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #F1F1F1", marginBottom: 24, flexDirection: "row" }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #F1F1F1", marginBottom: 24, flexDirection: isRTL ? "row-reverse" : "row" }}>
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -735,8 +735,8 @@ export default function PatientProfile() {
             {patientVisits.length === 0 ? (
               <p style={{ color: "#717182", fontSize: 15 }}>No records</p>
             ) : patientVisits.map(v => (
-              <div key={v.id} style={{ padding: "18px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: "start" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", marginBottom: 8 }}>
+              <div key={v.id} style={{ padding: "18px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row", marginBottom: 8 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
                   <button onClick={() => setLocation(`/visits/${v.id}`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif", fontWeight: 600 }}>{t("common.edit")} →</button>
                 </div>
@@ -754,7 +754,7 @@ export default function PatientProfile() {
             {patientInvestigations.length === 0 ? (
               <p style={{ color: "#717182", fontSize: 15 }}>No investigations</p>
             ) : patientInvestigations.map(inv => (
-              <div key={inv.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: "start" }}>
+              <div key={inv.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: isRTL ? "right" : "left" }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>{inv.testName}</div>
                 {inv.result && <div style={{ fontSize: 14, color: "#717182", marginBottom: 2 }}>Result: {inv.result}</div>}
                 {inv.notes && <div style={{ fontSize: 13, color: "#aaa" }}>{inv.notes}</div>}
@@ -770,8 +770,8 @@ export default function PatientProfile() {
             {patientTreatments.length === 0 ? (
               <p style={{ color: "#717182", fontSize: 15 }}>No treatments</p>
             ) : patientTreatments.map(tr => (
-              <div key={tr.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: "row" }}>
-                <div style={{ textAlign: "start" }}>
+              <div key={tr.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
+                <div style={{ textAlign: isRTL ? "right" : "left" }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: "#171717" }}>{tr.medicineName}</div>
                   <div style={{ fontSize: 12, color: "#bbb", marginTop: 3 }}>{new Date(tr.createdAt).toLocaleDateString()}</div>
                 </div>
@@ -783,7 +783,7 @@ export default function PatientProfile() {
         {/* Quick Notes */}
         {activeTab === "notes" && (
           <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexDirection: "row" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexDirection: isRTL ? "row-reverse" : "row" }}>
               <input
                 style={{
                   flex: 1, background: "#F3F3F5", border: "1px solid #F1F1F1",
@@ -808,8 +808,8 @@ export default function PatientProfile() {
               {patientNotes.length === 0 ? (
                 <p style={{ color: "#717182", fontSize: 15 }}>No notes</p>
               ) : patientNotes.map(n => (
-                <div key={n.id} style={{ padding: "14px 18px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexDirection: "row" }}>
-                  <div style={{ textAlign: "start" }}>
+                <div key={n.id} style={{ padding: "14px 18px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexDirection: isRTL ? "row-reverse" : "row" }}>
+                  <div style={{ textAlign: isRTL ? "right" : "left" }}>
                     <div style={{ fontSize: 14, color: "#171717" }}>{n.text}</div>
                     <div style={{ fontSize: 12, color: "#bbb", marginTop: 5 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
                   </div>
@@ -830,7 +830,7 @@ export default function PatientProfile() {
         paddingTop: 24,
         marginBottom: 32,
         display: "flex",
-        justifyContent: "flex-end",
+        justifyContent: isRTL ? "flex-start" : "flex-end",
       }}>
         <button
           onClick={() => setShowDeleteConfirm(true)}
@@ -846,7 +846,7 @@ export default function PatientProfile() {
             fontWeight: 600,
             color: "#dc2626",
             fontFamily: "'Cairo', sans-serif",
-            flexDirection: "row",
+            flexDirection: isRTL ? "row-reverse" : "row",
             transition: "all 0.15s ease",
           }}
           onMouseEnter={e => {

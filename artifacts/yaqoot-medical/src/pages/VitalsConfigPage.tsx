@@ -50,13 +50,13 @@ export default function VitalsConfigPage() {
       <button
         onClick={() => setLocation("/settings")}
         data-testid="btn-back-vitals-config"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
       >
         <Arrow size={16} />
         {t("common.back")}
       </button>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: isRTL ? "row-reverse" : "row" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: "row" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717" }}>{t("vitalsConfig.title")}</h1>
         <div style={{ display: "flex", gap: 10 }}>
           <button
@@ -77,11 +77,11 @@ export default function VitalsConfigPage() {
       </div>
 
       <div className="medical-card" style={{ padding: 0, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", direction: isRTL ? "rtl" : "ltr" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #F1F1F1" }}>
               {[t("vitalsConfig.name"), t("vitalsConfig.unit"), t("vitalsConfig.min"), t("vitalsConfig.max"), t("vitalsConfig.highLabel"), t("vitalsConfig.lowLabel")].map((h) => (
-                <th key={h} style={{ padding: "12px 16px", textAlign: isRTL ? "right" : "left", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif" }}>{h}</th>
+                <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif" }}>{h}</th>
               ))}
             </tr>
           </thead>

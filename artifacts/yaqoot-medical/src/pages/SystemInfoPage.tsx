@@ -33,13 +33,13 @@ export default function SystemInfoPage() {
       <button
         onClick={() => setLocation("/settings")}
         data-testid="btn-back-system"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
       >
         <Arrow size={16} />
         {t("common.back")}
       </button>
 
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: isRTL ? "right" : "left" }}>{t("system.title")}</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("system.title")}</h1>
 
       <div className="medical-card" style={{ padding: 0, overflow: "hidden" }}>
         {rows.map(({ icon: Icon, color, bg, label, value }, idx) => (
@@ -51,13 +51,13 @@ export default function SystemInfoPage() {
               gap: 16,
               padding: "18px 24px",
               borderBottom: idx < rows.length - 1 ? "1px solid #F1F1F1" : "none",
-              flexDirection: isRTL ? "row-reverse" : "row",
+              flexDirection: "row",
             }}
           >
             <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Icon size={18} strokeWidth={1.5} color={color} />
             </div>
-            <div style={{ flex: 1, textAlign: isRTL ? "right" : "left" }}>
+            <div style={{ flex: 1, textAlign: "start" }}>
               <div style={{ fontSize: 12, color: "#717182", marginBottom: 2 }}>{label}</div>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#171717" }}>{value}</div>
             </div>
@@ -65,11 +65,11 @@ export default function SystemInfoPage() {
         ))}
       </div>
 
-      <div style={{ marginTop: 24, textAlign: isRTL ? "right" : "left" }}>
+      <div style={{ marginTop: 24, textAlign: "start" }}>
         <button
           onClick={() => toast({ title: t("system.upToDate") })}
           data-testid="btn-check-updates"
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182", flexDirection: isRTL ? "row-reverse" : "row" }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182", flexDirection: "row" }}
         >
           <RefreshCw size={16} strokeWidth={1.5} />
           {t("system.checkUpdates")}

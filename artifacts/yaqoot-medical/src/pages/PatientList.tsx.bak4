@@ -166,9 +166,7 @@ export default function PatientList() {
     background: "#F3F3F5",
     border: "1px solid #F1F1F1",
     borderRadius: 8,
-    paddingBlock: "9px",
-    paddingInlineEnd: "32px",
-    paddingInlineStart: "12px",
+    padding: "9px 32px 9px 12px",
     fontSize: 13,
     fontFamily: "'Cairo', sans-serif",
     color: "#171717",
@@ -217,8 +215,8 @@ export default function PatientList() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexDirection: "row" }}>
-        <div style={{ textAlign: "start" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexDirection: isRTL ? "row-reverse" : "row" }}>
+        <div style={{ textAlign: isRTL ? "right" : "left" }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: "#171717", marginBottom: 4 }}>{t("patients.title")}</h1>
           <p style={{ fontSize: 14, color: "#717182" }}>{t("patients.subtitle")}</p>
         </div>
@@ -230,7 +228,7 @@ export default function PatientList() {
             padding: "10px 18px", borderRadius: 10, border: "none",
             background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600,
             cursor: "pointer", fontFamily: "'Cairo', sans-serif",
-            flexDirection: "row", whiteSpace: "nowrap",
+            flexDirection: isRTL ? "row-reverse" : "row", whiteSpace: "nowrap",
           }}
         >
           <Plus size={16} strokeWidth={2} />
@@ -240,12 +238,12 @@ export default function PatientList() {
 
       {/* Search & Filters */}
       <div className="medical-card" style={{ marginBottom: 16, padding: 14 }}>
-        <div style={{ display: "flex", gap: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, flexDirection: isRTL ? "row-reverse" : "row", flexWrap: "wrap", alignItems: "center" }}>
 
           {/* ── Text search input (non-date modes) ── */}
           {isTextMode && (
             <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
-              <Search size={15} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", insetInlineStart: 10, color: "#717182", pointerEvents: "none" }} />
+              <Search size={15} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", [isRTL ? "right" : "left"]: 10, color: "#717182", pointerEvents: "none" }} />
               <input
                 type="search"
                 placeholder={t("common.search")}
@@ -254,9 +252,8 @@ export default function PatientList() {
                 data-testid="input-search-patients"
                 style={{
                   ...inputStyle,
-                  paddingBlock: "9px",
-                  paddingInlineStart: "32px",
-                  paddingInlineEnd: "12px",
+                  padding: isRTL ? "9px 32px 9px 12px" : "9px 12px 9px 32px",
+                  direction: isRTL ? "rtl" : "ltr",
                 }}
               />
             </div>
@@ -291,7 +288,7 @@ export default function PatientList() {
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
               </div>
               {/* Year dropdown (optional) */}
               <div style={{ position: "relative" }}>
@@ -306,7 +303,7 @@ export default function PatientList() {
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
               </div>
             </>
           )}
@@ -327,7 +324,7 @@ export default function PatientList() {
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
               </div>
               {/* Year dropdown */}
               <div style={{ position: "relative" }}>
@@ -342,7 +339,7 @@ export default function PatientList() {
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
               </div>
             </>
           )}
@@ -359,7 +356,7 @@ export default function PatientList() {
                 <option key={f.value} value={f.value}>{t(f.key)}</option>
               ))}
             </select>
-            <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+            <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
           </div>
 
           {/* Service filter */}
@@ -374,24 +371,24 @@ export default function PatientList() {
                 <option key={s.key} value={s.value}>{t(s.key)}</option>
               ))}
             </select>
-            <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+            <ChevronDown size={14} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
           </div>
         </div>
       </div>
 
       {/* Count */}
-      <div style={{ marginBottom: 10, fontSize: 13, color: "#717182", textAlign: "start" }}>
+      <div style={{ marginBottom: 10, fontSize: 13, color: "#717182", textAlign: isRTL ? "right" : "left" }}>
         {countLabel}
       </div>
 
       {/* Table */}
       <div className="medical-card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", direction: isRTL ? "rtl" : "ltr" }}>
             <thead>
               <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #F1F1F1" }}>
                 {[t("table.serial"), t("table.name"), t("table.nationalId"), t("table.mobile"), t("table.location"), t("table.lastVisit"), t("table.service"), t("table.complaint")].map((h) => (
-                  <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={h} style={{ padding: "12px 16px", textAlign: isRTL ? "right" : "left", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>

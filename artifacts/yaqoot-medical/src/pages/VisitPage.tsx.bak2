@@ -32,9 +32,10 @@ const inputStyle: React.CSSProperties = {
 };
 
 function SectionCard({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  const { isRTL } = useTranslation();
   return (
     <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F1F1F1", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", padding: 24, marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexDirection: isRTL ? "row-reverse" : "row" }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#171717", margin: 0 }}>{title}</h3>
         {action}
       </div>
@@ -213,19 +214,19 @@ export default function VisitPage() {
   const subServices = SUB_SERVICES[form.mainService] || [];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div style={{ direction: isRTL ? "rtl" : "ltr", maxWidth: 900 }}>
       {/* Back */}
       <button
         onClick={() => setLocation(patientId ? `/patients/${patientId}` : "/")}
         data-testid="btn-back-visit"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 20, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 20, fontFamily: "'Cairo', sans-serif", flexDirection: isRTL ? "row-reverse" : "row" }}
       >
         <Arrow size={16} />
         {t("common.back")}
       </button>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: "row" }}>
-        <div style={{ textAlign: "start" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: isRTL ? "row-reverse" : "row" }}>
+        <div style={{ textAlign: isRTL ? "right" : "left" }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", margin: 0 }}>
             {isNew ? t("visit.newTitle") : t("visit.title")}
           </h1>
@@ -308,7 +309,7 @@ export default function VisitPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {treatments.map(tr => (
-              <div key={tr.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #F1F1F1", flexDirection: "row" }}>
+              <div key={tr.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #F1F1F1", flexDirection: isRTL ? "row-reverse" : "row" }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: "#171717" }}>{tr.medicineName}</span>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => handleOpenTreatment(tr)} style={{ background: "none", border: "none", cursor: "pointer", color: "#717182" }}><Pencil size={14} strokeWidth={1.5} /></button>
@@ -340,15 +341,15 @@ export default function VisitPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {investigations.map(inv => (
               <div key={inv.id} style={{ padding: "12px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #F1F1F1" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isRTL ? "row-reverse" : "row" }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{inv.testName}</span>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => handleOpenInv(inv)} style={{ background: "none", border: "none", cursor: "pointer", color: "#717182" }}><Pencil size={14} strokeWidth={1.5} /></button>
                     <button onClick={() => setDeleteInvId(inv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444" }}><Trash2 size={14} strokeWidth={1.5} /></button>
                   </div>
                 </div>
-                {inv.result && <div style={{ fontSize: 12, color: "#717182", marginTop: 4, textAlign: "start" }}>Result: {inv.result}</div>}
-                {inv.notes && <div style={{ fontSize: 12, color: "#aaa", marginTop: 2, textAlign: "start" }}>{inv.notes}</div>}
+                {inv.result && <div style={{ fontSize: 12, color: "#717182", marginTop: 4, textAlign: isRTL ? "right" : "left" }}>Result: {inv.result}</div>}
+                {inv.notes && <div style={{ fontSize: 12, color: "#aaa", marginTop: 2, textAlign: isRTL ? "right" : "left" }}>{inv.notes}</div>}
               </div>
             ))}
           </div>
@@ -384,7 +385,7 @@ export default function VisitPage() {
             ].filter(v => v.display).map(({ id, label, display, value }) => {
               const status = getVitalStatus(value, id);
               return (
-                <div key={id} style={{ background: "#F9FAFB", borderRadius: 10, padding: 12, textAlign: "start" }}>
+                <div key={id} style={{ background: "#F9FAFB", borderRadius: 10, padding: 12, textAlign: isRTL ? "right" : "left" }}>
                   <div style={{ fontSize: 11, color: "#717182", marginBottom: 4 }}>{label}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>{display}</div>
                   {status && <span style={{ background: status.bg, color: status.text, padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 600 }}>{status.label}</span>}

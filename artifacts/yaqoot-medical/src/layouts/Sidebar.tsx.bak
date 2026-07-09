@@ -3,7 +3,7 @@ import { Users, Settings } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Sidebar() {
-  const { t, locale, setLocale } = useTranslation();
+  const { t, locale, setLocale, isRTL } = useTranslation();
   const [location] = useLocation();
 
   const navItems = [
@@ -23,12 +23,13 @@ export default function Sidebar() {
         width: 256,
         minWidth: 256,
         backgroundColor: "#ffffff",
-        borderInlineEnd: "1px solid #F1F1F1",
+        borderRight: isRTL ? "none" : "1px solid #F1F1F1",
+        borderLeft: isRTL ? "1px solid #F1F1F1" : "none",
         padding: "28px 16px",
       }}
     >
-      {/* Clinic Identity */}
-      <div style={{ marginBottom: 32, textAlign: "start", paddingInline: 6 }}>
+      {/* Clinic Identity — no logo, name is the hero */}
+      <div style={{ marginBottom: 32, textAlign: isRTL ? "right" : "left", paddingInline: 6 }}>
         <div
           style={{
             fontSize: 17,
@@ -63,6 +64,8 @@ export default function Sidebar() {
             <div
               className={`sidebar-nav-item ${isActive(href) ? "active" : ""}`}
               style={{
+                flexDirection: isRTL ? "row-reverse" : "row",
+                textAlign: isRTL ? "right" : "left",
                 fontSize: 15,
                 padding: "11px 14px",
                 gap: 12,
