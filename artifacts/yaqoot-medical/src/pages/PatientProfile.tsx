@@ -406,7 +406,6 @@ export default function PatientProfile() {
         data-testid="btn-back-profile"
         style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 15, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
       >
-        <Arrow size={16} />
         {t("profile.back")}
       </button>
 
