@@ -63,7 +63,7 @@ export const ar = {
   'addPatient.errorIdExists': 'رقم الهوية موجود مسبقاً',
 
   // Profile
-  'profile.back': '← العودة إلى قائمة المرضى',
+  'profile.back': 'العودة إلى قائمة المرضى',
   'profile.info': 'المعلومات الشخصية',
   'profile.addVisit': 'إضافة زيارة جديدة',
   'profile.visitTimeline': 'سجل الزيارات',
