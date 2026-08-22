@@ -63,7 +63,7 @@ export const en = {
   'addPatient.errorIdExists': 'National ID already exists',
 
   // Profile
-  'profile.back': '← Back to Patient List',
+  'profile.back': 'Back to Patient List',
   'profile.info': 'Personal Information',
   'profile.addVisit': 'Add New Visit',
   'profile.visitTimeline': 'Visit Timeline',

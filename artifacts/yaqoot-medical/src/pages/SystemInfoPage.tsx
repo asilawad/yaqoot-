@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Tag, HardDrive, CheckCircle, RefreshCw } from "lucide-react";
+import { Tag, HardDrive, CheckCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/hooks/use-toast";
+import NavigationBackButton from "@/components/NavigationBackButton";
 
 function getStorageSize(): string {
   let total = 0;
@@ -19,8 +20,6 @@ export default function SystemInfoPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
-
   const rows = [
     { icon: Tag, color: "#50C878", bg: "#E8F5E9", label: t("system.version"), value: "v1.0.0" },
     { icon: HardDrive, color: "#6366f1", bg: "#EEF2FF", label: t("system.storagePath"), value: "localStorage (browser)" },
@@ -30,14 +29,7 @@ export default function SystemInfoPage() {
 
   return (
     <div>
-      <button
-        onClick={() => setLocation("/settings")}
-        data-testid="btn-back-system"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("common.back")}
-      </button>
+      <NavigationBackButton to="/settings" testId="btn-back-system" />
 
       <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("system.title")}</h1>
 

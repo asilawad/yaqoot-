@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Users, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Users, Calendar, Clock, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
+import NavigationBackButton from "@/components/NavigationBackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AnalyticsPage() {
@@ -41,19 +42,10 @@ export default function AnalyticsPage() {
     { key: "analytics.pendingPayments", value: pendingPayments, icon: AlertCircle, color: "#ef4444" },
   ];
 
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
-
   return (
     <div>
       {/* Back button */}
-      <button
-        onClick={() => setLocation("/settings")}
-        data-testid="btn-back-analytics"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("common.back")}
-      </button>
+      <NavigationBackButton to="/settings" testId="btn-back-analytics" />
 
       <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("settings.analytics")}</h1>
 

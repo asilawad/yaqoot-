@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Download, Upload, HardDrive, AlertTriangle } from "lucide-react";
+import { Download, Upload, HardDrive, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
+import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 
 function getStorageSize(): string {
@@ -27,8 +28,6 @@ export default function DataManagementPage() {
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingFile, setPendingFile] = useState<string | null>(null);
   const [storageSize] = useState(getStorageSize());
-
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
   const handleBackup = () => {
     const data = repo.exportData();
@@ -79,14 +78,7 @@ export default function DataManagementPage() {
 
   return (
     <div>
-      <button
-        onClick={() => setLocation("/settings")}
-        data-testid="btn-back-data"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("common.back")}
-      </button>
+      <NavigationBackButton to="/settings" testId="btn-back-data" />
 
       <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>{t("data.title")}</h1>
 

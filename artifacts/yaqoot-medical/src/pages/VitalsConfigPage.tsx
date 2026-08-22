@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { defaultVitalSettings } from "@/lib/db/vitalDefaults";
 import { VitalThreshold } from "@/lib/db/types";
 import { useToast } from "@/hooks/use-toast";
+import NavigationBackButton from "@/components/NavigationBackButton";
 
 export default function VitalsConfigPage() {
   const { t, isRTL } = useTranslation();
@@ -31,8 +31,6 @@ export default function VitalsConfigPage() {
     toast({ title: t("vitalsConfig.success") });
   };
 
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
-
   const inputStyle: React.CSSProperties = {
     background: "#F3F3F5",
     border: "1px solid #F1F1F1",
@@ -47,14 +45,7 @@ export default function VitalsConfigPage() {
 
   return (
     <div>
-      <button
-        onClick={() => setLocation("/settings")}
-        data-testid="btn-back-vitals-config"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("common.back")}
-      </button>
+      <NavigationBackButton to="/settings" testId="btn-back-vitals-config" />
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: "row" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#171717" }}>{t("vitalsConfig.title")}</h1>

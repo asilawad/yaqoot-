@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
-  ArrowLeft, ArrowRight, Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
+  Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
   User, Phone, MapPin, UserCheck, Clock, X,
 } from "lucide-react";
@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import AddPatientModal from "@/components/patients/AddPatientModal";
+import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 
 /* ─── Timestamp formatter ─── */
@@ -296,7 +297,7 @@ export default function PatientProfile() {
     return (
       <div style={{ padding: 60, textAlign: "center" }}>
         <p style={{ color: "#717182", fontSize: 16 }}>Patient not found</p>
-        <button onClick={() => setLocation("/")} style={{ marginTop: 16, color: "#50C878", background: "none", border: "none", cursor: "pointer", fontSize: 15 }}>← Back</button>
+        <NavigationBackButton to="/" testId="btn-back-profile-empty" />
       </div>
     );
   }
@@ -306,8 +307,6 @@ export default function PatientProfile() {
   const patientTreatments   = repo.getTreatmentsByPatient(patient.id);
   const patientNotes        = repo.getQuickNotes(patient.id);
   const latestVitals        = repo.getVitalSignsByPatient(patient.id)[0];
-
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
   /* shared card style */
   const card: React.CSSProperties = {
@@ -401,14 +400,11 @@ export default function PatientProfile() {
     <div style={{ maxWidth: 1024 }}>
 
       {/* Back */}
-      <button
-        onClick={() => setLocation("/")}
-        data-testid="btn-back-profile"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 15, cursor: "pointer", marginBottom: 24, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("profile.back")}
-      </button>
+      <NavigationBackButton
+        to="/"
+        testId="btn-back-profile"
+        labelKey="profile.back"
+      />
 
       {/* ── Unified Hero Card ── */}
       <div style={{

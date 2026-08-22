@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, Plus, Trash2, Pencil, AlertTriangle, X } from "lucide-react";
+import { Plus, Trash2, Pencil, AlertTriangle, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
+import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 import { Treatment, Investigation, VitalSigns } from "@/lib/db/types";
 
@@ -49,8 +50,6 @@ export default function VisitPage() {
   const params = useParams<{ id?: string; visitId?: string }>();
   const { patients, createVisit, updateVisit, createTreatment, deleteTreatment, createInvestigation, deleteInvestigation, createVitalSigns, refreshData, vitalSettings } = useData();
   const { toast } = useToast();
-  const Arrow = isRTL ? ArrowRight : ArrowLeft;
-
   const isNew = !params.visitId;
   const existingVisit = params.visitId ? repo.getVisitById(params.visitId) : undefined;
   const patientId = existingVisit?.patientId || params.id || "";
@@ -215,14 +214,10 @@ export default function VisitPage() {
   return (
     <div style={{ maxWidth: 900 }}>
       {/* Back */}
-      <button
-        onClick={() => setLocation(patientId ? `/patients/${patientId}` : "/")}
-        data-testid="btn-back-visit"
-        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#717182", fontSize: 14, cursor: "pointer", marginBottom: 20, fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
-      >
-        <Arrow size={16} />
-        {t("common.back")}
-      </button>
+      <NavigationBackButton
+        to={patientId ? `/patients/${patientId}` : "/"}
+        testId="btn-back-visit"
+      />
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexDirection: "row" }}>
         <div style={{ textAlign: "start" }}>
