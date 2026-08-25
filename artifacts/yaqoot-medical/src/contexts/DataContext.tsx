@@ -49,7 +49,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    repo.seedInitialData();
+    if (import.meta.env.DEV) {
+      repo.seedInitialData();
+    }
     refreshData();
   }, []);
 
