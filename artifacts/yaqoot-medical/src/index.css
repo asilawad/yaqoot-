@@ -1,4 +1,83 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-arabic-300.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-latin-300.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+20AC, U+2122, U+2191-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-arabic-400.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-latin-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+20AC, U+2122, U+2191-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-arabic-500.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-latin-500.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+20AC, U+2122, U+2191-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-arabic-600.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-latin-600.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+20AC, U+2122, U+2191-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-arabic-700.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/cairo/cairo-latin-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+20AC, U+2122, U+2191-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -126,7 +205,7 @@
   --chart-4: 280 65% 60%;
   --chart-5: 0 72% 51%;
 
-  --app-font-sans: 'Cairo', sans-serif;
+  --app-font-sans: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: .75rem;
@@ -151,7 +230,7 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
   }
 }
 
