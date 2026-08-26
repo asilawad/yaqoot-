@@ -1,6 +1,6 @@
 [package]
 name = "yaqoot-medical"
-version = "0.1.0"
+version = "1.0.0"
 description = "Yaqoot Medical Clinic — offline-first patient records"
 edition = "2021"
 
@@ -12,9 +12,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1"
 tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [profile.release]
 panic = "abort"
