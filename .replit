@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "rust-stable"]
 
 [deployment]
 router = "application"
@@ -30,3 +30,7 @@ externalPort = 80
 [[ports]]
 localPort = 20342
 externalPort = 3000
+
+[nix]
+channel = "stable-25_05"
+packages = ["webkitgtk_4_1", "librsvg", "zlib"]
