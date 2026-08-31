@@ -29,17 +29,41 @@ export default function DataManagementPage() {
   const [pendingFile, setPendingFile] = useState<string | null>(null);
   const [storageSize] = useState(getStorageSize());
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
     const data = repo.exportData();
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
     const today = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `yaqoot_backup_${today}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: t("common.save") + " ✓" });
+    const filename = `yaqoot_backup_${today}.json`;
+
+    try {
+      const isTauri = "__TAURI_INTERNALS__" in window;
+
+      if (isTauri) {
+        const [{ save }, { writeTextFile }] = await Promise.all([
+          import("@tauri-apps/plugin-dialog"),
+          import("@tauri-apps/plugin-fs"),
+        ]);
+        const filePath = await save({
+          defaultPath: filename,
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+
+        if (!filePath) return;
+        await writeTextFile(filePath, data);
+      } else {
+        const blob = new Blob([data], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      toast({ title: t("common.save") + " ✓" });
+    } catch (error) {
+      console.error("Backup failed:", error);
+      toast({ title: "Error saving backup", variant: "destructive" });
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
