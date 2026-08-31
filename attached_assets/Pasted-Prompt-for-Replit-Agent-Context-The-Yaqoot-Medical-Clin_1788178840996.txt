@@ -1,0 +1,85 @@
+Prompt for Replit Agent
+Context
+
+The Yaqoot Medical Clinic desktop app (Tauri + Vite, artifacts/yaqoot-medical) has been successfully built and tested on a real Windows machine. The .exe (NSIS) and .msi installers both work, the app launches, and data persists correctly across restarts (confirmed by closing and reopening the app).
+
+However, one bug was found during Windows testing: the "Backup Now" / "النسخ الآن" button on the Settings/Data Management page does not let the user choose where to save the backup file. Instead, it silently drops a JSON file into a fixed location (likely the Downloads folder or wherever WebView2 defaults to) with no dialog shown to the user. The "Restore Data" / "استعادة البيانات" button, by contrast, works correctly and does show a native file picker.
+
+Root cause (confirmed)
+
+The backup/export feature is almost certainly implemented using a browser-style download trick — something like creating a Blob, generating an object URL with URL.createObjectURL(), and triggering a click on a hidden <a download="..."> element. This works fine in a normal web browser or in Vite dev mode, but inside a bundled Tauri app running in WebView2, this pattern either silently saves to a default folder or is blocked/ignored by the WebView's security context — there's no "Save As" dialog because this is fundamentally a web download mechanism, not a native file-save mechanism.
+
+The restore/import feature likely works because it uses a plain <input type="file"> element, which is a standard form control that WebView2 handles natively and correctly.
+
+Required fix
+
+Replace the browser-download-based export/backup logic with Tauri's native file APIs so the user gets a real Windows "Save As" dialog (same UX as Save As in Word/Excel), lets them pick the folder and filename, and the file is written to exactly that location.
+
+1. Ensure the required Tauri plugins are installed
+
+Check artifacts/yaqoot-medical/package.json and artifacts/yaqoot-medical/src-tauri/Cargo.toml for:
+
+JS side: @tauri-apps/plugin-dialog and @tauri-apps/plugin-fs
+Rust side: tauri-plugin-dialog and tauri-plugin-fs as dependencies in Cargo.toml, and both plugins registered in src-tauri/src/main.rs (or lib.rs) via .plugin(tauri_plugin_dialog::init()) and .plugin(tauri_plugin_fs::init())
+
+If any of these are missing, add them (pnpm add @tauri-apps/plugin-dialog @tauri-apps/plugin-fs inside artifacts/yaqoot-medical, plus the matching cargo add for the Rust crates, plus plugin registration in the Tauri builder).
+
+Also check src-tauri/capabilities/*.json (or tauri.conf.json permissions/capabilities section, depending on Tauri version) to make sure the dialog:default and fs:default (or the specific fs:allow-write-text-file / equivalent) capabilities are granted to the main window — otherwise the calls will be silently denied at runtime even if the plugins are installed.
+
+2. Find and replace the backup/export handler
+
+Locate the function behind the "Backup Now" / "النسخ الآن" button (likely in a Settings or Data Management component, search for terms like "backup", "export", "النسخ الاحتياطي", or URL.createObjectURL).
+
+Replace the browser-download logic with something equivalent to:
+
+typescript
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+
+async function handleBackup() {
+  try {
+    const data = /* existing logic that builds the backup JSON object */;
+
+    const filePath = await save({
+      defaultPath: `yaqoot-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+
+    // user cancelled the dialog
+    if (!filePath) return;
+
+    await writeTextFile(filePath, JSON.stringify(data, null, 2));
+
+    // existing success toast/notification logic, if any
+  } catch (error) {
+    // existing error handling logic, if any
+    console.error('Backup failed:', error);
+  }
+}
+
+Keep the existing logic that builds the backup JSON object (reading from localStorage, formatting it, etc.) — only replace the part that decides how the file gets saved to disk.
+
+3. Sanity-check the restore/import path too
+
+While in this area, confirm the restore/import handler (the one that currently works) is also using Tauri-appropriate APIs and isn't relying on anything that could break in a future Tauri/WebView2 update. If it's using a plain <input type="file"> + FileReader, that's fine and doesn't need to change — just confirm it still works after these edits.
+
+4. Web fallback
+
+If this app is also meant to run as a plain web app (not just Tauri desktop), guard the new code so it doesn't break the web build — e.g. detect Tauri at runtime ('__TAURI__' in window or the appropriate Tauri v2 check) and fall back to the old browser-download method when not running inside Tauri. If this app is Tauri-desktop-only with no web deployment target, this step can be skipped — please confirm which is the case.
+
+Testing instructions (for me to verify manually on Windows)
+
+After this fix is implemented and before the app is rebuilt:
+
+Run in dev mode if possible and click "Backup Now" — confirm a native Windows "Save As" dialog appears, letting me choose folder and filename.
+Confirm the saved file appears exactly where I chose it, not in a default folder.
+Confirm "Restore Data" still works with a file backed up this new way.
+Batching further changes before the next Windows build
+
+I have several more changes I want to make on Replit before generating the next .exe/.msi build, so please don't ask me to rebuild yet — just implement and commit this backup fix, and list it in your summary. I'll continue giving you more tasks in this same session/thread, and once I say "this is everything, let's finalize," you should:
+
+Give me a full summary of every change made since the last Windows build (the "fix: enable Windows builds" commit).
+Confirm there are no outstanding TypeScript/typecheck errors (pnpm run typecheck) and the Linux/Replit build still passes (pnpm run build).
+Push everything to origin/main on GitHub in one or more clean, well-labeled commits.
+
+I will then pull the final state to my local Windows machine, run pnpm install, pnpm approve-builds if needed, and pnpm tauri build once to produce the final installer with all the batched changes included — instead of rebuilding after every small fix.
