@@ -23,7 +23,11 @@ const saveList = <T>(key: string, list: T[]) => {
 };
 
 // Patients
-export const getPatients = (): Patient[] => getList<Patient>(KEYS.PATIENTS);
+export const getPatients = (): Patient[] => {
+  return getList<Patient>(KEYS.PATIENTS).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+};
 export const getPatientById = (id: string): Patient | undefined => getPatients().find(p => p.id === id);
 export const createPatient = (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>): Patient => {
   const patients = getPatients();

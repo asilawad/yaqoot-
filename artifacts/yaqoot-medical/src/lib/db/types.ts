@@ -43,6 +43,7 @@ export interface Investigation {
   patientId: string;
   testName: string;
   result?: string;
+  resultDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

@@ -32,9 +32,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box" as const,
 };
 
-function SectionCard({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function SectionCard({ id, title, action, children }: { id?: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F1F1F1", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", padding: 24, marginBottom: 20 }}>
+    <div id={id} style={{ background: "#fff", borderRadius: 16, border: "1px solid #F1F1F1", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", padding: 24, marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#171717", margin: 0 }}>{title}</h3>
         {action}
@@ -77,7 +77,7 @@ export default function VisitPage() {
 
   const [showInvModal, setShowInvModal] = useState(false);
   const [editInvestigation, setEditInvestigation] = useState<Investigation | null>(null);
-  const [invForm, setInvForm] = useState({ testName: "", result: "", notes: "" });
+  const [invForm, setInvForm] = useState({ testName: "", result: "", resultDate: "", notes: "" });
   const [deleteInvId, setDeleteInvId] = useState<string | null>(null);
 
   const [showVitalsModal, setShowVitalsModal] = useState(false);
@@ -106,6 +106,24 @@ export default function VisitPage() {
       }
     }
   }, [visitId]);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    const queryIndex = hash.indexOf("?");
+    if (queryIndex === -1) return;
+    const params = new URLSearchParams(hash.substring(queryIndex + 1));
+    const scrollTo = params.get("scrollTo");
+    if (!scrollTo) return;
+    const el = document.getElementById(`section-${scrollTo}`);
+    if (el) {
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.style.transition = "box-shadow 0.3s ease";
+        el.style.boxShadow = "0 0 0 2px #50C878";
+        setTimeout(() => { el.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }, 1500);
+      }, 100);
+    }
+  }, []);
 
   const ensureVisit = (): string => {
     if (visitId) return visitId;
@@ -156,7 +174,12 @@ export default function VisitPage() {
   // Investigations
   const handleOpenInv = (inv?: Investigation) => {
     setEditInvestigation(inv || null);
-    setInvForm({ testName: inv?.testName || "", result: inv?.result || "", notes: inv?.notes || "" });
+    setInvForm({
+      testName: inv?.testName || "",
+      result: inv?.result || "",
+      resultDate: inv?.resultDate || new Date().toISOString().slice(0, 10),
+      notes: inv?.notes || "",
+    });
     setShowInvModal(true);
   };
 
@@ -215,7 +238,15 @@ export default function VisitPage() {
     <div style={{ maxWidth: 900 }}>
       {/* Back */}
       <NavigationBackButton
-        to={patientId ? `/patients/${patientId}` : "/"}
+        to={
+          patientId
+            ? (() => {
+                const qIdx = window.location.href.indexOf("?");
+                const returnTab = qIdx !== -1 ? new URLSearchParams(window.location.href.substring(qIdx + 1)).get("returnTab") : null;
+                return `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`;
+              })()
+            : "/"
+        }
         testId="btn-back-visit"
       />
 
@@ -286,6 +317,7 @@ export default function VisitPage() {
 
       {/* Treatments */}
       <SectionCard
+        id="section-treatments"
         title={t("visit.treatments")}
         action={
           <button
@@ -317,6 +349,7 @@ export default function VisitPage() {
 
       {/* Investigations */}
       <SectionCard
+        id="section-investigations"
         title={t("visit.investigations")}
         action={
           <button
@@ -342,8 +375,19 @@ export default function VisitPage() {
                     <button onClick={() => setDeleteInvId(inv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444" }}><Trash2 size={14} strokeWidth={1.5} /></button>
                   </div>
                 </div>
-                {inv.result && <div style={{ fontSize: 12, color: "#717182", marginTop: 4, textAlign: "start" }}>Result: {inv.result}</div>}
-                {inv.notes && <div style={{ fontSize: 12, color: "#aaa", marginTop: 2, textAlign: "start" }}>{inv.notes}</div>}
+                {inv.result && (
+                  <div style={{ fontSize: 12, color: "#717182", marginTop: 4, textAlign: "start", whiteSpace: "pre-wrap" }}>
+                    <span style={{ fontWeight: 700, color: "#171717" }}>Result: </span>
+                    {inv.result}
+                    {inv.resultDate && <span style={{ color: "#aaa", marginInlineStart: 8 }}>({new Date(inv.resultDate).toLocaleDateString()})</span>}
+                  </div>
+                )}
+                {inv.notes && (
+                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 4, textAlign: "start", whiteSpace: "pre-wrap" }}>
+                    <span style={{ fontWeight: 700, color: "#717182" }}>Notes: </span>
+                    {inv.notes}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -431,7 +475,11 @@ export default function VisitPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "#717182", display: "block", marginBottom: 4 }}>Result</label>
-                <input style={inputStyle} value={invForm.result} onChange={e => setInvForm(f => ({ ...f, result: e.target.value }))} />
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={invForm.result} onChange={e => setInvForm(f => ({ ...f, result: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "#717182", display: "block", marginBottom: 4 }}>Result Date</label>
+                <input type="date" style={inputStyle} value={invForm.resultDate} onChange={e => setInvForm(f => ({ ...f, resultDate: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "#717182", display: "block", marginBottom: 4 }}>Notes</label>

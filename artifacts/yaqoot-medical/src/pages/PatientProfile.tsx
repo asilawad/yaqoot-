@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import {
   Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
-  User, Phone, MapPin, UserCheck, Clock, X,
+  User, Phone, MapPin, UserCheck, Clock, X, Calendar,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
@@ -285,7 +285,11 @@ export default function PatientProfile() {
   const { toast } = useToast();
   const { createQuickNote, deleteQuickNote, clearVitalSignsByPatient, deletePatient } = useData();
 
-  const [activeTab, setActiveTab] = useState<"history" | "investigations" | "treatments" | "notes">("history");
+  const [activeTab, setActiveTab] = useState<"history" | "investigations" | "treatments" | "notes">(() => {
+    const qIdx = window.location.href.indexOf("?");
+    const tabParam = qIdx !== -1 ? new URLSearchParams(window.location.href.substring(qIdx + 1)).get("tab") : null;
+    return (tabParam as "history" | "investigations" | "treatments" | "notes") || "history";
+  });
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -307,6 +311,32 @@ export default function PatientProfile() {
   const patientTreatments   = repo.getTreatmentsByPatient(patient.id);
   const patientNotes        = repo.getQuickNotes(patient.id);
   const latestVitals        = repo.getVitalSignsByPatient(patient.id)[0];
+
+  const investigationGroups = (() => {
+    const map = new Map<string, typeof patientInvestigations>();
+    patientInvestigations.forEach(inv => {
+      if (!map.has(inv.visitId)) map.set(inv.visitId, []);
+      map.get(inv.visitId)!.push(inv);
+    });
+    return Array.from(map.entries()).map(([visitId, items]) => ({
+      visitId,
+      visit: patientVisits.find(v => v.id === visitId),
+      items,
+    }));
+  })();
+
+  const treatmentGroups = (() => {
+    const map = new Map<string, typeof patientTreatments>();
+    patientTreatments.forEach(tr => {
+      if (!map.has(tr.visitId)) map.set(tr.visitId, []);
+      map.get(tr.visitId)!.push(tr);
+    });
+    return Array.from(map.entries()).map(([visitId, items]) => ({
+      visitId,
+      visit: patientVisits.find(v => v.id === visitId),
+      items,
+    }));
+  })();
 
   /* shared card style */
   const card: React.CSSProperties = {
@@ -454,7 +484,7 @@ export default function PatientProfile() {
               {t("common.edit")}
             </button>
             <button
-              onClick={() => setLocation(`/patients/${patient.id}/visits/new`)}
+              onClick={() => setLocation(`/patients/${patient.id}/visits/new?returnTab=history`)}
               data-testid="btn-add-visit"
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
             >
@@ -640,7 +670,7 @@ export default function PatientProfile() {
 
                   {/* Visit card */}
                   <button
-                    onClick={() => setLocation(`/visits/${v.id}`)}
+                    onClick={() => setLocation(`/visits/${v.id}?returnTab=history`)}
                     data-testid={`card-visit-${v.id}`}
                     style={{
                       flex: 1,
@@ -706,7 +736,10 @@ export default function PatientProfile() {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setLocation(`/patients/${patient.id}?tab=${tab.id}`, { replace: true });
+              }}
               data-testid={`tab-${tab.id}`}
               style={{
                 padding: "10px 18px",
@@ -734,7 +767,7 @@ export default function PatientProfile() {
               <div key={v.id} style={{ padding: "18px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: "start" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", marginBottom: 8 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
-                  <button onClick={() => setLocation(`/visits/${v.id}`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif", fontWeight: 600 }}>{t("common.edit")} →</button>
+                  <button onClick={() => setLocation(`/visits/${v.id}?returnTab=history`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif", fontWeight: 600 }}>{t("common.edit")} →</button>
                 </div>
                 {v.chiefComplaint && <div style={{ fontSize: 14, color: "#717182", marginBottom: 4 }}>{t("visit.complaint")}: {v.chiefComplaint}</div>}
                 {v.diagnosis && <div style={{ fontSize: 14, color: "#171717", fontWeight: 600 }}>{t("visit.diagnosis")}: {v.diagnosis}</div>}
@@ -747,14 +780,49 @@ export default function PatientProfile() {
         {/* Investigations */}
         {activeTab === "investigations" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {patientInvestigations.length === 0 ? (
+            {investigationGroups.length === 0 ? (
               <p style={{ color: "#717182", fontSize: 15 }}>No investigations</p>
-            ) : patientInvestigations.map(inv => (
-              <div key={inv.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: "start" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>{inv.testName}</div>
-                {inv.result && <div style={{ fontSize: 14, color: "#717182", marginBottom: 2 }}>Result: {inv.result}</div>}
-                {inv.notes && <div style={{ fontSize: 13, color: "#aaa" }}>{inv.notes}</div>}
-                <div style={{ fontSize: 12, color: "#bbb", marginTop: 6 }}>{new Date(inv.createdAt).toLocaleDateString()}</div>
+            ) : investigationGroups.map(group => (
+              <div key={group.visitId} style={{ border: "1px solid #F1F1F1", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ padding: "10px 16px", background: "#EAF7EF", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={14} color="#50C878" />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>
+                    {group.visit ? new Date(group.visit.visitDate).toLocaleDateString() : ""}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {group.items.map((inv, idx) => (
+                    <button
+                      key={inv.id}
+                      onClick={() => setLocation(`/visits/${inv.visitId}?scrollTo=investigations&returnTab=investigations`)}
+                      data-testid={`link-investigation-${inv.id}`}
+                      style={{
+                        display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4,
+                        width: "100%", textAlign: "start", padding: "14px 16px",
+                        background: "#fff", border: "none",
+                        borderTop: idx === 0 ? "none" : "1px solid #F1F1F1",
+                        cursor: "pointer", fontFamily: "'Cairo', sans-serif",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EAF7EF"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>{inv.testName}</span>
+                      {inv.result && (
+                        <span style={{ fontSize: 13, color: "#717182", whiteSpace: "pre-wrap" }}>
+                          <span style={{ fontWeight: 700, color: "#171717" }}>Result: </span>
+                          {inv.result}
+                          {inv.resultDate && <span style={{ color: "#aaa", marginInlineStart: 6 }}>({new Date(inv.resultDate).toLocaleDateString()})</span>}
+                        </span>
+                      )}
+                      {inv.notes && (
+                        <span style={{ fontSize: 12, color: "#aaa", whiteSpace: "pre-wrap" }}>
+                          <span style={{ fontWeight: 700, color: "#717182" }}>Notes: </span>
+                          {inv.notes}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -763,13 +831,35 @@ export default function PatientProfile() {
         {/* Treatments */}
         {activeTab === "treatments" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {patientTreatments.length === 0 ? (
+            {treatmentGroups.length === 0 ? (
               <p style={{ color: "#717182", fontSize: 15 }}>No treatments</p>
-            ) : patientTreatments.map(tr => (
-              <div key={tr.id} style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "center", justifyContent: "space-between", flexDirection: "row" }}>
-                <div style={{ textAlign: "start" }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: "#171717" }}>{tr.medicineName}</div>
-                  <div style={{ fontSize: 12, color: "#bbb", marginTop: 3 }}>{new Date(tr.createdAt).toLocaleDateString()}</div>
+            ) : treatmentGroups.map(group => (
+              <div key={group.visitId} style={{ border: "1px solid #F1F1F1", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ padding: "10px 16px", background: "#EAF7EF", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={14} color="#50C878" />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>
+                    {group.visit ? new Date(group.visit.visitDate).toLocaleDateString() : ""}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {group.items.map((tr, idx) => (
+                    <button
+                      key={tr.id}
+                      onClick={() => setLocation(`/visits/${tr.visitId}?scrollTo=treatments&returnTab=treatments`)}
+                      data-testid={`link-treatment-${tr.id}`}
+                      style={{
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        width: "100%", textAlign: "start", padding: "14px 16px",
+                        background: "#fff", border: "none",
+                        borderTop: idx === 0 ? "none" : "1px solid #F1F1F1",
+                        cursor: "pointer", fontFamily: "'Cairo', sans-serif",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EAF7EF"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>{tr.medicineName}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             ))}

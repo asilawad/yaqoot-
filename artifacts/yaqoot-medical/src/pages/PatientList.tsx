@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Search, Plus, ChevronDown } from "lucide-react";
+import { Search, Plus, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import AddPatientModal from "@/components/patients/AddPatientModal";
@@ -47,6 +47,10 @@ export default function PatientList() {
   const [searchField, setSearchField] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("");
   const [showAddModal, setShowAddModal]   = useState(false);
+  const [sortNewestFirst, setSortNewestFirst] = useState(() => {
+    const saved = localStorage.getItem("yaqoot:patientListSortNewestFirst");
+    return saved === null ? true : saved === "true";
+  });
 
   // Date filter state
   const [filterDay,   setFilterDay]   = useState("");
@@ -159,6 +163,8 @@ export default function PatientList() {
       rowKey: p.id,
     }));
   }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, serviceFilter]);
+
+  const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
 
   // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -390,7 +396,22 @@ export default function PatientList() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #F1F1F1" }}>
-                {[t("table.serial"), t("table.name"), t("table.nationalId"), t("table.mobile"), t("table.location"), t("table.lastVisit"), t("table.service"), t("table.complaint")].map((h) => (
+                {[t("table.serial"), t("table.name"), t("table.nationalId"), t("table.mobile"), t("table.location"), t("table.lastVisit"), t("table.service"), t("table.complaint")].map((h) => h === t("table.serial") ? (
+                  <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif", whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => setSortNewestFirst((prev) => {
+                        const next = !prev;
+                        localStorage.setItem("yaqoot:patientListSortNewestFirst", String(next));
+                        return next;
+                      })}
+                      style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0 }}
+                      data-testid="button-sort-toggle"
+                    >
+                      {t("table.serial")}
+                      {sortNewestFirst ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+                    </button>
+                  </th>
+                ) : (
                   <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 600, color: "#717182", fontFamily: "'Cairo', sans-serif", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -401,7 +422,7 @@ export default function PatientList() {
                   <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#717182", fontSize: 14 }}>{t("table.empty")}</td>
                 </tr>
               ) : (
-                filteredRows.map((row, idx) => {
+                displayRows.map((row, idx) => {
                   const { patient: p, visit: v } = row;
                   return (
                     <tr
@@ -411,7 +432,7 @@ export default function PatientList() {
                       onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#d4edda"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = idx % 2 === 0 ? "#fff" : "#E8F5E9"; }}
                     >
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182" }}>{idx + 1}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182" }}>{patients.length - patients.findIndex((pt) => pt.id === p.id)}</td>
                       <td style={{ padding: "11px 16px" }}>
                         <button
                           onClick={() => setLocation(`/patients/${p.id}`)}
