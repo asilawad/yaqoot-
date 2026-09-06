@@ -1,0 +1,79 @@
+In `artifacts/yaqoot-medical/src/pages/PatientList.tsx`, there are TWO visually identical month `<select>` dropdowns in this file. Edit ONLY the one inside the `{isMonthYear && (...)}` block (preceded by the comment `{/* ── Month & Year mode: Month (required) + Year (required) ── */}`). Do NOT touch the other month dropdown inside the `{isExactDate && (...)}` block — leave that one exactly as is.
+
+CHANGE 1 — In that specific block only, find:
+                  <option value="">{t("patients.selectMonth")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+
+Replace with:
+                  <option value="">{t("patients.selectMonth")}</option>
+                  <option value="all">{t("patients.allMonths")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+
+CHANGE 2 — Find the filtering logic block that starts with `if (searchField === "monthYear") {` and update it to treat filterMonth === "all" as "match every month" instead of requiring an exact month number. The full block currently looks like:
+
+    if (searchField === "monthYear") {
+      const month = parseInt(filterMonth);
+      const year  = parseInt(filterYear);
+      if (!filterMonth || !filterYear || isNaN(month) || isNaN(year)) {
+        return patients.map((p) => ({
+          patient: p,
+          visit: getLastVisit(p.id) ?? null,
+          rowKey: p.id,
+        }));
+      }
+
+      const rows: TableRow[] = [];
+      for (const v of visits) {
+        const d = new Date(v.visitDate);
+        if (d.getMonth() + 1 !== month) continue;
+        if (d.getFullYear() !== year)   continue;
+        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+
+        const patient = patients.find((p) => p.id === v.patientId);
+        if (!patient) continue;
+        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id}` });
+      }
+      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
+      return rows;
+    }
+
+Replace it with:
+
+    if (searchField === "monthYear") {
+      const isAllMonths = filterMonth === "all";
+      const month = parseInt(filterMonth);
+      const year  = parseInt(filterYear);
+      if (!filterYear || isNaN(year) || (!isAllMonths && (!filterMonth || isNaN(month)))) {
+        return patients.map((p) => ({
+          patient: p,
+          visit: getLastVisit(p.id) ?? null,
+          rowKey: p.id,
+        }));
+      }
+
+      const rows: TableRow[] = [];
+      for (const v of visits) {
+        const d = new Date(v.visitDate);
+        if (!isAllMonths && d.getMonth() + 1 !== month) continue;
+        if (d.getFullYear() !== year)   continue;
+        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+
+        const patient = patients.find((p) => p.id === v.patientId);
+        if (!patient) continue;
+        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id}` });
+      }
+      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
+      return rows;
+    }
+
+CHANGE 3 — Add the new translation key `patients.allMonths`. Search the project's i18n translation files for the existing key `patients.selectMonth` and add `patients.allMonths` right next to it in every language file that has it, following the exact same format. Use "All Months" for the English value and "كل الشهور" for the Arabic value.
+
+STRICT CONSTRAINTS:
+- Make ONLY the 3 changes above. Do not modify the Exact Day mode block, the sort feature, or any other part of this file or any other file.
+- Do not rename, reformat, or refactor anything else you encounter.
+- After the change, confirm the project typechecks with no new errors: pnpm --filter @workspace/yaqoot-medical run typecheck
+- Do not report success unless typecheck passes.

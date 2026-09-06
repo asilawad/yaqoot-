@@ -33,6 +33,7 @@ export const ar = {
   'patients.searchMonthYear': 'بحث بالشهر والسنة',
   'patients.dayPlaceholder': 'اليوم',
   'patients.selectMonth': 'الشهر',
+  'patients.allMonths': 'كل الشهور',
   'patients.selectYear': 'السنة',
   'patients.showingResults': 'عرض {count} نتيجة',
   

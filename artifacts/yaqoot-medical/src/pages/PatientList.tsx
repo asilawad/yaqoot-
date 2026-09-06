@@ -110,9 +110,10 @@ export default function PatientList() {
 
     // ── Mode: Search by Month & Year ──────────────────────────────────────
     if (searchField === "monthYear") {
+      const isAllMonths = filterMonth === "all";
       const month = parseInt(filterMonth);
       const year  = parseInt(filterYear);
-      if (!filterMonth || !filterYear || isNaN(month) || isNaN(year)) {
+      if (!filterYear || isNaN(year) || (!isAllMonths && (!filterMonth || isNaN(month)))) {
         // Both month and year must be selected to activate
         return patients.map((p) => ({
           patient: p,
@@ -124,7 +125,7 @@ export default function PatientList() {
       const rows: TableRow[] = [];
       for (const v of visits) {
         const d = new Date(v.visitDate);
-        if (d.getMonth() + 1 !== month) continue;
+        if (!isAllMonths && d.getMonth() + 1 !== month) continue;
         if (d.getFullYear() !== year)   continue;
         if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
 
@@ -293,6 +294,7 @@ export default function PatientList() {
                   style={selectStyle}
                 >
                   <option value="">{t("patients.selectMonth")}</option>
+                  <option value="all">{t("patients.allMonths")}</option>
                   {monthNames.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}

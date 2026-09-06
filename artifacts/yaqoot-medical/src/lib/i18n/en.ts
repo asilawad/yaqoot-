@@ -33,6 +33,7 @@ export const en = {
   'patients.searchMonthYear': 'Search by Month & Year',
   'patients.dayPlaceholder': 'Day',
   'patients.selectMonth': 'Month',
+  'patients.allMonths': 'All Months',
   'patients.selectYear': 'Year',
   'patients.showingResults': 'Showing {count} results',
   
