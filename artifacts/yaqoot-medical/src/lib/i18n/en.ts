@@ -31,6 +31,7 @@ export const en = {
   'patients.allServices': 'All Services',
   'patients.searchExactDate': 'Search by Exact Day',
   'patients.searchMonthYear': 'Search by Month & Year',
+  'patients.searchDateRange': 'Search by Date Range',
   'patients.dayPlaceholder': 'Day',
   'patients.selectMonth': 'Month',
   'patients.allMonths': 'All Months',

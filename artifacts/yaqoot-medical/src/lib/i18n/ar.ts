@@ -31,6 +31,7 @@ export const ar = {
   'patients.allServices': 'جميع الخدمات',
   'patients.searchExactDate': 'بحث بيوم محدد',
   'patients.searchMonthYear': 'بحث بالشهر والسنة',
+  'patients.searchDateRange': 'بحث بفترة محددة',
   'patients.dayPlaceholder': 'اليوم',
   'patients.selectMonth': 'الشهر',
   'patients.allMonths': 'كل الشهور',

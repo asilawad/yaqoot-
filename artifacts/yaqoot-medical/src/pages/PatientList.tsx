@@ -27,6 +27,7 @@ const SEARCH_FIELDS = [
   { key: "table.location",           value: "location" },
   { key: "patients.searchExactDate", value: "exactDate" },
   { key: "patients.searchMonthYear", value: "monthYear" },
+  { key: "patients.searchDateRange", value: "dateRange" },
 ];
 
 const YEAR_OPTIONS: string[] = Array.from({ length: 11 }, (_, i) => String(2020 + i));
@@ -56,6 +57,8 @@ export default function PatientList() {
   const [filterDay,   setFilterDay]   = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear,  setFilterYear]  = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate,   setFilterEndDate]   = useState("");
 
   const monthNames = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => {
@@ -137,6 +140,32 @@ export default function PatientList() {
       return rows;
     }
 
+    if (searchField === "dateRange") {
+      if (!filterStartDate || !filterEndDate) {
+        return patients.map((p) => ({
+          patient: p,
+          visit: getLastVisit(p.id) ?? null,
+          rowKey: p.id,
+        }));
+      }
+      const start = new Date(filterStartDate);
+      const end = new Date(filterEndDate);
+      end.setHours(23, 59, 59, 999);
+
+      const rows: TableRow[] = [];
+      for (const v of visits) {
+        const d = new Date(v.visitDate);
+        if (d < start || d > end) continue;
+        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+
+        const patient = patients.find((p) => p.id === v.patientId);
+        if (!patient) continue;
+        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id}` });
+      }
+      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
+      return rows;
+    }
+
     // ── Default: text search on patient fields ─────────────────────────────
     const filteredPatients = patients.filter((p) => {
       const q = search.toLowerCase();
@@ -163,7 +192,7 @@ export default function PatientList() {
       visit: getLastVisit(p.id) ?? null,
       rowKey: p.id,
     }));
-  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, serviceFilter]);
+  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter]);
 
   const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
 
@@ -200,7 +229,8 @@ export default function PatientList() {
   // Count label
   const isDateActive =
     (searchField === "exactDate" && filterDay !== "" && !isNaN(parseInt(filterDay))) ||
-    (searchField === "monthYear" && filterMonth !== "" && filterYear !== "");
+    (searchField === "monthYear" && filterMonth !== "" && filterYear !== "") ||
+    (searchField === "dateRange" && filterStartDate !== "" && filterEndDate !== "");
 
   const countLabel = isDateActive
     ? t("patients.showingResults", { count: filteredRows.length })
@@ -213,11 +243,14 @@ export default function PatientList() {
     setFilterDay("");
     setFilterMonth("");
     setFilterYear("");
+    setFilterStartDate("");
+    setFilterEndDate("");
   };
 
   const isExactDate = searchField === "exactDate";
   const isMonthYear = searchField === "monthYear";
-  const isTextMode  = !isExactDate && !isMonthYear;
+  const isDateRange = searchField === "dateRange";
+  const isTextMode  = !isExactDate && !isMonthYear && !isDateRange;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -351,6 +384,30 @@ export default function PatientList() {
                   ))}
                 </select>
                 <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+              </div>
+            </>
+          )}
+
+          {/* ── Date Range mode: Start Date + End Date (both required) ── */}
+          {isDateRange && (
+            <>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  data-testid="input-filter-start-date"
+                  style={{ ...inputStyle, width: 150 }}
+                />
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  data-testid="input-filter-end-date"
+                  style={{ ...inputStyle, width: 150 }}
+                />
               </div>
             </>
           )}
