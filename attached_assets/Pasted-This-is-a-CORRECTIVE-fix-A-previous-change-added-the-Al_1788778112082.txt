@@ -1,0 +1,82 @@
+This is a CORRECTIVE fix. A previous change added the "All Months" option to the WRONG month dropdown. Fix this precisely.
+
+CHANGE 1 — REMOVE the option from the WRONG location. This is inside the block preceded by the comment `{/* ── Exact Day mode: Day + Month (optional) + Year (optional) ── */}`. Find this EXACT block (note the "(optional)" comment — this confirms you're in the correct block to edit):
+
+              {/* Month dropdown (optional) */}
+              <div style={{ position: "relative" }}>
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  data-testid="select-filter-month"
+                  style={selectStyle}
+                >
+                  <option value="">{t("patients.selectMonth")}</option>
+                  <option value="all">{t("patients.allMonths")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+Replace with (this removes ONLY the "all" option line, nothing else changes in this block):
+
+              {/* Month dropdown (optional) */}
+              <div style={{ position: "relative" }}>
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  data-testid="select-filter-month"
+                  style={selectStyle}
+                >
+                  <option value="">{t("patients.selectMonth")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+CHANGE 2 — ADD the option to the CORRECT location. This is inside the block preceded by the comment `{/* ── Month & Year mode: Month (required) + Year (required) ── */}`. Find this EXACT block (note the plain "Month dropdown" comment with no "(optional)" — this confirms you're in the correct block to edit, the one WITHOUT the day input above it):
+
+              {/* Month dropdown */}
+              <div style={{ position: "relative" }}>
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  data-testid="select-filter-month"
+                  style={selectStyle}
+                >
+                  <option value="">{t("patients.selectMonth")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+Replace with (this adds the "all" option line, nothing else changes in this block):
+
+              {/* Month dropdown */}
+              <div style={{ position: "relative" }}>
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  data-testid="select-filter-month"
+                  style={selectStyle}
+                >
+                  <option value="">{t("patients.selectMonth")}</option>
+                  <option value="all">{t("patients.allMonths")}</option>
+                  {monthNames.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+VERIFICATION BEFORE YOU FINISH — this is mandatory, do not skip:
+After making both changes, run this command and show me the full output:
+
+grep -n "isExactDate &&\|isMonthYear &&\|selectMonth\|allMonths\|Exact Day mode\|Month & Year mode" artifacts/yaqoot-medical/src/pages/PatientList.tsx
+
+Confirm explicitly in your report: the line with `<option value="all">` must appear AFTER the "Month & Year mode" comment line number, and must NOT appear between the "Exact Day mode" comment and the "Month & Year mode" comment. If it's still in the wrong place, fix it again before reporting done.
+
+Then run: pnpm --filter @workspace/yaqoot-medical run typecheck
+Report the output. Do not report success unless typecheck passes AND the grep verification above confirms correct placement.
+
+STRICT CONSTRAINTS:
+- Do NOT touch the filtering logic (the isAllMonths code in the searchField === "monthYear" function) — that part is already correct and working, leave it exactly as is.
+- Do NOT touch the day/year dropdowns in either block.
+- Do NOT touch any other file.

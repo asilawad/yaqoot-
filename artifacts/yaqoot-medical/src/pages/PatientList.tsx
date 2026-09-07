@@ -294,7 +294,6 @@ export default function PatientList() {
                   style={selectStyle}
                 >
                   <option value="">{t("patients.selectMonth")}</option>
-                  <option value="all">{t("patients.allMonths")}</option>
                   {monthNames.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
@@ -331,6 +330,7 @@ export default function PatientList() {
                   style={selectStyle}
                 >
                   <option value="">{t("patients.selectMonth")}</option>
+                  <option value="all">{t("patients.allMonths")}</option>
                   {monthNames.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
