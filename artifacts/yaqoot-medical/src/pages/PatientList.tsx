@@ -329,7 +329,7 @@ export default function PatientList() {
                   data-testid="select-filter-month"
                   style={selectStyle}
                 >
-                  <option value="">{t("patients.selectMonth")}</option>
+                  <option value="" disabled hidden>{t("patients.selectMonth")}</option>
                   <option value="all">{t("patients.allMonths")}</option>
                   {monthNames.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
