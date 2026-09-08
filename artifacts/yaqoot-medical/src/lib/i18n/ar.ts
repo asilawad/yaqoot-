@@ -33,7 +33,7 @@ export const ar = {
   'patients.searchExactDate': 'بحث بيوم محدد',
   'patients.searchMonthYear': 'بحث بالشهر والسنة',
   'patients.searchDateRange': 'بحث بفترة محددة',
-  'patients.dateFilter': 'تصفية التاريخ',
+  'patients.dateFilter': 'التاريخ',
   'patients.dateModeExact': 'يوم محدد',
   'patients.dateModeMonthYear': 'شهر وسنة',
   'patients.dateModeRange': 'فترة محددة',
