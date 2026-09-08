@@ -10,6 +10,7 @@ export const en = {
   'common.all': 'All',
   'common.other': 'Other',
   'common.clear': 'Clear',
+  'common.apply': 'Apply',
   'common.yes': 'Yes',
   'common.no': 'No',
   
@@ -32,6 +33,10 @@ export const en = {
   'patients.searchExactDate': 'Search by Exact Day',
   'patients.searchMonthYear': 'Search by Month & Year',
   'patients.searchDateRange': 'Search by Date Range',
+  'patients.dateFilter': 'Date filter',
+  'patients.dateModeExact': 'Exact day',
+  'patients.dateModeMonthYear': 'Month & year',
+  'patients.dateModeRange': 'Date range',
   'patients.dayPlaceholder': 'Day',
   'patients.selectMonth': 'Month',
   'patients.allMonths': 'All Months',

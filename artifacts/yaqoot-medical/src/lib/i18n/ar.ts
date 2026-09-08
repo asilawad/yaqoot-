@@ -10,6 +10,7 @@ export const ar = {
   'common.all': 'الكل',
   'common.other': 'أخرى',
   'common.clear': 'مسح',
+  'common.apply': 'تطبيق',
   'common.yes': 'نعم',
   'common.no': 'لا',
   
@@ -32,6 +33,10 @@ export const ar = {
   'patients.searchExactDate': 'بحث بيوم محدد',
   'patients.searchMonthYear': 'بحث بالشهر والسنة',
   'patients.searchDateRange': 'بحث بفترة محددة',
+  'patients.dateFilter': 'تصفية التاريخ',
+  'patients.dateModeExact': 'يوم محدد',
+  'patients.dateModeMonthYear': 'شهر وسنة',
+  'patients.dateModeRange': 'فترة محددة',
   'patients.dayPlaceholder': 'اليوم',
   'patients.selectMonth': 'الشهر',
   'patients.allMonths': 'كل الشهور',

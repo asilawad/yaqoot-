@@ -1,0 +1,27 @@
+On branch `feature/date-filter-redesign` (create it first if not already on it — never touch main/master).
+
+TASK: In artifacts/yaqoot-medical/src/pages/PatientList.tsx, reorganize the date-filtering UI layout only. Do NOT change any filtering logic, state variables, or the specialty/service filter ("جميع الخدمات") — that stays exactly as-is, untouched.
+
+1. Split the "field" dropdown: keep only text-search options (all fields, name, national ID, mobile, address). Remove the date-mode options from it.
+
+2. Add one "Date filter" button (calendar icon, reuse existing icon import) next to the search bar. Clicking it toggles a panel below the toolbar (normal flow, no position:fixed/absolute).
+
+3. Inside the panel, use a 2-row layout (not stacked fields):
+   - Row 1: segmented control (3 buttons: "يوم محدد" / "شهر وسنة" / "فترة محددة") on one side, and the relevant input(s) for whichever mode is active right next to it on the same row.
+   - Row 2: "مسح" and "تطبيق" buttons, aligned to opposite ends.
+
+4. Reuse the EXISTING month and year lists exactly as they already exist elsewhere in this file — do not recreate them. The month dropdown must keep its existing "كل الشهور" (all months) option. The year dropdown must show the full existing year list (not a shortened version).
+
+5. Reuse the existing date-range inputs/state for "فترة محددة" if already present in the file.
+
+6. When a date filter is applied, show a small visual indicator on the "Date filter" button (colored border or checkmark) so its active state is clear at a glance.
+
+CONSTRAINTS:
+- Only touch src/pages/PatientList.tsx (and i18n files only if a label is missing — reuse existing keys first).
+- Do not alter filtering logic, only the UI layout/interaction.
+- Do not touch the service filter, sort arrow, or table rendering.
+- Match existing colors/fonts/spacing (#50C878 for active states).
+- Confirm it builds/typechecks with no errors before reporting done.
+- Stay on this branch — do not merge into main.
+
+Keep the diff minimal and focused — reuse existing code/arrays wherever possible instead of rewriting them.

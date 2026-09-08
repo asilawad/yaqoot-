@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Search, Plus, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Calendar, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import AddPatientModal from "@/components/patients/AddPatientModal";
@@ -25,9 +25,6 @@ const SEARCH_FIELDS = [
   { key: "table.nationalId",         value: "nationalId" },
   { key: "table.mobile",             value: "mobile" },
   { key: "table.location",           value: "location" },
-  { key: "patients.searchExactDate", value: "exactDate" },
-  { key: "patients.searchMonthYear", value: "monthYear" },
-  { key: "patients.searchDateRange", value: "dateRange" },
 ];
 
 const YEAR_OPTIONS: string[] = Array.from({ length: 11 }, (_, i) => String(2020 + i));
@@ -59,6 +56,7 @@ export default function PatientList() {
   const [filterYear,  setFilterYear]  = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate,   setFilterEndDate]   = useState("");
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   const monthNames = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => {
@@ -252,6 +250,18 @@ export default function PatientList() {
   const isDateRange = searchField === "dateRange";
   const isTextMode  = !isExactDate && !isMonthYear && !isDateRange;
 
+  const handleDateFilterToggle = () => {
+    if (!showDateFilter && isTextMode) {
+      handleFieldChange("exactDate");
+    }
+    setShowDateFilter((open) => !open);
+  };
+
+  const handleDateFilterClear = () => {
+    handleFieldChange("all");
+    setShowDateFilter(false);
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -282,140 +292,51 @@ export default function PatientList() {
       <div className="medical-card" style={{ marginBottom: 16, padding: 14 }}>
         <div style={{ display: "flex", gap: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center" }}>
 
-          {/* ── Text search input (non-date modes) ── */}
-          {isTextMode && (
-            <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
-              <Search size={15} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", insetInlineStart: 10, color: "#717182", pointerEvents: "none" }} />
-              <input
-                type="search"
-                placeholder={t("common.search")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                data-testid="input-search-patients"
-                style={{
-                  ...inputStyle,
-                  paddingBlock: "9px",
-                  paddingInlineStart: "32px",
-                  paddingInlineEnd: "12px",
-                }}
-              />
-            </div>
-          )}
+          {/* ── Text search input ── */}
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search size={15} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", insetInlineStart: 10, color: "#717182", pointerEvents: "none" }} />
+            <input
+              type="search"
+              placeholder={t("common.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="input-search-patients"
+              disabled={!isTextMode}
+              style={{
+                ...inputStyle,
+                paddingBlock: "9px",
+                paddingInlineStart: "32px",
+                paddingInlineEnd: "12px",
+                opacity: isTextMode ? 1 : 0.65,
+              }}
+            />
+          </div>
 
-          {/* ── Exact Day mode: Day + Month (optional) + Year (optional) ── */}
-          {isExactDate && (
-            <>
-              {/* Day input */}
-              <div style={{ position: "relative", minWidth: 90 }}>
-                <input
-                  type="number"
-                  min={1}
-                  max={31}
-                  placeholder={t("patients.dayPlaceholder")}
-                  value={filterDay}
-                  onChange={(e) => setFilterDay(e.target.value)}
-                  data-testid="input-filter-day"
-                  style={{ ...inputStyle, width: 90, textAlign: "center" }}
-                />
-              </div>
-              {/* Month dropdown (optional) */}
-              <div style={{ position: "relative" }}>
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  data-testid="select-filter-month"
-                  style={selectStyle}
-                >
-                  <option value="">{t("patients.selectMonth")}</option>
-                  {monthNames.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-              </div>
-              {/* Year dropdown (optional) */}
-              <div style={{ position: "relative" }}>
-                <select
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  data-testid="select-filter-year"
-                  style={selectStyle}
-                >
-                  <option value="">{t("patients.selectYear")}</option>
-                  {YEAR_OPTIONS.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-              </div>
-            </>
-          )}
-
-          {/* ── Month & Year mode: Month (required) + Year (required) ── */}
-          {isMonthYear && (
-            <>
-              {/* Month dropdown */}
-              <div style={{ position: "relative" }}>
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  data-testid="select-filter-month"
-                  style={selectStyle}
-                >
-                  <option value="" disabled hidden>{t("patients.selectMonth")}</option>
-                  <option value="all">{t("patients.allMonths")}</option>
-                  {monthNames.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-              </div>
-              {/* Year dropdown */}
-              <div style={{ position: "relative" }}>
-                <select
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  data-testid="select-filter-year"
-                  style={selectStyle}
-                >
-                  <option value="">{t("patients.selectYear")}</option>
-                  {YEAR_OPTIONS.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-              </div>
-            </>
-          )}
-
-          {/* ── Date Range mode: Start Date + End Date (both required) ── */}
-          {isDateRange && (
-            <>
-              <div style={{ position: "relative" }}>
-                <input
-                  type="date"
-                  value={filterStartDate}
-                  onChange={(e) => setFilterStartDate(e.target.value)}
-                  data-testid="input-filter-start-date"
-                  style={{ ...inputStyle, width: 150 }}
-                />
-              </div>
-              <div style={{ position: "relative" }}>
-                <input
-                  type="date"
-                  value={filterEndDate}
-                  onChange={(e) => setFilterEndDate(e.target.value)}
-                  data-testid="input-filter-end-date"
-                  style={{ ...inputStyle, width: 150 }}
-                />
-              </div>
-            </>
-          )}
+          {/* ── Date filter toggle ── */}
+          <button
+            type="button"
+            onClick={handleDateFilterToggle}
+            data-testid="btn-date-filter"
+            style={{
+              ...selectStyle,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              border: isDateActive ? "1px solid #50C878" : selectStyle.border,
+              color: isDateActive ? "#2E9F5B" : selectStyle.color,
+              background: isDateActive ? "#E8F5E9" : selectStyle.background,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Calendar size={15} />
+            {t("patients.dateFilter")}
+            {isDateActive && <span aria-hidden="true">✓</span>}
+          </button>
 
           {/* Search field selector */}
           <div style={{ position: "relative" }}>
             <select
-              value={searchField}
+              value={isTextMode ? searchField : "all"}
               onChange={(e) => handleFieldChange(e.target.value)}
               data-testid="select-search-field"
               style={selectStyle}
@@ -442,6 +363,190 @@ export default function PatientList() {
             <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
           </div>
         </div>
+
+        {showDateFilter && (
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 14,
+              borderTop: "1px solid #F1F1F1",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {/* ── Date filter row ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "inline-flex", border: "1px solid #DDE5DF", borderRadius: 9, padding: 3, gap: 3 }}>
+                {[
+                  { value: "exactDate", label: "patients.dateModeExact" },
+                  { value: "monthYear", label: "patients.dateModeMonthYear" },
+                  { value: "dateRange", label: "patients.dateModeRange" },
+                ].map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => handleFieldChange(mode.value)}
+                    data-testid={`btn-date-mode-${mode.value}`}
+                    style={{
+                      border: "none",
+                      borderRadius: 7,
+                      padding: "7px 11px",
+                      background: searchField === mode.value ? "#50C878" : "transparent",
+                      color: searchField === mode.value ? "#fff" : "#4B5563",
+                      fontFamily: "'Cairo', sans-serif",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t(mode.label)}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1, minWidth: 220 }}>
+                {isExactDate && (
+                  <>
+                    <div style={{ position: "relative", minWidth: 90 }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        placeholder={t("patients.dayPlaceholder")}
+                        value={filterDay}
+                        onChange={(e) => setFilterDay(e.target.value)}
+                        data-testid="input-filter-day"
+                        style={{ ...inputStyle, width: 90, textAlign: "center" }}
+                      />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        data-testid="select-filter-month"
+                        style={selectStyle}
+                      >
+                        <option value="">{t("patients.selectMonth")}</option>
+                        {monthNames.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        data-testid="select-filter-year"
+                        style={selectStyle}
+                      >
+                        <option value="">{t("patients.selectYear")}</option>
+                        {YEAR_OPTIONS.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                    </div>
+                  </>
+                )}
+
+                {isMonthYear && (
+                  <>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        data-testid="select-filter-month"
+                        style={selectStyle}
+                      >
+                        <option value="" disabled hidden>{t("patients.selectMonth")}</option>
+                        <option value="all">{t("patients.allMonths")}</option>
+                        {monthNames.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        data-testid="select-filter-year"
+                        style={selectStyle}
+                      >
+                        <option value="">{t("patients.selectYear")}</option>
+                        {YEAR_OPTIONS.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+                    </div>
+                  </>
+                )}
+
+                {isDateRange && (
+                  <>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="date"
+                        value={filterStartDate}
+                        onChange={(e) => setFilterStartDate(e.target.value)}
+                        data-testid="input-filter-start-date"
+                        style={{ ...inputStyle, width: 150 }}
+                      />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="date"
+                        value={filterEndDate}
+                        onChange={(e) => setFilterEndDate(e.target.value)}
+                        data-testid="input-filter-end-date"
+                        style={{ ...inputStyle, width: 150 }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── Date filter actions ── */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={handleDateFilterClear}
+                style={{
+                  border: "1px solid #DDE5DF",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  background: "#fff",
+                  color: "#4B5563",
+                  fontFamily: "'Cairo', sans-serif",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                {t("common.clear")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDateFilter(false)}
+                style={{
+                  border: "1px solid #50C878",
+                  borderRadius: 8,
+                  padding: "8px 18px",
+                  background: "#50C878",
+                  color: "#fff",
+                  fontFamily: "'Cairo', sans-serif",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                {t("common.apply")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Count */}
