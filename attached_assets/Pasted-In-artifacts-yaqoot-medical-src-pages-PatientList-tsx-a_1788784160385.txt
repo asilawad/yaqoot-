@@ -1,0 +1,151 @@
+In `artifacts/yaqoot-medical/src/pages/PatientList.tsx`, add a new THIRD search mode: "Search by Date Range" (from date → to date). This is a new mode, separate from the existing "exactDate" and "monthYear" modes — do not modify those two modes' logic, fields, or rendering in any way.
+
+CHANGE 1 — Add to the SEARCH_FIELDS array. Find:
+const SEARCH_FIELDS = [
+  { key: "patients.allFields",       value: "all" },
+  { key: "table.name",               value: "name" },
+  { key: "table.nationalId",         value: "nationalId" },
+  { key: "table.mobile",             value: "mobile" },
+  { key: "table.location",           value: "location" },
+  { key: "patients.searchExactDate", value: "exactDate" },
+  { key: "patients.searchMonthYear", value: "monthYear" },
+];
+
+Replace with:
+const SEARCH_FIELDS = [
+  { key: "patients.allFields",       value: "all" },
+  { key: "table.name",               value: "name" },
+  { key: "table.nationalId",         value: "nationalId" },
+  { key: "table.mobile",             value: "mobile" },
+  { key: "table.location",           value: "location" },
+  { key: "patients.searchExactDate", value: "exactDate" },
+  { key: "patients.searchMonthYear", value: "monthYear" },
+  { key: "patients.searchDateRange", value: "dateRange" },
+];
+
+CHANGE 2 — Add new state. Find:
+  const [filterDay,   setFilterDay]   = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear,  setFilterYear]  = useState("");
+
+Replace with:
+  const [filterDay,   setFilterDay]   = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear,  setFilterYear]  = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate,   setFilterEndDate]   = useState("");
+
+CHANGE 3 — Add the filtering branch. Find the block that starts with `if (searchField === "monthYear") {` and ends with its closing `}` right before the comment `// ── Default: text search on patient fields`. Insert this NEW block immediately AFTER that monthYear block's closing `}` and BEFORE the `// ── Default: text search` comment (do not alter the monthYear block itself):
+
+    if (searchField === "dateRange") {
+      if (!filterStartDate || !filterEndDate) {
+        return patients.map((p) => ({
+          patient: p,
+          visit: getLastVisit(p.id) ?? null,
+          rowKey: p.id,
+        }));
+      }
+      const start = new Date(filterStartDate);
+      const end = new Date(filterEndDate);
+      end.setHours(23, 59, 59, 999);
+
+      const rows: TableRow[] = [];
+      for (const v of visits) {
+        const d = new Date(v.visitDate);
+        if (d < start || d > end) continue;
+        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+
+        const patient = patients.find((p) => p.id === v.patientId);
+        if (!patient) continue;
+        rows.push({ patient, visit: v, rowKey: `${patient.id}-${v.id}` });
+      }
+      rows.sort((a, b) => (b.visit?.visitDate ?? "").localeCompare(a.visit?.visitDate ?? ""));
+      return rows;
+    }
+
+CHANGE 4 — Update the useMemo dependency array. Find the line ending with:
+  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, serviceFilter]);
+
+Replace with:
+  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter]);
+
+CHANGE 5 — Update isDateActive. Find:
+  const isDateActive =
+    (searchField === "exactDate" && filterDay !== "" && !isNaN(parseInt(filterDay))) ||
+    (searchField === "monthYear" && filterMonth !== "" && filterYear !== "");
+
+Replace with:
+  const isDateActive =
+    (searchField === "exactDate" && filterDay !== "" && !isNaN(parseInt(filterDay))) ||
+    (searchField === "monthYear" && filterMonth !== "" && filterYear !== "") ||
+    (searchField === "dateRange" && filterStartDate !== "" && filterEndDate !== "");
+
+CHANGE 6 — Update handleFieldChange to reset the new fields too. Find:
+  const handleFieldChange = (value: string) => {
+    setSearchField(value);
+    setSearch("");
+    setFilterDay("");
+    setFilterMonth("");
+    setFilterYear("");
+  };
+
+Replace with:
+  const handleFieldChange = (value: string) => {
+    setSearchField(value);
+    setSearch("");
+    setFilterDay("");
+    setFilterMonth("");
+    setFilterYear("");
+    setFilterStartDate("");
+    setFilterEndDate("");
+  };
+
+CHANGE 7 — Update the mode booleans. Find:
+  const isExactDate = searchField === "exactDate";
+  const isMonthYear = searchField === "monthYear";
+  const isTextMode  = !isExactDate && !isMonthYear;
+
+Replace with:
+  const isExactDate = searchField === "exactDate";
+  const isMonthYear = searchField === "monthYear";
+  const isDateRange = searchField === "dateRange";
+  const isTextMode  = !isExactDate && !isMonthYear && !isDateRange;
+
+CHANGE 8 — Add the new rendering block. Find the closing of the `{isMonthYear && (...)}` JSX block — it is a `<>...</>` fragment that ends right before the next sibling element in the same parent container. Insert this NEW block immediately after that `{isMonthYear && ( ... )}` block closes (do not alter the isMonthYear block itself, including its recently-fixed "all months" option — leave that exactly as is):
+
+          {/* ── Date Range mode: Start Date + End Date (both required) ── */}
+          {isDateRange && (
+            <>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  data-testid="input-filter-start-date"
+                  style={{ ...inputStyle, width: 150 }}
+                />
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  data-testid="input-filter-end-date"
+                  style={{ ...inputStyle, width: 150 }}
+                />
+              </div>
+            </>
+          )}
+
+CHANGE 9 — Add the translation key. Search the project's i18n translation files for the existing key `patients.searchMonthYear` and add a new key `patients.searchDateRange` right next to it in every language file, following the exact same format. Use "Search by Date Range" for the English value and "بحث بفترة محددة" for the Arabic value.
+
+STRICT CONSTRAINTS:
+- Make ONLY these 9 changes, all within PatientList.tsx (and the i18n files for change 9).
+- Do NOT modify the "exactDate" or "monthYear" modes' logic or rendering in any way — including the recently corrected "All Months" option and the "disabled hidden" placeholder fix. Leave both exactly as they currently are.
+- Do NOT touch the sort feature or any other part of this file.
+- Do not rename, reformat, or refactor anything else you encounter.
+- After the change, run this verification and show me the output:
+  grep -n "isExactDate &&\|isMonthYear &&\|isDateRange &&\|allMonths" artifacts/yaqoot-medical/src/pages/PatientList.tsx
+  Confirm the "all" months option is STILL only present inside the isMonthYear block (not duplicated or moved).
+- Then run: pnpm --filter @workspace/yaqoot-medical run typecheck
+- Do not report success unless typecheck passes AND the grep confirms nothing about the existing month dropdowns changed.

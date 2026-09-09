@@ -1,0 +1,30 @@
+This is an ENVIRONMENT/WORKFLOW SETUP task only — do NOT modify any application code, do NOT touch any file under artifacts/yaqoot-medical/src, and do NOT attempt to configure DATABASE_URL, Postgres, Drizzle, or anything related to the unused artifacts/api-server or lib/db packages. Those are irrelevant empty scaffolding, not part of the real app. Ignore them completely.
+
+GOAL: Get the real application (artifacts/yaqoot-medical) installed and running in Preview.
+
+STEP 1 — Install only what this specific package needs, avoiding the unrelated `orval` package (used only by the unused lib/api-spec scaffold) which fails behind the package firewall:
+
+cd ~/workspace
+pnpm install --filter "@workspace/yaqoot-medical..."
+
+If this fails with the same orval/ERR_PNPM_FETCH_403 error, report the exact error and STOP — do not try alternative install strategies without telling me first.
+
+STEP 2 — Once install succeeds, verify vite exists:
+
+ls artifacts/yaqoot-medical/node_modules/.bin/vite
+
+STEP 3 — Set up a Run workflow (or configure the Run button) that starts this exact command from the artifacts/yaqoot-medical directory:
+
+PORT=20342 BASE_PATH=/ pnpm run dev
+
+Use whatever Replit's standard mechanism is for this (workflow config, .replit run command, etc.) — but the end result must be: clicking the Run/Preview button executes exactly this command in exactly this directory, nothing else.
+
+STEP 4 — Click Run (or start the workflow) and confirm in the console output that Vite started successfully (look for "VITE ready" and "Local: http://localhost:20342"). Then confirm the Preview pane actually loads the app (not a blank page or crash).
+
+STEP 5 — Report back:
+- Whether install succeeded
+- The exact Run command that was configured
+- Whether Preview is now loading the app successfully
+- Any errors encountered
+
+Do not attempt to fix unrelated issues, do not modify any .ts or .tsx file, and do not touch git. This should be a small number of actions — if you find yourself needing more than the steps above, stop and report what you're seeing instead of continuing.
