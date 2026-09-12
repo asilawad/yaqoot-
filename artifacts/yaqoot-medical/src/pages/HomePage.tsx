@@ -49,7 +49,7 @@ export default function HomePage() {
             width: 200,
             height: 200,
             objectFit: "contain",
-            marginBottom: 10,
+            marginBottom: 4,
           }}
         />
 
