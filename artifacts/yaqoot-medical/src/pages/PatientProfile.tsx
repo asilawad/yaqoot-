@@ -620,111 +620,6 @@ export default function PatientProfile() {
         )}
       </div>
 
-      {/* ── Visit Timeline ── */}
-      <div style={card}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 24, textAlign: "start" }}>
-          {t("profile.visitTimeline")}
-        </h2>
-
-        {patientVisits.length === 0 ? (
-          <p style={{ color: "#717182", fontSize: 15, textAlign: "start" }}>No visits yet</p>
-        ) : (
-          <div style={{ position: "relative" }}>
-            {/* Vertical timeline line */}
-            <div style={{
-              position: "absolute",
-              top: 10,
-              bottom: 10,
-              insetInlineStart: 15,
-              width: 2,
-              background: "#F1F1F1",
-              borderRadius: 2,
-            }} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {patientVisits.map((v, idx) => (
-                <div
-                  key={v.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 20,
-                    flexDirection: "row",
-                  }}
-                >
-                  {/* Timeline dot */}
-                  <div style={{ flexShrink: 0, position: "relative", zIndex: 1, marginTop: 14 }}>
-                    <div style={{
-                      width: 32, height: 32,
-                      borderRadius: "50%",
-                      background: idx === 0 ? "#50C878" : "#fff",
-                      border: `2px solid ${idx === 0 ? "#50C878" : "#D1D5DB"}`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <div style={{
-                        width: 10, height: 10, borderRadius: "50%",
-                        background: idx === 0 ? "#fff" : "#D1D5DB",
-                      }} />
-                    </div>
-                  </div>
-
-                  {/* Visit card */}
-                  <button
-                    onClick={() => setLocation(`/visits/${v.id}?returnTab=history`)}
-                    data-testid={`card-visit-${v.id}`}
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "16px 20px",
-                      background: "#F9FAFB",
-                      borderRadius: 12,
-                      border: "1px solid #F1F1F1",
-                      cursor: "pointer",
-                      textAlign: "start",
-                      fontFamily: "'Cairo', sans-serif",
-                      transition: "all 0.15s ease",
-                      flexDirection: "row",
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLButtonElement;
-                      el.style.borderColor = "#50C878";
-                      el.style.background = "#F0FDF4";
-                      el.style.boxShadow = "0 4px 12px rgba(80,200,120,0.12)";
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLButtonElement;
-                      el.style.borderColor = "#F1F1F1";
-                      el.style.background = "#F9FAFB";
-                      el.style.boxShadow = "none";
-                    }}
-                  >
-                    <div style={{ textAlign: "start" }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
-                        {new Date(v.visitDate).toLocaleDateString()}
-                      </div>
-                      <div style={{ fontSize: 13, color: "#717182" }}>
-                        {v.mainService || "—"}
-                        {v.doctor ? ` · ${v.doctor}` : ""}
-                      </div>
-                      {v.diagnosis && (
-                        <div style={{ fontSize: 13, color: "#50C878", fontWeight: 600, marginTop: 4 }}>
-                          {v.diagnosis}
-                        </div>
-                      )}
-                    </div>
-                    <span className={v.paymentStatus === "paid" ? "pill-green" : "pill-red"}>
-                      {t(`visit.${v.paymentStatus}`)}
-                    </span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* ── Records Tabs ── */}
       <div style={card}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: "start" }}>
@@ -760,21 +655,78 @@ export default function PatientProfile() {
 
         {/* Visit History */}
         {activeTab === "history" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {patientVisits.length === 0 ? (
-              <p style={{ color: "#717182", fontSize: 15 }}>No records</p>
-            ) : patientVisits.map(v => (
-              <div key={v.id} style={{ padding: "18px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", textAlign: "start" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", marginBottom: 8 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{new Date(v.visitDate).toLocaleDateString()}</div>
-                  <button onClick={() => setLocation(`/visits/${v.id}?returnTab=history`)} style={{ background: "none", border: "none", color: "#50C878", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif", fontWeight: 600 }}>{t("common.edit")} →</button>
-                </div>
-                {v.chiefComplaint && <div style={{ fontSize: 14, color: "#717182", marginBottom: 4 }}>{t("visit.complaint")}: {v.chiefComplaint}</div>}
-                {v.diagnosis && <div style={{ fontSize: 14, color: "#171717", fontWeight: 600 }}>{t("visit.diagnosis")}: {v.diagnosis}</div>}
-                {v.doctor && <div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>{t("visit.doctor")}: {v.doctor}</div>}
+          patientVisits.length === 0 ? (
+            <p style={{ color: "#717182", fontSize: 15 }}>No records</p>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <div style={{
+                position: "absolute",
+                top: 10,
+                bottom: 10,
+                insetInlineStart: 15,
+                width: 2,
+                background: "#F1F1F1",
+                borderRadius: 2,
+              }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {patientVisits.map((v, idx) => (
+                  <div key={v.id} style={{ display: "flex", alignItems: "flex-start", gap: 20, flexDirection: "row" }}>
+                    <div style={{ flexShrink: 0, position: "relative", zIndex: 1, marginTop: 14 }}>
+                      <div style={{
+                        width: 32, height: 32,
+                        borderRadius: "50%",
+                        background: idx === 0 ? "#50C878" : "#fff",
+                        border: `2px solid ${idx === 0 ? "#50C878" : "#D1D5DB"}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: idx === 0 ? "#fff" : "#D1D5DB" }} />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setLocation(`/visits/${v.id}?returnTab=history`)}
+                      data-testid={`card-visit-${v.id}`}
+                      style={{
+                        flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "16px 20px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1",
+                        cursor: "pointer", textAlign: "start", fontFamily: "'Cairo', sans-serif",
+                        transition: "all 0.15s ease", flexDirection: "row",
+                      }}
+                      onMouseEnter={e => {
+                        const el = e.currentTarget as HTMLButtonElement;
+                        el.style.borderColor = "#50C878";
+                        el.style.background = "#F0FDF4";
+                        el.style.boxShadow = "0 4px 12px rgba(80,200,120,0.12)";
+                      }}
+                      onMouseLeave={e => {
+                        const el = e.currentTarget as HTMLButtonElement;
+                        el.style.borderColor = "#F1F1F1";
+                        el.style.background = "#F9FAFB";
+                        el.style.boxShadow = "none";
+                      }}
+                    >
+                      <div style={{ textAlign: "start" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
+                          {new Date(v.visitDate).toLocaleDateString()}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#717182" }}>
+                          {v.mainService || "—"}
+                          {v.doctor ? ` · ${v.doctor}` : ""}
+                        </div>
+                        {v.diagnosis && (
+                          <div style={{ fontSize: 13, color: "#50C878", fontWeight: 600, marginTop: 4 }}>
+                            {v.diagnosis}
+                          </div>
+                        )}
+                      </div>
+                      <span className={v.paymentStatus === "paid" ? "pill-green" : "pill-red"}>
+                        {t(`visit.${v.paymentStatus}`)}
+                      </span>
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )
         )}
 
         {/* Investigations */}
