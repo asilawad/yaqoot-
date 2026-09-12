@@ -46,10 +46,10 @@ export default function HomePage() {
           src={logoSrc}
           alt={t("sidebar.clinicName")}
           style={{
-            width: 116,
-            height: 116,
+            width: 140,
+            height: 140,
             objectFit: "contain",
-            marginBottom: 18,
+            marginBottom: 10,
           }}
         />
 
