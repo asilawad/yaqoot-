@@ -1,0 +1,17 @@
+STEP 1 — Fix the logo across the entire app.
+
+1. In artifacts/yaqoot-medical/attached_assets/, locate the file "yaqoot logo 1.png" — the correct, complete logo (a house/roof shape containing a small red-black-green square, sitting above a diamond outline with a heartbeat line and heart through it). Confirm this is the correct file before proceeding (report its exact filename and dimensions).
+
+2. Search the entire codebase (all .tsx, .ts, .json, and config files) for any reference to other logo files — specifically "yaqoot_logo_nobg.png", "yaqoot_logo_1_1782392891158.png", "yaqoot_logo_1_1787738308067.png", or any other yaqoot-logo-named asset. Report every place these are referenced.
+
+3. Replace every one of those references with "yaqoot logo 1.png" instead (via the existing @assets alias, e.g. `import logoSrc from "@assets/yaqoot logo 1.png";`).
+
+4. Delete the stray/incorrect logo files from attached_assets/ (yaqoot_logo_nobg.png and any exact duplicates of it) — but do NOT delete "yaqoot logo 1.png" itself, that is the one correct source going forward.
+
+5. Regenerate the Tauri desktop app icons (the ones used for the taskbar/.exe icon — currently in src-tauri/icons/) from this corrected source file, using Tauri's own icon generation command (e.g. `npx tauri icon "attached_assets/yaqoot logo 1.png"` or the pnpm/cargo-tauri equivalent already used in this project — check how the icons were originally generated in an earlier commit and use the same method). Before running it:
+   - If "yaqoot logo 1.png" is not square, first pad it onto a square transparent canvas (centered, preserving aspect ratio) so nothing gets cropped.
+   - Add a safe margin of roughly 10-15% padding around the artwork within that square canvas — Windows applies its own icon frame/mask and will crop right up to the edges otherwise, which is likely why the current icon looks unclear/cut off. Keep the background transparent (do not fill it solid) — the padding alone should fix the clarity issue without needing an opaque background.
+
+6. After regenerating, confirm all icon files under src-tauri/icons/ were overwritten with the new artwork, and confirm the project still builds/typechecks with no errors.
+
+Report back exactly which files were changed/deleted before I give you the next step.
