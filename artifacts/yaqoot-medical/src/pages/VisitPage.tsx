@@ -245,7 +245,7 @@ export default function VisitPage() {
                 const returnTab = qIdx !== -1 ? new URLSearchParams(window.location.href.substring(qIdx + 1)).get("returnTab") : null;
                 return `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`;
               })()
-            : "/"
+            : "/patients"
         }
         testId="btn-back-visit"
       />

@@ -1,0 +1,21 @@
+On branch main. Create artifacts/yaqoot-medical/src/pages/HomePage.tsx directly (it does not exist anywhere in this repo's history — this is a fresh creation, not a restore).
+
+Content:
+- The clinic logo, imported via the existing @assets alias, using the corrected logo file "yaqoot logo 1.png" (NOT yaqoot_logo_nobg.png — that one is cropped/incorrect). Centered, ~96-120px.
+- Clinic name (reuse i18n key `sidebar.clinicName`) as a heading below the logo.
+- A welcome line with today's date (add i18n keys `home.welcome`).
+- Two cards side by side (stack on narrow screens): Vision (i18n `home.visionTitle`="الرؤية"/"Vision", `home.visionText`="خدمة صحية متكاملة تصل لكل بيت في قطاع غزة" + English translation) and Mission (i18n `home.missionTitle`="الرسالة"/"Mission", `home.missionText`="رعاية صحية منزلية متكاملة، وتثقيف صحي لجميع أفراد الأسرة بفريق طبي يتميّز بالمهنية والخبرة والكفاءة التقنية." + English translation).
+- No buttons, no patient data, no statistics below the cards — the page ends there.
+- Every string must use the app's t() translation function with matching entries added to both src/lib/i18n/ar.ts and src/lib/i18n/en.ts. Style consistent with the rest of the app (Cairo font, #50C878 accent, white rounded cards).
+
+Then update artifacts/yaqoot-medical/src/App.tsx:
+- Import HomePage.
+- Change the route so "/" renders HomePage, and add a new "/patients" route rendering PatientList (whatever currently renders at "/").
+
+Then update artifacts/yaqoot-medical/src/layouts/Sidebar.tsx:
+- Add a "Home" icon nav item at the top pointing to "/" (add i18n key `sidebar.home`="الصفحة الرئيسية"/"Home").
+- Change the existing patients nav item's link from "/" to "/patients".
+
+Finally, search the codebase for any place that navigates to "/" expecting the patient list (NavigationBackButton `to="/"`, `setLocation("/")` calls in PatientProfile.tsx and VisitPage.tsx) and update those specific fallbacks to "/patients".
+
+Confirm build/typecheck passes with no errors. Work directly on main — no new branch needed for this.

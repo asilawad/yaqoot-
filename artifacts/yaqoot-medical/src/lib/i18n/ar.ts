@@ -17,9 +17,17 @@ export const ar = {
   // Sidebar
   'sidebar.clinicName': 'عيادة ياقوت الطبية',
   'sidebar.slogan': 'رعاية طبية متكاملة، وحياة أفضل',
+  'sidebar.home': 'الصفحة الرئيسية',
   'sidebar.patients': 'سجل المرضى',
   'sidebar.settings': 'الإعدادات',
   'sidebar.toggleLang': 'English',
+
+  // Home
+  'home.welcome': 'مرحباً بك في عيادة ياقوت الطبية — {date}',
+  'home.visionTitle': 'الرؤية',
+  'home.visionText': 'خدمة صحية متكاملة تصل لكل بيت في قطاع غزة',
+  'home.missionTitle': 'الرسالة',
+  'home.missionText': 'رعاية صحية منزلية متكاملة، وتثقيف صحي لجميع أفراد الأسرة بفريق طبي يتميّز بالمهنية والخبرة والكفاءة التقنية.',
 
   // Patient List
   'patients.title': 'سجل المرضى',

@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Users, Settings } from "lucide-react";
+import { Home as HomeIcon, Users, Settings } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Sidebar() {
@@ -7,7 +7,8 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   const navItems = [
-    { key: "sidebar.patients", href: "/", icon: Users },
+    { key: "sidebar.home", href: "/", icon: HomeIcon },
+    { key: "sidebar.patients", href: "/patients", icon: Users },
     { key: "sidebar.settings", href: "/settings", icon: Settings },
   ];
 

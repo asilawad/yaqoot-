@@ -17,9 +17,17 @@ export const en = {
   // Sidebar
   'sidebar.clinicName': 'Yaqoot Medical Clinic',
   'sidebar.slogan': 'Integrated medical care, better life',
+  'sidebar.home': 'Home',
   'sidebar.patients': 'Patient Directory',
   'sidebar.settings': 'Settings',
   'sidebar.toggleLang': 'العربية',
+
+  // Home
+  'home.welcome': 'Welcome to Yaqoot Medical Clinic — {date}',
+  'home.visionTitle': 'Vision',
+  'home.visionText': 'Comprehensive healthcare that reaches every home in the Gaza Strip',
+  'home.missionTitle': 'Mission',
+  'home.missionText': 'Comprehensive home healthcare and health education for every family member, delivered by a medical team distinguished by professionalism, experience, and technical competence.',
 
   // Patient List
   'patients.title': 'Patient Directory',

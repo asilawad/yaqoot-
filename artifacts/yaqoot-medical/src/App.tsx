@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { DataProvider } from "@/contexts/DataContext";
 import AppLayout from "@/layouts/AppLayout";
+import HomePage from "@/pages/HomePage";
 import PatientList from "@/pages/PatientList";
 import PatientProfile from "@/pages/PatientProfile";
 import VisitPage from "@/pages/VisitPage";
@@ -22,7 +23,8 @@ function Router() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={PatientList} />
+        <Route path="/" component={HomePage} />
+        <Route path="/patients" component={PatientList} />
         <Route path="/patients/:id" component={PatientProfile} />
         <Route path="/patients/:id/visits/new" component={VisitPage} />
         <Route path="/visits/:visitId" component={VisitPage} />

@@ -301,7 +301,7 @@ export default function PatientProfile() {
     return (
       <div style={{ padding: 60, textAlign: "center" }}>
         <p style={{ color: "#717182", fontSize: 16 }}>Patient not found</p>
-        <NavigationBackButton to="/" testId="btn-back-profile-empty" />
+        <NavigationBackButton to="/patients" testId="btn-back-profile-empty" />
       </div>
     );
   }
@@ -431,7 +431,7 @@ export default function PatientProfile() {
 
       {/* Back */}
       <NavigationBackButton
-        to="/"
+        to="/patients"
         testId="btn-back-profile"
         labelKey="profile.back"
       />
@@ -975,7 +975,7 @@ export default function PatientProfile() {
                 onClick={() => {
                   deletePatient(patient.id);
                   toast({ title: t("deletePatient.success") });
-                  setLocation("/");
+                  setLocation("/patients");
                 }}
                 data-testid="btn-confirm-delete-patient"
                 style={{ padding: "11px 24px", borderRadius: 10, border: "none", background: "#dc2626", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif", display: "flex", alignItems: "center", gap: 8 }}
