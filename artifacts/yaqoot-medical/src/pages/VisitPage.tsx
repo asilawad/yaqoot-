@@ -54,6 +54,13 @@ export default function VisitPage() {
   const existingVisit = params.visitId ? repo.getVisitById(params.visitId) : undefined;
   const patientId = existingVisit?.patientId || params.id || "";
   const patient = patients.find(p => p.id === patientId);
+  const returnTab = (() => {
+    const qIdx = window.location.href.indexOf("?");
+    let queryPart = qIdx !== -1 ? window.location.href.substring(qIdx + 1) : "";
+    const hashIdx = queryPart.indexOf("#");
+    if (hashIdx !== -1) queryPart = queryPart.substring(0, hashIdx);
+    return qIdx !== -1 ? new URLSearchParams(queryPart).get("returnTab") : null;
+  })();
 
   const [visitId, setVisitId] = useState<string | null>(existingVisit?.id || null);
   const [form, setForm] = useState({
@@ -141,7 +148,7 @@ export default function VisitPage() {
     }
     refreshData();
     toast({ title: t("visit.success") });
-    setLocation(`/patients/${patientId}`);
+    setLocation(`/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`);
   };
 
   // Treatments
@@ -240,14 +247,7 @@ export default function VisitPage() {
       <NavigationBackButton
         to={
           patientId
-            ? (() => {
-                const qIdx = window.location.href.indexOf("?");
-                let queryPart = qIdx !== -1 ? window.location.href.substring(qIdx + 1) : "";
-                const hashIdx = queryPart.indexOf("#");
-                if (hashIdx !== -1) queryPart = queryPart.substring(0, hashIdx);
-                const returnTab = qIdx !== -1 ? new URLSearchParams(queryPart).get("returnTab") : null;
-                return `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`;
-              })()
+            ? `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`
             : "/patients"
         }
         testId="btn-back-visit"
