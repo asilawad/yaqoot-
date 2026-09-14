@@ -287,7 +287,10 @@ export default function PatientProfile() {
 
   const [activeTab, setActiveTab] = useState<"history" | "investigations" | "treatments" | "notes">(() => {
     const qIdx = window.location.href.indexOf("?");
-    const tabParam = qIdx !== -1 ? new URLSearchParams(window.location.href.substring(qIdx + 1)).get("tab") : null;
+    let queryPart = qIdx !== -1 ? window.location.href.substring(qIdx + 1) : "";
+    const hashIdx = queryPart.indexOf("#");
+    if (hashIdx !== -1) queryPart = queryPart.substring(0, hashIdx);
+    const tabParam = qIdx !== -1 ? new URLSearchParams(queryPart).get("tab") : null;
     return (tabParam as "history" | "investigations" | "treatments" | "notes") || "history";
   });
   const [showEditModal, setShowEditModal] = useState(false);

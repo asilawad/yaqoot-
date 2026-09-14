@@ -242,7 +242,10 @@ export default function VisitPage() {
           patientId
             ? (() => {
                 const qIdx = window.location.href.indexOf("?");
-                const returnTab = qIdx !== -1 ? new URLSearchParams(window.location.href.substring(qIdx + 1)).get("returnTab") : null;
+                let queryPart = qIdx !== -1 ? window.location.href.substring(qIdx + 1) : "";
+                const hashIdx = queryPart.indexOf("#");
+                if (hashIdx !== -1) queryPart = queryPart.substring(0, hashIdx);
+                const returnTab = qIdx !== -1 ? new URLSearchParams(queryPart).get("returnTab") : null;
                 return `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`;
               })()
             : "/patients"
