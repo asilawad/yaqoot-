@@ -336,10 +336,10 @@
 
 .prescription-print-logo {
   position: absolute;
-  top: 0;
-  right: 2mm;
-  width: 39mm;
-  height: 39mm;
+  top: -15.5mm;
+  right: -13.5mm;
+  width: 70mm;
+  height: 70mm;
   object-fit: contain;
 }
 
@@ -367,10 +367,10 @@
 
 .prescription-print-watermark {
   position: absolute;
-  top: 137mm;
+  top: 130mm;
   left: 50%;
-  width: 78mm;
-  height: 78mm;
+  width: 130mm;
+  height: 130mm;
   object-fit: contain;
   opacity: 0.08;
   transform: translateX(-50%);
@@ -404,6 +404,11 @@
   top: 0;
   left: 0;
   direction: rtl;
+}
+
+.prescription-print-field-date span:last-child {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .prescription-print-field-patient {
