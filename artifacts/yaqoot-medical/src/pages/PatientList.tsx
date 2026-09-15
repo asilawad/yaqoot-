@@ -7,6 +7,7 @@ import AddPatientModal from "@/components/patients/AddPatientModal";
 import * as repo from "@/lib/db/repository";
 import type { Visit } from "@/lib/db/types";
 import type { Patient } from "@/lib/db/types";
+import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
@@ -36,7 +37,7 @@ type TableRow = {
 };
 
 export default function PatientList() {
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, locale } = useTranslation();
   const [, setLocation] = useLocation();
   const { patients, visits } = useData();
 
@@ -169,16 +170,17 @@ export default function PatientList() {
       const q = search.toLowerCase();
       let matchSearch = true;
       if (q) {
+        const locationSearchText = getLocationSearchText(p.region, p.neighborhood, t).toLowerCase();
         if (searchField === "all") {
           matchSearch =
             p.name.toLowerCase().includes(q) ||
             p.nationalId.includes(q) ||
             p.mobile.includes(q) ||
-            `${p.region} ${p.neighborhood}`.toLowerCase().includes(q);
+            locationSearchText.includes(q);
         } else if (searchField === "name")       matchSearch = p.name.toLowerCase().includes(q);
         else if (searchField === "nationalId")   matchSearch = p.nationalId.includes(q);
         else if (searchField === "mobile")       matchSearch = p.mobile.includes(q);
-        else if (searchField === "location")     matchSearch = `${p.region} ${p.neighborhood}`.toLowerCase().includes(q);
+        else if (searchField === "location")     matchSearch = locationSearchText.includes(q);
       }
       const latestService = getLastVisit(p.id)?.mainService || "";
       const matchService = !serviceFilter || latestService.toLowerCase().includes(serviceFilter.toLowerCase());
@@ -190,7 +192,7 @@ export default function PatientList() {
       visit: getLastVisit(p.id) ?? null,
       rowKey: p.id,
     }));
-  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter]);
+  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, locale, t]);
 
   const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
 
@@ -608,7 +610,9 @@ export default function PatientList() {
                       </td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.nationalId}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.mobile}</td>
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{p.region} - {p.neighborhood}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
+                        {getRegionLabel(p.region, t)} - {getNeighborhoodLabel(p.neighborhood, t)}
+                      </td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
                         {v ? new Date(v.visitDate).toLocaleDateString() : "-"}
                       </td>

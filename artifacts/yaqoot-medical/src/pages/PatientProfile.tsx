@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import AddPatientModal from "@/components/patients/AddPatientModal";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
+import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 
 /* ─── Timestamp formatter ─── */
 function fmtTimestamp(iso: string): string {
@@ -533,7 +534,9 @@ export default function PatientProfile() {
               <MapPin size={13} color="#717182" strokeWidth={1.8} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#717182", letterSpacing: "0.7px", textTransform: "uppercase" }}>{t("addPatient.region")}</span>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "#171717" }}>{patient.region} / {patient.neighborhood}</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#171717" }}>
+              {getRegionLabel(patient.region, t)} / {getNeighborhoodLabel(patient.neighborhood, t)}
+            </div>
           </div>
 
           {/* Applicant Name */}

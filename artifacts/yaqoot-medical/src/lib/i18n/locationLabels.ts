@@ -53,3 +53,14 @@ export const getRegionLabel = (region: string, t: Translate) =>
 
 export const getNeighborhoodLabel = (neighborhood: string, t: Translate) =>
   getLocationLabel(neighborhood, NEIGHBORHOOD_LABEL_KEYS, t);
+
+export const getLocationSearchText = (
+  region: string,
+  neighborhood: string,
+  t: Translate,
+) => [
+  region,
+  getRegionLabel(region, t),
+  neighborhood,
+  getNeighborhoodLabel(neighborhood, t),
+].join(" ");
