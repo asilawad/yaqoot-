@@ -1,0 +1,105 @@
+# Task: Fix Localization and Add Missing Neighborhood Option in "Add Patient" Modal
+
+## Context
+`AddPatientModal.tsx` currently defines `REGIONS` as a hardcoded, English-only
+object literal, rendered directly with no `t()` call:
+
+```ts
+const REGIONS: Record<string, string[]> = {
+  "Gaza City": ["Al-Rimal", "An-Nasr", ...],
+  ...
+};
+// ...
+{Object.keys(REGIONS).map(r => <option key={r} value={r}>{r}</option>)}
+```
+
+The saved patient record stores this same English string as the literal
+`region` / `neighborhood` value (see `src/lib/db/types.ts`), so **the value
+is also the database identifier, not just a display label**. Any change here
+must keep that identifier untouched — only what's *shown* to the user changes
+with language.
+
+## Requirements
+
+### 1. Localization approach (be exact about this — it's the part that's easy to get wrong)
+- Keep every existing English string in `REGIONS` **exactly as-is** — these
+  remain the canonical `value` used in `<option value={...}>`, in the saved
+  patient record, and in any existing filtering/matching logic.
+- Do **not** translate or replace these values with Arabic text, and do not
+  introduce a second/parallel key scheme. The English string stays the single
+  source of truth for storage and comparison.
+- Add a translation lookup so the **displayed label only** changes with
+  language, e.g.:
+  ```tsx
+  <option key={r} value={r}>{t(`addPatient.region.${slugify(r)}`)}</option>
+  ```
+  (or an equivalent explicit mapping object — either approach is fine, as
+  long as `value` stays the fixed English string and only the rendered text
+  is looked up via `t()`).
+- Build one small shared helper/mapping for region + neighborhood labels
+  (e.g. `getRegionLabel(region, t)` / `getNeighborhoodLabel(neighborhood, t)`)
+  rather than duplicating the lookup inline — this keeps it reusable if the
+  same labels are ever needed outside the modal (see Scope note below).
+
+### 2. Translation key naming & placement
+- Add new keys under a dedicated `addPatient.region.*` /
+  `addPatient.neighborhood.*` namespace, next to the existing `addPatient.*`
+  entries in `en.ts` and `ar.ts` (don't scatter them elsewhere in the file).
+- Use a stable, readable slug per region/neighborhood, e.g.:
+  - `addPatient.region.gazaCity` → `'Gaza City'` / `'مدينة غزة'`
+  - `addPatient.neighborhood.alRimal` → `'Al-Rimal'` / `'الرمال'`
+- Cover **every** entry currently in `REGIONS`: all 5 regions (Gaza City,
+  North Gaza, Middle Area, Khan Yunis, Rafah — `Other` needs no translation,
+  it has no static neighborhood list) and all of their sub-neighborhoods.
+- Keep `en.ts` and `ar.ts` key sets identical (every key added to one file
+  must exist in the other) so a missing translation doesn't silently fall
+  back to a raw key string.
+
+### 3. Data update
+- In `REGIONS["Gaza City"]`, add `"Al-Shati"` to the array (append at the
+  end, alongside the existing entries — do not reorder the existing list).
+- Add the matching translation pair:
+  `addPatient.neighborhood.alShati` → `'Al-Shati'` / `'مخيم الشاطئ'`.
+
+### 4. Scope — explicitly in vs. out
+- **In scope:** the region/neighborhood `<select>` dropdowns inside
+  `AddPatientModal.tsx` only (both add and edit mode).
+- **Out of scope (known, intentional limitation — do not attempt to fix as
+  part of this task):**
+  - `PatientList.tsx` and the patient profile page currently render
+    `{patient.region} - {patient.neighborhood}` directly from the stored
+    value, so they will keep showing the English string regardless of UI
+    language. This is expected after this change, not a bug to chase here.
+  - Free-text search in `PatientList.tsx` matches typed input against the
+    raw stored (English) value, so searching in Arabic for a neighborhood
+    name won't match existing records. Also expected, not in scope here.
+  - If either of these should be fixed too, treat it as a **separate
+    follow-up task** — flag it, don't fold it into this change silently.
+    (Reusing the shared label helper from requirement #1 will make that
+    follow-up straightforward later.)
+
+## Implementation Best Practices
+- Keep the existing data structure/schema intact — `region` and
+  `neighborhood` values in the DB/patient record must remain the current
+  English strings; do not break dependent form logic, edit-mode
+  pre-selection, or duplicate/matching logic that reads these fields.
+- Wrap only the *displayed* UI labels in `t()` / the shared label helper —
+  never wrap the `value` attribute or the stored/compared string.
+- Perform concise, targeted changes only: `AddPatientModal.tsx`'s region/
+  neighborhood rendering, plus the new key-value pairs in `en.ts` and
+  `ar.ts`. Do not rewrite unrelated components.
+
+## Acceptance Checklist
+- [ ] Switching the UI language updates every region and neighborhood label
+      in the Add Patient modal (add mode).
+- [ ] Editing an existing patient still correctly pre-selects their saved
+      region/neighborhood in the dropdown, in both languages.
+- [ ] Saving a patient (new or edited) still stores the English string as
+      before — verify in the underlying data, not just the UI.
+- [ ] "Al-Shati" appears under Gaza City's neighborhood list, in both
+      languages, and can be selected and saved like any other option.
+- [ ] `en.ts` and `ar.ts` have matching key sets for every new
+      `addPatient.region.*` / `addPatient.neighborhood.*` entry (no key in
+      one file without its counterpart in the other).
+- [ ] No changes outside `AddPatientModal.tsx`, `en.ts`, and `ar.ts` (plus
+      the new shared label helper, if added as its own small file).
