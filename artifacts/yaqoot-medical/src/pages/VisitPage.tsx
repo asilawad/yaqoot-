@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
-import { Plus, Trash2, Pencil, AlertTriangle, X } from "lucide-react";
+import { Plus, Trash2, Pencil, AlertTriangle, X, Printer } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
+import PrescriptionPrintView from "@/components/prescription/PrescriptionPrintView";
 import * as repo from "@/lib/db/repository";
 import { Treatment, Investigation, VitalSigns } from "@/lib/db/types";
 
@@ -242,7 +243,8 @@ export default function VisitPage() {
   const subServices = SUB_SERVICES[form.mainService] || [];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <>
+    <div className="visit-page-screen" style={{ maxWidth: 900 }}>
       {/* Back */}
       <NavigationBackButton
         to={
@@ -260,13 +262,23 @@ export default function VisitPage() {
           </h1>
           {patient && <p style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>{patient.name}</p>}
         </div>
-        <button
-          onClick={handleSave}
-          data-testid="btn-save-visit"
-          style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
-        >
-          {t("common.save")}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => window.print()}
+            data-testid="btn-print-prescription"
+            style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, border: "1px solid #50C878", background: "#E8F5E9", color: "#2e7d32", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+          >
+            <Printer size={16} />
+            {t("visit.printPrescription")}
+          </button>
+          <button
+            onClick={handleSave}
+            data-testid="btn-save-visit"
+            style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#50C878", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+          >
+            {t("common.save")}
+          </button>
+        </div>
       </div>
 
       {/* Basic Info */}
@@ -553,5 +565,7 @@ export default function VisitPage() {
         </div>
       )}
     </div>
+    <PrescriptionPrintView patient={patient} visit={form} treatments={treatments} />
+    </>
   );
 }

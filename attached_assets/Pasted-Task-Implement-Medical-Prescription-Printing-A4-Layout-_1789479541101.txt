@@ -1,0 +1,46 @@
+Task: Implement Medical Prescription Printing (A4 Layout) in VisitPage.tsx
+
+Context & Architecture:
+We are adding a printable medical prescription (روشتة) for Yaqoot Medical Center inside the individual visit view (`VisitPage.tsx`).
+The printing mechanism must utilize native browser/Tauri `window.print()` coupled with CSS `@media print` rules.
+The layout of the prescription must match the provided official Yaqoot prescription template exactly, regardless of the active UI language.
+
+Requirements:
+
+1. Data Models & Inputs:
+   - Extend the treatment model/state if needed to support dose/frequency/duration alongside medicineName (or render the existing medicine list cleanly under Rx).
+   - Extract data dynamically from the active Visit and Patient records:
+     * Patient Name: patient.name
+     * Age: patient.age
+     * Date: visit.date (formatted as YYYY / MM / DD)
+     * Diagnosis: visit.diagnosis / complaint
+     * Medications: list of treatments for this visit
+     * Doctor Name: current attending doctor / default clinic doctor
+
+2. Layout & UI Component (`PrescriptionPrintView`):
+   - Create a dedicated print component styled to replicate the A4 Yaqoot prescription template:
+     * Header (Right): "عيادة ياقوت الطبية" + Subtitle "رعاية طبية متكاملة، وحياة أفضل".
+     * Header (Left): Clinic Logo (use SVG or High-Res PNG placeholder if asset path is specified).
+     * Watermark: Semi-transparent logo watermark centered in the background (`opacity: 0.08` or similar).
+     * Meta Section: Fixed horizontal fields for Date (التاريخ), Patient Name (اسم المريض), Age (العمر), and Diagnosis (التشخيص).
+     * Body Section: Prominent "Rx" symbol on the left side with ample vertical space listing prescribed medications cleanly.
+     * Footer Section:
+       - Bottom-left placeholder for Doctor's Name (اسم الطبيب).
+       - Rounded border footer box containing:
+         "العنوان : مسجد الفاروق شرقاً  |  الواتس : 0569488398  |  الجوال : 0593488398"
+   - STYLING CONSTRAINT: Do NOT use logical directional properties (e.g., `inset-inline-start`). Use absolute physical directions (`left`, `right`, `text-align: right`, `direction: rtl`) so the printed layout remains locked to the official paper design.
+
+3. Print Integration in `VisitPage.tsx`:
+   - Add a primary "طباعة الروشتة" (Print Prescription) button inside `VisitPage.tsx`.
+   - Render `PrescriptionPrintView` hidden on normal screen displays (`display: none` or `hidden`).
+   - Define `@media print` styles in CSS/Tailwind:
+     * Hide all outer layout elements, sidebars, navigation headers, and UI buttons (`display: none !important`).
+     * Display ONLY the `#prescription-print-area` at 100% width/height suitable for A4 dimensions.
+   - Clicking the button triggers `window.print()`.
+
+Acceptance Checklist:
+[ ] Clicking "طباعة الروشتة" inside a specific visit opens the OS print dialog / Save as PDF prompt.
+[ ] Only the prescription card prints; main application layout, buttons, and sidebars are completely hidden during print.
+[ ] Prescription layout matches the design structure (RTL Arabic header, Rx symbol, footer clinic details).
+[ ] All patient and visit details (Name, Age, Date, Diagnosis, Medications) populate correctly from the active state.
+[ ] Arabic text renders accurately without flipped/mirrored layouts when switching app languages.

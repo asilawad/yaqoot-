@@ -304,3 +304,239 @@
     @apply hidden;
   }
 }
+
+/* Official Yaqoot prescription sheet. Physical directions are intentional:
+   the printed form must stay fixed regardless of the app's active locale. */
+.prescription-print-area {
+  display: none;
+}
+
+.prescription-print-sheet {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1.2px solid #171717;
+  border-radius: 6mm;
+  color: #171717;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+  direction: rtl;
+}
+
+.prescription-print-header {
+  position: absolute;
+  top: 7mm;
+  right: 7mm;
+  left: 7mm;
+  height: 49mm;
+  border-bottom: 1.2px solid #171717;
+}
+
+.prescription-print-logo {
+  position: absolute;
+  top: 0;
+  right: 2mm;
+  width: 39mm;
+  height: 39mm;
+  object-fit: contain;
+}
+
+.prescription-print-brand {
+  position: absolute;
+  top: 8mm;
+  left: 25mm;
+  width: 115mm;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.prescription-print-clinic-name {
+  font-size: 11mm;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.prescription-print-subtitle {
+  margin-top: 2mm;
+  font-size: 5.5mm;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.prescription-print-watermark {
+  position: absolute;
+  top: 137mm;
+  left: 50%;
+  width: 78mm;
+  height: 78mm;
+  object-fit: contain;
+  opacity: 0.08;
+  transform: translateX(-50%);
+}
+
+.prescription-print-meta {
+  position: absolute;
+  top: 64mm;
+  right: 8mm;
+  left: 8mm;
+  height: 31mm;
+  font-size: 4mm;
+  line-height: 1.7;
+  direction: rtl;
+}
+
+.prescription-print-field {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  min-height: 7mm;
+  white-space: nowrap;
+}
+
+.prescription-print-label {
+  font-weight: 600;
+}
+
+.prescription-print-field-date {
+  top: 0;
+  left: 0;
+  direction: rtl;
+}
+
+.prescription-print-field-patient {
+  top: 0;
+  right: 0;
+  min-width: 59mm;
+}
+
+.prescription-print-field-age {
+  top: 0;
+  right: 67mm;
+  min-width: 32mm;
+}
+
+.prescription-print-field-diagnosis {
+  top: 14mm;
+  right: 0;
+  max-width: 125mm;
+}
+
+.prescription-print-body {
+  position: absolute;
+  top: 98mm;
+  right: 8mm;
+  bottom: 38mm;
+  left: 8mm;
+}
+
+.prescription-print-rx {
+  position: absolute;
+  top: 0;
+  left: 1mm;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24mm;
+  font-weight: 700;
+  line-height: 1;
+  direction: ltr;
+}
+
+.prescription-print-medications {
+  position: absolute;
+  top: 5mm;
+  right: 42mm;
+  left: 10mm;
+  min-height: 25mm;
+  direction: rtl;
+  text-align: right;
+  font-size: 4.4mm;
+  line-height: 1.8;
+}
+
+.prescription-print-medication {
+  display: flex;
+  align-items: baseline;
+  gap: 3mm;
+  min-height: 8mm;
+  border-bottom: 0.25mm solid rgba(23, 23, 23, 0.18);
+}
+
+.prescription-print-medication-number {
+  min-width: 7mm;
+  direction: ltr;
+  text-align: left;
+}
+
+.prescription-print-doctor {
+  position: absolute;
+  right: 9mm;
+  bottom: 20mm;
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  min-width: 55mm;
+  font-size: 4mm;
+  font-weight: 600;
+  direction: rtl;
+}
+
+.prescription-print-footer {
+  position: absolute;
+  right: 5mm;
+  bottom: 4mm;
+  left: 5mm;
+  height: 11mm;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4mm;
+  border: 1.2px solid #171717;
+  border-radius: 4mm;
+  direction: rtl;
+  font-size: 3.5mm;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 210mm;
+    min-width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    background: #ffffff !important;
+  }
+
+  #root * {
+    visibility: hidden !important;
+  }
+
+  #root .prescription-print-area,
+  #root .prescription-print-area * {
+    visibility: visible !important;
+  }
+
+  #root .prescription-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block !important;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+}

@@ -142,6 +142,7 @@ export const en = {
   'visit.treatments': 'Treatments',
   'visit.investigations': 'Investigations',
   'visit.vitals': 'Vital Signs',
+  'visit.printPrescription': 'Print Prescription',
   'visit.success': 'Visit saved successfully',
 
   // Settings

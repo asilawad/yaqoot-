@@ -142,6 +142,7 @@ export const ar = {
   'visit.treatments': 'العلاجات',
   'visit.investigations': 'الفحوصات',
   'visit.vitals': 'المؤشرات الحيوية',
+  'visit.printPrescription': 'طباعة الروشتة',
   'visit.success': 'تم حفظ الزيارة بنجاح',
 
   // Settings
