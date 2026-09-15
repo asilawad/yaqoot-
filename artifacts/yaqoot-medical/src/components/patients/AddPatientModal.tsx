@@ -4,9 +4,10 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import { Patient } from "@/lib/db/types";
+import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 
 const REGIONS: Record<string, string[]> = {
-  "Gaza City": ["Al-Rimal", "An-Nasr", "Sheikh Radwan", "Al-Maqousi", "Al-Mukhabarat", "Sheikh Ajlin", "Al-Jalaa", "As-Saftawi", "Tal Al-Hawa", "Sabra", "Ad-Daraj", "Az-Zaitoun", "Shuja'iyya", "At-Tuffah"],
+  "Gaza City": ["Al-Rimal", "An-Nasr", "Sheikh Radwan", "Al-Maqousi", "Al-Mukhabarat", "Sheikh Ajlin", "Al-Jalaa", "As-Saftawi", "Tal Al-Hawa", "Sabra", "Ad-Daraj", "Az-Zaitoun", "Shuja'iyya", "At-Tuffah", "Al-Shati"],
   "North Gaza": ["Jabalia", "Beit Lahia", "Beit Hanoun"],
   "Middle Area": ["Deir Al-Balah", "Nuseirat", "Al-Bureij", "Al-Maghazi"],
   "Khan Yunis": ["City Center", "Camp", "Al-Qarara", "Bani Suheila"],
@@ -208,7 +209,7 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
                 onChange={e => { set("region", e.target.value); set("neighborhood", ""); }}
               >
                 <option value="">—</option>
-                {Object.keys(REGIONS).map(r => <option key={r} value={r}>{r}</option>)}
+                {Object.keys(REGIONS).map(r => <option key={r} value={r}>{getRegionLabel(r, t)}</option>)}
               </select>
               <FieldError field="region" />
               {form.region === "Other" && (
@@ -224,7 +225,7 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
               ) : (
                 <select style={{ ...inputStyle, borderColor: errors.neighborhood ? "#ef4444" : "#F1F1F1" }} value={form.neighborhood} onChange={e => set("neighborhood", e.target.value)}>
                   <option value="">—</option>
-                  {neighborhoods.map(n => <option key={n} value={n}>{n}</option>)}
+                  {neighborhoods.map(n => <option key={n} value={n}>{getNeighborhoodLabel(n, t)}</option>)}
                   <option value="Other">Other</option>
                 </select>
               )}
