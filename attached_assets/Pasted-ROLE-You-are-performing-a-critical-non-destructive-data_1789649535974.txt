@@ -1,0 +1,220 @@
+ROLE: You are performing a critical, non-destructive data-layer migration on 
+an existing Tauri v2 + React desktop app ("Yaqoot Medical Clinic", identifier 
+com.yaqoot.medical) located at artifacts/yaqoot-medical/. 
+
+CURRENT STATE: All persistence goes through src/lib/db/repository.ts using 
+localStorage, with 7 keys (yaqoot_patients, yaqoot_visits, yaqoot_treatments, 
+yaqoot_investigations, yaqoot_vitals, yaqoot_notes, yaqoot_settings). ALL 
+repository.ts functions are currently SYNCHRONOUS. src/contexts/DataContext.tsx 
+wraps every mutation with a synchronous `wrap()` helper that calls the function 
+then immediately calls `refreshData()` — also synchronous. 7 page/component 
+files consume `useData()`.
+
+GOAL: Replace localStorage with SQLite (via `tauri-plugin-sql`) as the 
+persistence engine, WITHOUT changing exported function names/signatures' 
+semantics (same inputs/outputs, only now returning Promises), WITHOUT losing 
+any existing patient data, and WITHOUT breaking any page that currently 
+renders data synchronously from context state.
+
+THIS IS HIGH RISK. Follow every step in order. Do not skip verification steps. 
+Do not delete the old localStorage code/data until Phase 5 is explicitly 
+confirmed working.
+
+═══════════════════════════════════════════════
+PHASE 0 — SAFETY NET (do this first, before touching any code)
+═══════════════════════════════════════════════
+1. Create a git commit/checkpoint of the current working state before any 
+   changes, labeled "pre-sqlite-migration-checkpoint".
+2. Do NOT delete, rename, or modify src/lib/db/repository.ts in place yet — 
+   copy it to src/lib/db/repository.legacy.ts first (keep as untouched 
+   reference/fallback throughout this task).
+
+═══════════════════════════════════════════════
+PHASE 1 — ADD SQLITE DEPENDENCIES
+═══════════════════════════════════════════════
+1. Rust side (artifacts/yaqoot-medical/src-tauri/Cargo.toml): add 
+   `tauri-plugin-sql = { version = "2", features = ["sqlite"] }`.
+2. In src-tauri/src/lib.rs, register the plugin: 
+   `.plugin(tauri_plugin_sql::Builder::default().build())` alongside the 
+   existing dialog/fs plugins. Do not remove those.
+3. In src-tauri/capabilities/default.json, add the required sql permissions 
+   (e.g. `sql:default` / `sql:allow-execute` / `sql:allow-select` — check the 
+   plugin's actual permission identifiers for v2 and add exactly what's 
+   needed).
+4. JS side (artifacts/yaqoot-medical/package.json): add 
+   `@tauri-apps/plugin-sql`.
+5. Run `pnpm install` at the workspace root and confirm no dependency 
+   conflicts before proceeding.
+
+═══════════════════════════════════════════════
+PHASE 2 — DEFINE SQLITE SCHEMA (sync-ready, non-destructive design)
+═══════════════════════════════════════════════
+Create src-tauri/migrations/001_initial.sql (tauri-plugin-sql supports 
+versioned migrations — use its migration API, do not hand-roll one) with 
+tables mirroring src/lib/db/types.ts EXACTLY (same fields, same optionality):
+
+- patients (id TEXT PRIMARY KEY, name, nationalId UNIQUE, age, mobile, 
+  altMobile, region, neighborhood, applicantName, allergies TEXT [JSON-
+  encoded array], chronicDiseases TEXT [JSON-encoded array], serviceType, 
+  createdAt, updatedAt, deletedAt TEXT NULL)
+- visits (id PK, patientId REFERENCES patients(id) ON DELETE CASCADE, 
+  visitDate, doctor, paymentStatus, chiefComplaint, mainService, subService, 
+  diagnosis, createdAt, updatedAt)
+- treatments (id PK, visitId REFERENCES visits(id) ON DELETE CASCADE, 
+  patientId REFERENCES patients(id) ON DELETE CASCADE, medicineName, 
+  createdAt)
+- investigations (id PK, visitId REFERENCES visits(id) ON DELETE CASCADE, 
+  patientId REFERENCES patients(id) ON DELETE CASCADE, testName, result, 
+  resultDate, notes, createdAt, updatedAt)
+- vitals (id PK, visitId REFERENCES visits(id) ON DELETE CASCADE, patientId 
+  REFERENCES patients(id) ON DELETE CASCADE, bpSystolic, bpDiastolic, 
+  heartRate, temperature, oxygenSat, respiratoryRate, bloodGlucose, 
+  currentWeight, createdAt)
+- notes (id PK, patientId REFERENCES patients(id) ON DELETE CASCADE, text, 
+  createdAt)
+- settings (id PK, name, unit, minNormal, maxNormal, highLabel, lowLabel, 
+  minDiastolic, maxDiastolic)
+
+Enable `PRAGMA foreign_keys = ON` on every connection open (must be set 
+explicitly per-connection in SQLite — verify this is done in the DB init 
+code, not assumed). Add indexes on all *patientId and *visitId foreign-key 
+columns used in WHERE clauses (matches existing getXByPatient/getXByVisit 
+query patterns in repository.legacy.ts).
+
+═══════════════════════════════════════════════
+PHASE 3 — ONE-TIME DATA MIGRATION FROM localStorage
+═══════════════════════════════════════════════
+1. Create src/lib/db/migrateFromLocalStorage.ts exporting 
+   `migrateLegacyDataIfNeeded(): Promise<{ migrated: boolean; counts: Record<string, number> }>`.
+2. Logic:
+   a. Check a new localStorage flag `yaqoot_sqlite_migration_done`. If 
+      already `"true"`, return `{ migrated: false, counts: {} }` immediately 
+      — never re-run.
+   b. If not set: read all 7 legacy localStorage keys using the untouched 
+      logic from repository.legacy.ts (import its getList-equivalent, or 
+      inline the same JSON.parse pattern).
+   c. If localStorage has zero patients (fresh install, nothing to migrate), 
+      skip straight to marking the flag as done — do not seed empty tables 
+      unnecessarily.
+   d. Otherwise, insert all records into SQLite inside a SINGLE SQL 
+      transaction (`BEGIN` → inserts → `COMMIT`, with `ROLLBACK` on any 
+      error). Preserve exact ids/timestamps — this is a data carry-over, not 
+      a re-creation.
+   e. After the transaction commits successfully, run a verification count: 
+      `SELECT COUNT(*) FROM patients` (and each other table) and compare 
+      against the original localStorage array lengths. If ANY count 
+      mismatches, throw an error, do NOT set the migration flag, and leave 
+      localStorage data untouched (so the app keeps working on legacy data 
+      via repository.legacy.ts fallback — see Phase 4 step 4).
+   f. Only after verified counts match: set 
+      `localStorage.setItem('yaqoot_sqlite_migration_done', 'true')`. Do NOT 
+      delete the original localStorage keys yet — keep them as a cold backup 
+      indefinitely (they cost negligible space and are the safety net).
+3. Call `migrateLegacyDataIfNeeded()` once at app bootstrap, before rendering 
+   DataProvider's children, and await it (show a simple "Preparing 
+   database..." loading screen during this — first-run migration should be 
+   near-instant for typical clinic data volumes, but must not race with 
+   renders reading empty state).
+
+═══════════════════════════════════════════════
+PHASE 4 — REWRITE repository.ts AS ASYNC SQLITE-BACKED
+═══════════════════════════════════════════════
+1. Rewrite src/lib/db/repository.ts so every exported function keeps its 
+   EXACT existing name and parameter shape, but now returns a Promise and 
+   uses `@tauri-apps/plugin-sql` (`Database.load('sqlite:yaqoot.db')`, 
+   parameterized queries only — never string-interpolate user input into SQL).
+2. Example transformation pattern (apply consistently to every function):
+   - `getPatients(): Patient[]` → `getPatients(): Promise<Patient[]>` — 
+     `SELECT * FROM patients WHERE deletedAt IS NULL ORDER BY createdAt DESC`, 
+     parse allergies/chronicDiseases JSON columns back into arrays before 
+     returning.
+   - `deletePatient(id)`: with FK `ON DELETE CASCADE` already in the schema, 
+     a single `DELETE FROM patients WHERE id = ?` now atomically removes all 
+     child rows at the database engine level — this replaces the manual 
+     multi-key atomic-transaction logic entirely. Wrap in a SQL transaction 
+     regardless, for consistency.
+   - Preserve exact business-rule behavior, e.g. `createPatient`'s duplicate 
+     `nationalId` check — becomes a `SELECT` existence check before insert, 
+     or rely on the `UNIQUE` constraint and catch the constraint-violation 
+     error, converting it to the same `Error('Patient with this National ID 
+     already exists')` message the app already expects.
+3. Keep `exportData()`/`importData()` producing/consuming the SAME JSON shape 
+   as before (so the existing encrypted-backup work stays compatible) — just 
+   source the data via async SELECT queries and bulk INSERT within a 
+   transaction instead of localStorage reads/writes.
+4. Add a feature-flag safety switch: if SQLite initialization throws at 
+   startup for any reason, fall back to importing everything from 
+   repository.legacy.ts instead, and surface a visible (non-blocking) warning 
+   toast — the app must never fail to launch due to a database error.
+
+═══════════════════════════════════════════════
+PHASE 5 — UPDATE DataContext.tsx AND ALL CONSUMERS (async propagation)
+═══════════════════════════════════════════════
+This is the step most likely to break the UI if done carelessly — audit 
+every one of the 7 files that call `useData()` individually.
+
+1. In DataContext.tsx:
+   - `refreshData` becomes `async`, awaiting all `repo.get*` calls (use 
+     `Promise.all` for the parallel ones).
+   - The `wrap()` helper becomes:
+ const wrap = <T extends any[], R>(fn: (...args: T) => Promise<R>) => {
+   return async (...args: T): Promise<R> => {
+     const res = await fn(...args);
+     await refreshData();
+     return res;
+   };
+ };
+   - Add `isLoading: boolean` and `error: string | null` to the context value, 
+     set during initial load and during `migrateLegacyDataIfNeeded()`.
+   - The initial `useEffect` must `await` the migration + first `refreshData` 
+     call before setting `isLoading` to false.
+2. For EACH of the 7 consumer files: locate every call site that invokes a 
+   context function (e.g. `createPatient(...)`, `deletePatient(id)`) directly 
+   inside an event handler (onClick, onSubmit) — these must now be `await`ed 
+   inside an `async` handler function. Wrap each in try/catch to surface 
+   errors via the existing toast pattern (`useToast`), rather than letting 
+   unhandled promise rejections silently fail.
+3. Any place currently reading context arrays (`patients`, `visits`, etc.) 
+   directly in render (e.g. `useMemo` in PatientList.tsx) does NOT need to 
+   change — those stay synchronous reads of already-loaded React state; only 
+   the WRITE call sites need the async/await treatment.
+4. Add a loading guard (spinner or skeleton) at the top level (e.g. in 
+   App.tsx or wherever DataProvider wraps the tree) that renders nothing/a 
+   loader while `isLoading` is true, so no page attempts to render/filter/
+   paginate against an empty pre-migration array.
+
+═══════════════════════════════════════════════
+PHASE 6 — VERIFICATION CHECKLIST (must pass before considering this done)
+═══════════════════════════════════════════════
+1. `pnpm run typecheck` passes with zero errors in artifacts/yaqoot-medical.
+2. Manually trace and confirm EVERY one of the 7 consumer files still 
+   compiles and every button/form that mutates data (add patient, add visit, 
+   delete patient, add treatment, add investigation, save vitals, add note, 
+   delete note, import/export) is updated to the async pattern — list them 
+   explicitly in your final summary.
+3. Confirm cascading delete works: deleting a patient with visits/treatments/
+   vitals/notes removes all child rows (verify via a test patient with full 
+   related data, not just an empty one).
+4. Confirm the migration path: simulate an existing installation (localStorage 
+   populated, `yaqoot_sqlite_migration_done` unset) and verify data appears 
+   correctly in the UI after first launch post-update, with row counts 
+   matching pre-migration.
+5. Confirm a SECOND launch does NOT re-run the migration (flag persists) and 
+   does NOT duplicate data.
+6. Confirm exportData()/importData() backup files remain structurally 
+   identical to pre-migration format (compatibility with any backups users 
+   already made).
+7. Do NOT delete repository.legacy.ts or the original localStorage keys as 
+   part of this task — leave them in place as a rollback path. Explicitly 
+   flag them for manual removal in a LATER, separate task only after the 
+   SQLite version has been running reliably in production for a full backup 
+   cycle.
+
+CONSTRAINTS:
+- No backend/server dependency; app remains fully offline.
+- No changes to TypeScript interfaces in src/lib/db/types.ts.
+- All new user-facing strings (loading states, error toasts) go through the 
+  existing useTranslation hook — bilingual EN/AR.
+- If at any point a step cannot be completed without breaking an existing 
+  page's behavior, STOP and report exactly which file/line and why, rather 
+  than forcing a workaround that silently changes behavior.
