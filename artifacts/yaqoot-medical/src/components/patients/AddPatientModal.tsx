@@ -75,7 +75,7 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
     try {
@@ -104,9 +104,9 @@ export default function AddPatientModal({ onClose, onSaved, editPatient }: Props
       };
 
       if (editPatient) {
-        updatePatient(editPatient.id, data);
+        await updatePatient(editPatient.id, data);
       } else {
-        createPatient(data);
+        await createPatient(data);
       }
       toast({ title: t("addPatient.success") });
       onSaved();

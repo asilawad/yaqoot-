@@ -4,7 +4,6 @@ import { Search, Plus, Calendar, ChevronDown, ArrowUp, ArrowDown } from "lucide-
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import AddPatientModal from "@/components/patients/AddPatientModal";
-import * as repo from "@/lib/db/repository";
 import type { Visit } from "@/lib/db/types";
 import type { Patient } from "@/lib/db/types";
 import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
@@ -15,20 +15,34 @@ export default function VitalsConfigPage() {
   const [settings, setSettings] = useState<VitalThreshold[]>(
     vitalSettings.length > 0 ? vitalSettings : defaultVitalSettings
   );
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    if (vitalSettings.length > 0) setSettings(vitalSettings);
+  }, [vitalSettings]);
 
   const update = (id: string, field: keyof VitalThreshold, value: string | number) => {
     setSettings(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
-  const handleSave = () => {
-    saveVitalSettings(settings);
-    toast({ title: t("vitalsConfig.success") });
+  const handleSave = async () => {
+    setPending(true);
+    try {
+      await saveVitalSettings(settings);
+      toast({ title: t("vitalsConfig.success") });
+    } catch {
+      toast({ title: t("vitalsConfig.saveError"), variant: "destructive" });
+    } finally { setPending(false); }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    setPending(true);
     setSettings(defaultVitalSettings);
-    saveVitalSettings(defaultVitalSettings);
-    toast({ title: t("vitalsConfig.success") });
+    try {
+      await saveVitalSettings(defaultVitalSettings);
+      toast({ title: t("vitalsConfig.success") });
+    } catch {
+      toast({ title: t("vitalsConfig.resetError"), variant: "destructive" });
+    } finally { setPending(false); }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -52,6 +66,7 @@ export default function VitalsConfigPage() {
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={handleReset}
+            disabled={pending}
             data-testid="btn-reset-vitals"
             style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif", color: "#717182" }}
           >
@@ -59,6 +74,7 @@ export default function VitalsConfigPage() {
           </button>
           <button
             onClick={handleSave}
+            disabled={pending}
             data-testid="btn-save-vitals"
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#50C878", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
           >

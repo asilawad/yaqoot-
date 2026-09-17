@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Download, Upload, HardDrive, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -27,14 +27,14 @@ export default function DataManagementPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingFile, setPendingFile] = useState<string | null>(null);
-  const [storageSize] = useState(getStorageSize());
+  const [storageSize, setStorageSize] = useState("…");
+  useEffect(() => { setStorageSize(getStorageSize()); }, []);
 
   const handleBackup = async () => {
-    const data = repo.exportData();
-    const today = new Date().toISOString().slice(0, 10);
-    const filename = `yaqoot_backup_${today}.json`;
-
     try {
+      const data = await repo.exportData();
+      const today = new Date().toISOString().slice(0, 10);
+      const filename = `yaqoot_backup_${today}.json`;
       const isTauri = "__TAURI_INTERNALS__" in window;
 
       if (isTauri) {
@@ -62,7 +62,7 @@ export default function DataManagementPage() {
       toast({ title: t("common.save") + " ✓" });
     } catch (error) {
       console.error("Backup failed:", error);
-      toast({ title: "Error saving backup", variant: "destructive" });
+      toast({ title: t("data.backupError"), variant: "destructive" });
     }
   };
 
@@ -78,14 +78,15 @@ export default function DataManagementPage() {
     e.target.value = "";
   };
 
-  const handleRestoreConfirm = () => {
+  const handleRestoreConfirm = async () => {
     if (!pendingFile) return;
     try {
-      importData(pendingFile);
-      refreshData();
+      await importData(pendingFile);
+      await refreshData();
+      setStorageSize(getStorageSize());
       toast({ title: t("data.restoreSuccess") });
     } catch {
-      toast({ title: "Error restoring data", variant: "destructive" });
+      toast({ title: t("data.restoreError"), variant: "destructive" });
     }
     setShowRestoreConfirm(false);
     setPendingFile(null);

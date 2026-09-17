@@ -1,3 +1,4 @@
 - [RTL logical CSS refactor](rtl-logical-css.md) — remove flexDirection double-reversal; use insetInlineStart/End, borderInlineEnd, textAlign:start; keep direction on modals only.
 - [Tauri native verification](tauri-native-verification.md) — Linux can validate Rust and web layers, but Windows installer/offline checks require a Windows host.
 - [Vite context HMR crashes](vite-context-hmr.md) — a Fast Refresh-invalidated context module can cause transient provider errors; clean restart distinguishes stale HMR from a persistent crash.
+- [Tauri SQL atomic transactions](tauri-sql-atomic-transactions.md) — separate plugin execute calls are pooled; multi-statement atomic work must run on one pinned SQLx transaction.

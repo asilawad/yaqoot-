@@ -8,7 +8,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 export default function AnalyticsPage() {
   const { t, isRTL, locale } = useTranslation();
   const [, setLocation] = useLocation();
-  const { patients, visits } = useData();
+  const { patients, visits, isLoading, error } = useData();
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center" }}>{t("analytics.loading")}</div>;
+  if (error) return <div style={{ padding: 48, textAlign: "center", color: "#b91c1c" }}>{error}</div>;
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();

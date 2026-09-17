@@ -1,257 +1,597 @@
-import { Patient, Visit, Treatment, Investigation, VitalSigns, QuickNote, VitalThreshold } from './types';
+import {
+  Investigation,
+  Patient,
+  QuickNote,
+  Treatment,
+  Visit,
+  VitalSigns,
+  VitalThreshold,
+} from './types';
 import { defaultVitalSettings } from './vitalDefaults';
+import { getDatabase } from './database';
+import { migrateLegacyDataIfNeeded } from './migrateFromLocalStorage';
+import { executeSqlTransaction, SqlStatement } from './transaction';
 
-// Keys
-const KEYS = {
-  PATIENTS: 'yaqoot_patients',
-  VISITS: 'yaqoot_visits',
-  TREATMENTS: 'yaqoot_treatments',
-  INVESTIGATIONS: 'yaqoot_investigations',
-  VITALS: 'yaqoot_vitals',
-  NOTES: 'yaqoot_notes',
-  SETTINGS: 'yaqoot_settings'
-};
+type Legacy = typeof import('./repository.legacy');
+type Database = Awaited<ReturnType<typeof getDatabase>>;
 
-// Generic Helpers
-const getList = <T>(key: string): T[] => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
-};
+let legacy: Legacy | undefined;
+let db: Database | undefined;
+let initialization: Promise<RepositoryMode> | undefined;
 
-const saveList = <T>(key: string, list: T[]) => {
-  localStorage.setItem(key, JSON.stringify(list));
-};
+export type RepositoryMode = { mode: 'sqlite' | 'legacy'; warning?: string };
 
-// Patients
-export const getPatients = (): Patient[] => {
-  return getList<Patient>(KEYS.PATIENTS).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+function isTauri(): boolean {
+  return typeof window !== 'undefined' &&
+    Boolean((window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+}
+
+export function initializeRepository(): Promise<RepositoryMode> {
+  if (initialization) return initialization;
+  initialization = (async () => {
+    if (!isTauri()) {
+      legacy = await import('./repository.legacy');
+      return {
+        mode: 'legacy',
+        warning: 'SQLite is unavailable in the browser; using legacy local storage. / SQLite غير متاح في المتصفح؛ يتم استخدام التخزين المحلي القديم.',
+      };
+    }
+    try {
+      db = await getDatabase();
+      await migrateLegacyDataIfNeeded(db);
+      return { mode: 'sqlite' };
+    } catch (error) {
+      db = undefined;
+      legacy = await import('./repository.legacy');
+      return {
+        mode: 'legacy',
+        warning: `SQLite initialization failed; using legacy local storage. / فشل تشغيل SQLite؛ يتم استخدام التخزين المحلي القديم. ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  })();
+  return initialization;
+}
+
+export function getRepositoryMode(): 'sqlite' | 'legacy' | 'uninitialized' {
+  if (db) return 'sqlite';
+  if (legacy) return 'legacy';
+  return 'uninitialized';
+}
+
+async function ready(): Promise<{ database?: Database; legacy?: Legacy }> {
+  if (!db && !legacy) await initializeRepository();
+  return { database: db, legacy };
+}
+
+function newId(): string {
+  return crypto.randomUUID();
+}
+
+function timestamp(): string {
+  return new Date().toISOString();
+}
+
+function serializeArray(value: string[] | undefined): string {
+  return JSON.stringify(value ?? []);
+}
+
+function parseArray(value: unknown): string[] {
+  if (typeof value === 'string') return JSON.parse(value) as string[];
+  return (value ?? []) as string[];
+}
+
+interface PatientRow extends Omit<Patient, 'allergies' | 'chronicDiseases'> {
+  allergies: unknown;
+  chronicDiseases: unknown;
+  deletedAt?: string | null;
+}
+
+function patientFromRow(row: PatientRow): Patient {
+  const { deletedAt: _deletedAt, ...patient } = row;
+  return {
+    ...patient,
+    allergies: parseArray(row.allergies),
+    chronicDiseases: parseArray(row.chronicDiseases),
+  };
+}
+
+async function selectRows<T>(sql: string, values: unknown[] = []): Promise<T[]> {
+  return db!.select<T[]>(sql, values);
+}
+
+async function execute(sql: string, values: unknown[] = []): Promise<void> {
+  await db!.execute(sql, values);
+}
+
+const patientColumns = [
+  'id', 'name', 'nationalId', 'age', 'mobile', 'altMobile', 'region',
+  'neighborhood', 'applicantName', 'allergies', 'chronicDiseases',
+  'serviceType', 'createdAt', 'updatedAt',
+] as const;
+const visitColumns = [
+  'id', 'patientId', 'visitDate', 'doctor', 'paymentStatus', 'chiefComplaint',
+  'mainService', 'subService', 'diagnosis', 'createdAt', 'updatedAt',
+] as const;
+const treatmentColumns = ['id', 'visitId', 'patientId', 'medicineName', 'createdAt'] as const;
+const investigationColumns = [
+  'id', 'visitId', 'patientId', 'testName', 'result', 'resultDate', 'notes',
+  'createdAt', 'updatedAt',
+] as const;
+const vitalColumns = [
+  'id', 'visitId', 'patientId', 'bpSystolic', 'bpDiastolic', 'heartRate',
+  'temperature', 'oxygenSat', 'respiratoryRate', 'bloodGlucose',
+  'currentWeight', 'createdAt',
+] as const;
+const noteColumns = ['id', 'patientId', 'text', 'createdAt'] as const;
+const settingColumns = [
+  'id', 'name', 'unit', 'minNormal', 'maxNormal', 'highLabel', 'lowLabel',
+  'minDiastolic', 'maxDiastolic',
+] as const;
+
+function placeholders(count: number): string {
+  return Array.from({ length: count }, () => '?').join(',');
+}
+
+export async function getPatients(): Promise<Patient[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getPatients();
+  const rows = await selectRows<PatientRow>(
+    'SELECT * FROM patients WHERE deletedAt IS NULL ORDER BY datetime(createdAt) DESC',
   );
-};
-export const getPatientById = (id: string): Patient | undefined => getPatients().find(p => p.id === id);
-export const createPatient = (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>): Patient => {
-  const patients = getPatients();
-  if (patients.some(p => p.nationalId === data.nationalId)) {
-    throw new Error('Patient with this National ID already exists');
-  }
-  const newPatient: Patient = {
-    ...data,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  return rows.map(patientFromRow);
+}
+
+export async function getPatientById(id: string): Promise<Patient | undefined> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getPatientById(id);
+  const rows = await selectRows<PatientRow>(
+    'SELECT * FROM patients WHERE id=? AND deletedAt IS NULL', [id],
+  );
+  return rows[0] ? patientFromRow(rows[0]) : undefined;
+}
+
+export async function createPatient(
+  data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<Patient> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createPatient(data);
+  const patient: Patient = {
+    ...data, id: newId(), createdAt: timestamp(), updatedAt: timestamp(),
   };
-  patients.push(newPatient);
-  saveList(KEYS.PATIENTS, patients);
-  return newPatient;
-};
-export const updatePatient = (id: string, data: Partial<Patient>): Patient => {
-  const patients = getPatients();
-  const index = patients.findIndex(p => p.id === id);
-  if (index === -1) throw new Error('Patient not found');
-  
-  if (data.nationalId && data.nationalId !== patients[index].nationalId) {
-     if (patients.some(p => p.nationalId === data.nationalId)) {
-       throw new Error('Patient with this National ID already exists');
-     }
+  try {
+    await execute(
+      `INSERT INTO patients (${patientColumns.join(',')}) VALUES (${placeholders(patientColumns.length)})`,
+      [
+        patient.id, patient.name, patient.nationalId, patient.age, patient.mobile,
+        patient.altMobile ?? null, patient.region, patient.neighborhood,
+        patient.applicantName, serializeArray(patient.allergies),
+        serializeArray(patient.chronicDiseases), patient.serviceType ?? null,
+        patient.createdAt, patient.updatedAt,
+      ],
+    );
+  } catch (error) {
+    if (String(error).toLowerCase().includes('unique')) {
+      throw new Error('Patient with this National ID already exists');
+    }
+    throw error;
   }
+  return patient;
+}
 
-  patients[index] = { ...patients[index], ...data, updatedAt: new Date().toISOString() };
-  saveList(KEYS.PATIENTS, patients);
-  return patients[index];
-};
-export const deletePatient = (id: string): void => {
-  saveList(KEYS.PATIENTS, getPatients().filter(p => p.id !== id));
-  saveList(KEYS.VISITS, getList<Visit>(KEYS.VISITS).filter(v => v.patientId !== id));
-  saveList(KEYS.TREATMENTS, getList<Treatment>(KEYS.TREATMENTS).filter(t => t.patientId !== id));
-  saveList(KEYS.INVESTIGATIONS, getList<Investigation>(KEYS.INVESTIGATIONS).filter(i => i.patientId !== id));
-  saveList(KEYS.VITALS, getList<VitalSigns>(KEYS.VITALS).filter(v => v.patientId !== id));
-  saveList(KEYS.NOTES, getList<QuickNote>(KEYS.NOTES).filter(n => n.patientId !== id));
-};
+export async function updatePatient(id: string, data: Partial<Patient>): Promise<Patient> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.updatePatient(id, data);
+  const old = await getPatientById(id);
+  if (!old) throw new Error('Patient not found');
+  if (data.nationalId && data.nationalId !== old.nationalId) {
+    const duplicate = await selectRows<{ id: string }>(
+      'SELECT id FROM patients WHERE nationalId=? AND id<>? AND deletedAt IS NULL',
+      [data.nationalId, id],
+    );
+    if (duplicate.length) throw new Error('Patient with this National ID already exists');
+  }
+  const patient: Patient = { ...old, ...data, updatedAt: timestamp() };
+  await execute(
+    `UPDATE patients SET name=?,nationalId=?,age=?,mobile=?,altMobile=?,region=?,
+      neighborhood=?,applicantName=?,allergies=?,chronicDiseases=?,serviceType=?,
+      createdAt=?,updatedAt=? WHERE id=?`,
+    [
+      patient.name, patient.nationalId, patient.age, patient.mobile,
+      patient.altMobile ?? null, patient.region, patient.neighborhood,
+      patient.applicantName, serializeArray(patient.allergies),
+      serializeArray(patient.chronicDiseases), patient.serviceType ?? null,
+      patient.createdAt, patient.updatedAt, id,
+    ],
+  );
+  return patient;
+}
 
-// Visits
-export const getVisitsByPatient = (patientId: string): Visit[] => getList<Visit>(KEYS.VISITS).filter(v => v.patientId === patientId).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
-export const getVisitById = (id: string): Visit | undefined => getList<Visit>(KEYS.VISITS).find(v => v.id === id);
-export const getAllVisits = (): Visit[] => getList<Visit>(KEYS.VISITS);
-export const createVisit = (data: Omit<Visit, 'id' | 'createdAt' | 'updatedAt'>): Visit => {
-  const visits = getList<Visit>(KEYS.VISITS);
-  const newVisit: Visit = {
-    ...data,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+export async function deletePatient(id: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.deletePatient(id);
+  await executeSqlTransaction([{ sql: 'DELETE FROM patients WHERE id=?', values: [id] }]);
+}
+
+export async function getVisitsByPatient(patientId: string): Promise<Visit[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getVisitsByPatient(patientId);
+  return selectRows<Visit>(
+    'SELECT * FROM visits WHERE patientId=? ORDER BY datetime(visitDate) DESC',
+    [patientId],
+  );
+}
+
+export async function getVisitById(id: string): Promise<Visit | undefined> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getVisitById(id);
+  return (await selectRows<Visit>('SELECT * FROM visits WHERE id=?', [id]))[0];
+}
+
+export async function getAllVisits(): Promise<Visit[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getAllVisits();
+  return selectRows<Visit>('SELECT * FROM visits');
+}
+
+export async function createVisit(
+  data: Omit<Visit, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<Visit> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createVisit(data);
+  const visit: Visit = { ...data, id: newId(), createdAt: timestamp(), updatedAt: timestamp() };
+  await execute(
+    `INSERT INTO visits (${visitColumns.join(',')}) VALUES (${placeholders(visitColumns.length)})`,
+    visitColumns.map(column => visit[column] ?? null),
+  );
+  return visit;
+}
+
+export async function updateVisit(id: string, data: Partial<Visit>): Promise<Visit> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.updateVisit(id, data);
+  const old = await getVisitById(id);
+  if (!old) throw new Error('Visit not found');
+  const visit: Visit = { ...old, ...data, updatedAt: timestamp() };
+  await execute(
+    `UPDATE visits SET patientId=?,visitDate=?,doctor=?,paymentStatus=?,chiefComplaint=?,
+      mainService=?,subService=?,diagnosis=?,createdAt=?,updatedAt=? WHERE id=?`,
+    [
+      visit.patientId, visit.visitDate, visit.doctor ?? null, visit.paymentStatus,
+      visit.chiefComplaint ?? null, visit.mainService ?? null, visit.subService ?? null,
+      visit.diagnosis ?? null, visit.createdAt, visit.updatedAt, id,
+    ],
+  );
+  return visit;
+}
+
+export async function getTreatmentsByVisit(visitId: string): Promise<Treatment[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getTreatmentsByVisit(visitId);
+  return selectRows<Treatment>('SELECT * FROM treatments WHERE visitId=?', [visitId]);
+}
+
+export async function getTreatmentsByPatient(patientId: string): Promise<Treatment[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getTreatmentsByPatient(patientId);
+  return selectRows<Treatment>(
+    'SELECT * FROM treatments WHERE patientId=? ORDER BY datetime(createdAt) DESC',
+    [patientId],
+  );
+}
+
+export async function createTreatment(
+  data: Omit<Treatment, 'id' | 'createdAt'>,
+): Promise<Treatment> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createTreatment(data);
+  const treatment: Treatment = { ...data, id: newId(), createdAt: timestamp() };
+  await execute(
+    `INSERT INTO treatments (${treatmentColumns.join(',')}) VALUES (${placeholders(treatmentColumns.length)})`,
+    treatmentColumns.map(column => treatment[column]),
+  );
+  return treatment;
+}
+
+export async function updateTreatment(id: string, data: Partial<Treatment>): Promise<Treatment> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.updateTreatment(id, data);
+  const rows = await selectRows<Treatment>('SELECT * FROM treatments WHERE id=?', [id]);
+  if (!rows[0]) throw new Error('Treatment not found');
+  const treatment = { ...rows[0], ...data };
+  await execute(
+    'UPDATE treatments SET visitId=?,patientId=?,medicineName=?,createdAt=? WHERE id=?',
+    [treatment.visitId, treatment.patientId, treatment.medicineName, treatment.createdAt, id],
+  );
+  return treatment;
+}
+
+export async function deleteTreatment(id: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.deleteTreatment(id);
+  await execute('DELETE FROM treatments WHERE id=?', [id]);
+}
+
+export async function getInvestigationsByVisit(visitId: string): Promise<Investigation[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getInvestigationsByVisit(visitId);
+  return selectRows<Investigation>('SELECT * FROM investigations WHERE visitId=?', [visitId]);
+}
+
+export async function getInvestigationsByPatient(patientId: string): Promise<Investigation[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getInvestigationsByPatient(patientId);
+  return selectRows<Investigation>(
+    'SELECT * FROM investigations WHERE patientId=? ORDER BY datetime(createdAt) DESC',
+    [patientId],
+  );
+}
+
+export async function createInvestigation(
+  data: Omit<Investigation, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<Investigation> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createInvestigation(data);
+  const investigation: Investigation = {
+    ...data, id: newId(), createdAt: timestamp(), updatedAt: timestamp(),
   };
-  visits.push(newVisit);
-  saveList(KEYS.VISITS, visits);
-  return newVisit;
-};
-export const updateVisit = (id: string, data: Partial<Visit>): Visit => {
-  const visits = getList<Visit>(KEYS.VISITS);
-  const index = visits.findIndex(v => v.id === id);
-  if (index === -1) throw new Error('Visit not found');
-  visits[index] = { ...visits[index], ...data, updatedAt: new Date().toISOString() };
-  saveList(KEYS.VISITS, visits);
-  return visits[index];
-};
+  await execute(
+    `INSERT INTO investigations (${investigationColumns.join(',')}) VALUES (${placeholders(investigationColumns.length)})`,
+    investigationColumns.map(column => investigation[column] ?? null),
+  );
+  return investigation;
+}
 
-// Treatments
-export const getTreatmentsByVisit = (visitId: string): Treatment[] => getList<Treatment>(KEYS.TREATMENTS).filter(t => t.visitId === visitId);
-export const getTreatmentsByPatient = (patientId: string): Treatment[] => getList<Treatment>(KEYS.TREATMENTS).filter(t => t.patientId === patientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-export const createTreatment = (data: Omit<Treatment, 'id' | 'createdAt'>): Treatment => {
-  const treatments = getList<Treatment>(KEYS.TREATMENTS);
-  const newTreatment: Treatment = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  treatments.push(newTreatment);
-  saveList(KEYS.TREATMENTS, treatments);
-  return newTreatment;
-};
-export const updateTreatment = (id: string, data: Partial<Treatment>): Treatment => {
-  const treatments = getList<Treatment>(KEYS.TREATMENTS);
-  const index = treatments.findIndex(t => t.id === id);
-  if (index === -1) throw new Error('Treatment not found');
-  treatments[index] = { ...treatments[index], ...data };
-  saveList(KEYS.TREATMENTS, treatments);
-  return treatments[index];
-};
-export const deleteTreatment = (id: string): void => {
-  const treatments = getList<Treatment>(KEYS.TREATMENTS).filter(t => t.id !== id);
-  saveList(KEYS.TREATMENTS, treatments);
-};
+export async function updateInvestigation(
+  id: string,
+  data: Partial<Investigation>,
+): Promise<Investigation> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.updateInvestigation(id, data);
+  const rows = await selectRows<Investigation>(
+    'SELECT * FROM investigations WHERE id=?', [id],
+  );
+  if (!rows[0]) throw new Error('Investigation not found');
+  const investigation: Investigation = { ...rows[0], ...data, updatedAt: timestamp() };
+  await execute(
+    `UPDATE investigations SET visitId=?,patientId=?,testName=?,result=?,resultDate=?,
+      notes=?,createdAt=?,updatedAt=? WHERE id=?`,
+    [
+      investigation.visitId, investigation.patientId, investigation.testName,
+      investigation.result ?? null, investigation.resultDate ?? null,
+      investigation.notes ?? null, investigation.createdAt, investigation.updatedAt, id,
+    ],
+  );
+  return investigation;
+}
 
-// Investigations
-export const getInvestigationsByVisit = (visitId: string): Investigation[] => getList<Investigation>(KEYS.INVESTIGATIONS).filter(i => i.visitId === visitId);
-export const getInvestigationsByPatient = (patientId: string): Investigation[] => getList<Investigation>(KEYS.INVESTIGATIONS).filter(i => i.patientId === patientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-export const createInvestigation = (data: Omit<Investigation, 'id' | 'createdAt' | 'updatedAt'>): Investigation => {
-  const invs = getList<Investigation>(KEYS.INVESTIGATIONS);
-  const newInv: Investigation = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  invs.push(newInv);
-  saveList(KEYS.INVESTIGATIONS, invs);
-  return newInv;
-};
-export const updateInvestigation = (id: string, data: Partial<Investigation>): Investigation => {
-  const invs = getList<Investigation>(KEYS.INVESTIGATIONS);
-  const index = invs.findIndex(i => i.id === id);
-  if (index === -1) throw new Error('Investigation not found');
-  invs[index] = { ...invs[index], ...data, updatedAt: new Date().toISOString() };
-  saveList(KEYS.INVESTIGATIONS, invs);
-  return invs[index];
-};
-export const deleteInvestigation = (id: string): void => {
-  const invs = getList<Investigation>(KEYS.INVESTIGATIONS).filter(i => i.id !== id);
-  saveList(KEYS.INVESTIGATIONS, invs);
-};
+export async function deleteInvestigation(id: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.deleteInvestigation(id);
+  await execute('DELETE FROM investigations WHERE id=?', [id]);
+}
 
-// Vital Signs
-export const getVitalSignsByVisit = (visitId: string): VitalSigns | undefined => getList<VitalSigns>(KEYS.VITALS).find(v => v.visitId === visitId);
-export const getVitalSignsByPatient = (patientId: string): VitalSigns[] => getList<VitalSigns>(KEYS.VITALS).filter(v => v.patientId === patientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-export const createVitalSigns = (data: Omit<VitalSigns, 'id' | 'createdAt'>): VitalSigns => {
-  const vitals = getList<VitalSigns>(KEYS.VITALS);
-  const existingIndex = vitals.findIndex(v => v.visitId === data.visitId);
-  
-  if (existingIndex !== -1) {
-    vitals[existingIndex] = { ...vitals[existingIndex], ...data };
-    saveList(KEYS.VITALS, vitals);
-    return vitals[existingIndex];
+export async function getVitalSignsByVisit(visitId: string): Promise<VitalSigns | undefined> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getVitalSignsByVisit(visitId);
+  return (await selectRows<VitalSigns>('SELECT * FROM vitals WHERE visitId=?', [visitId]))[0];
+}
+
+export async function getVitalSignsByPatient(patientId: string): Promise<VitalSigns[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getVitalSignsByPatient(patientId);
+  return selectRows<VitalSigns>(
+    'SELECT * FROM vitals WHERE patientId=? ORDER BY datetime(createdAt) DESC',
+    [patientId],
+  );
+}
+
+export async function createVitalSigns(
+  data: Omit<VitalSigns, 'id' | 'createdAt'>,
+): Promise<VitalSigns> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createVitalSigns(data);
+  const old = await getVitalSignsByVisit(data.visitId);
+  if (old) {
+    const vital = { ...old, ...data };
+    await execute(
+      `UPDATE vitals SET patientId=?,bpSystolic=?,bpDiastolic=?,heartRate=?,temperature=?,
+        oxygenSat=?,respiratoryRate=?,bloodGlucose=?,currentWeight=? WHERE visitId=?`,
+      [
+        vital.patientId, vital.bpSystolic ?? null, vital.bpDiastolic ?? null,
+        vital.heartRate ?? null, vital.temperature ?? null, vital.oxygenSat ?? null,
+        vital.respiratoryRate ?? null, vital.bloodGlucose ?? null,
+        vital.currentWeight ?? null, data.visitId,
+      ],
+    );
+    return vital;
   }
-  
-  const newVitals: VitalSigns = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  vitals.push(newVitals);
-  saveList(KEYS.VITALS, vitals);
-  return newVitals;
-};
-export const clearVitalSignsByPatient = (patientId: string): void => {
-  const vitals = getList<VitalSigns>(KEYS.VITALS).filter(v => v.patientId !== patientId);
-  saveList(KEYS.VITALS, vitals);
-};
+  const vital: VitalSigns = { ...data, id: newId(), createdAt: timestamp() };
+  await execute(
+    `INSERT INTO vitals (${vitalColumns.join(',')}) VALUES (${placeholders(vitalColumns.length)})`,
+    vitalColumns.map(column => vital[column] ?? null),
+  );
+  return vital;
+}
 
-// Quick Notes
-export const getQuickNotes = (patientId: string): QuickNote[] => getList<QuickNote>(KEYS.NOTES).filter(n => n.patientId === patientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-export const createQuickNote = (data: Omit<QuickNote, 'id' | 'createdAt'>): QuickNote => {
-  const notes = getList<QuickNote>(KEYS.NOTES);
-  const newNote: QuickNote = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  notes.push(newNote);
-  saveList(KEYS.NOTES, notes);
-  return newNote;
-};
-export const deleteQuickNote = (id: string): void => {
-  const notes = getList<QuickNote>(KEYS.NOTES).filter(n => n.id !== id);
-  saveList(KEYS.NOTES, notes);
-};
+export async function clearVitalSignsByPatient(patientId: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.clearVitalSignsByPatient(patientId);
+  await execute('DELETE FROM vitals WHERE patientId=?', [patientId]);
+}
 
-// Vital Settings
-export const getVitalSettings = (): VitalThreshold[] => {
-  const data = localStorage.getItem(KEYS.SETTINGS);
-  if (!data) return defaultVitalSettings;
-  return JSON.parse(data);
-};
-export const saveVitalSettings = (settings: VitalThreshold[]): void => {
-  localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-};
+export async function getQuickNotes(patientId: string): Promise<QuickNote[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getQuickNotes(patientId);
+  return selectRows<QuickNote>(
+    'SELECT * FROM notes WHERE patientId=? ORDER BY datetime(createdAt) DESC',
+    [patientId],
+  );
+}
 
-export const exportData = () => {
+export async function createQuickNote(
+  data: Omit<QuickNote, 'id' | 'createdAt'>,
+): Promise<QuickNote> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.createQuickNote(data);
+  const note: QuickNote = { ...data, id: newId(), createdAt: timestamp() };
+  await execute(
+    `INSERT INTO notes (${noteColumns.join(',')}) VALUES (${placeholders(noteColumns.length)})`,
+    noteColumns.map(column => note[column]),
+  );
+  return note;
+}
+
+export async function deleteQuickNote(id: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.deleteQuickNote(id);
+  await execute('DELETE FROM notes WHERE id=?', [id]);
+}
+
+export async function getVitalSettings(): Promise<VitalThreshold[]> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.getVitalSettings();
+  const settings = await selectRows<VitalThreshold>('SELECT * FROM settings ORDER BY rowid');
+  return settings.length ? settings : defaultVitalSettings;
+}
+
+export async function saveVitalSettings(settings: VitalThreshold[]): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.saveVitalSettings(settings);
+  const statements: SqlStatement[] = [{ sql: 'DELETE FROM settings', values: [] }];
+  for (const setting of settings) {
+    statements.push({
+      sql: `INSERT INTO settings (${settingColumns.join(',')}) VALUES (${placeholders(settingColumns.length)})`,
+      values: settingColumns.map(column => setting[column] ?? null),
+    });
+  }
+  await executeSqlTransaction(statements);
+}
+
+export async function exportData(): Promise<string> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.exportData();
+  const [patientRows, visits, treatments, investigations, vitals, notes, settings] =
+    await Promise.all([
+      selectRows<PatientRow>('SELECT * FROM patients ORDER BY rowid'),
+      selectRows<Visit>('SELECT * FROM visits ORDER BY rowid'),
+      selectRows<Treatment>('SELECT * FROM treatments ORDER BY rowid'),
+      selectRows<Investigation>('SELECT * FROM investigations ORDER BY rowid'),
+      selectRows<VitalSigns>('SELECT * FROM vitals ORDER BY rowid'),
+      selectRows<QuickNote>('SELECT * FROM notes ORDER BY rowid'),
+      selectRows<VitalThreshold>('SELECT * FROM settings ORDER BY rowid'),
+    ]);
   return JSON.stringify({
-    patients: getList(KEYS.PATIENTS),
-    visits: getList(KEYS.VISITS),
-    treatments: getList(KEYS.TREATMENTS),
-    investigations: getList(KEYS.INVESTIGATIONS),
-    vitals: getList(KEYS.VITALS),
-    notes: getList(KEYS.NOTES),
-    settings: getList(KEYS.SETTINGS)
+    patients: patientRows.map(patientFromRow),
+    visits,
+    treatments,
+    investigations,
+    vitals,
+    notes,
+    settings,
   });
+}
+
+type ImportData = {
+  patients?: unknown;
+  visits?: unknown;
+  treatments?: unknown;
+  investigations?: unknown;
+  vitals?: unknown;
+  notes?: unknown;
+  settings?: unknown;
 };
 
-export const importData = (jsonData: string) => {
-  const data = JSON.parse(jsonData);
-  if (data.patients) saveList(KEYS.PATIENTS, data.patients);
-  if (data.visits) saveList(KEYS.VISITS, data.visits);
-  if (data.treatments) saveList(KEYS.TREATMENTS, data.treatments);
-  if (data.investigations) saveList(KEYS.INVESTIGATIONS, data.investigations);
-  if (data.vitals) saveList(KEYS.VITALS, data.vitals);
-  if (data.notes) saveList(KEYS.NOTES, data.notes);
-  if (data.settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.settings));
-};
+function importRows(value: unknown, key: string): Record<string, unknown>[] {
+  if (value === undefined) throw new Error(`Import data key "${key}" is required`);
+  if (!Array.isArray(value)) throw new Error(`Import data key "${key}" must be an array`);
+  return value as Record<string, unknown>[];
+}
 
-// Seeding
-export const seedInitialData = () => {
-  if (getPatients().length === 0) {
-    const p1 = createPatient({
-      name: 'Ahmed Mahmoud',
-      nationalId: '123456789',
-      age: 45,
-      mobile: '0599123456',
-      region: 'Gaza City',
-      neighborhood: 'Al-Rimal',
-      applicantName: 'Ahmed Mahmoud',
-      allergies: ['Dust/Mites'],
-      chronicDiseases: ['Hypertension'],
-      serviceType: 'Internal Medicine'
-    });
-    const v1 = createVisit({
-      patientId: p1.id,
-      visitDate: new Date().toISOString(),
-      doctor: 'Dr. Salem',
-      paymentStatus: 'paid',
-      chiefComplaint: 'Headache and dizziness',
-      mainService: 'Internal Medicine',
-      diagnosis: 'Essential Hypertension'
-    });
-    createVitalSigns({
-      visitId: v1.id,
-      patientId: p1.id,
-      bpSystolic: 150,
-      bpDiastolic: 95,
-      heartRate: 85
-    });
-    
-    createPatient({
-      name: 'Sara Khalid',
-      nationalId: '987654321',
-      age: 28,
-      mobile: '0599654321',
-      region: 'Khan Yunis',
-      neighborhood: 'City Center',
-      applicantName: 'Sara Khalid',
-      allergies: [],
-      chronicDiseases: [],
-      serviceType: 'OB/GYN Clinic'
+function importedStatements(
+  table: string,
+  columns: readonly string[],
+  rows: Record<string, unknown>[],
+): SqlStatement[] {
+  const statements: SqlStatement[] = [];
+  for (const row of rows) {
+    const values = columns.map(column =>
+      column === 'allergies' || column === 'chronicDiseases'
+        ? serializeArray(row[column] as string[] | undefined)
+        : row[column] ?? null,
+    );
+    statements.push({
+      sql: `INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders(columns.length)})`,
+      values,
     });
   }
-};
+  return statements;
+}
+
+export async function importData(jsonData: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.importData(jsonData);
+
+  const data = JSON.parse(jsonData) as ImportData;
+  const rows = {
+    patients: importRows(data.patients, 'patients'),
+    visits: importRows(data.visits, 'visits'),
+    treatments: importRows(data.treatments, 'treatments'),
+    investigations: importRows(data.investigations, 'investigations'),
+    vitals: importRows(data.vitals, 'vitals'),
+    notes: importRows(data.notes, 'notes'),
+    settings: importRows(data.settings, 'settings'),
+  };
+
+  const statements: SqlStatement[] = [];
+  for (const table of ['treatments', 'investigations', 'vitals', 'notes', 'visits', 'patients', 'settings']) {
+    statements.push({ sql: `DELETE FROM ${table}`, values: [] });
+  }
+  statements.push(...importedStatements('patients', patientColumns, rows.patients));
+  statements.push(...importedStatements('visits', visitColumns, rows.visits));
+  statements.push(...importedStatements('treatments', treatmentColumns, rows.treatments));
+  statements.push(...importedStatements('investigations', investigationColumns, rows.investigations));
+  statements.push(...importedStatements('vitals', vitalColumns, rows.vitals));
+  statements.push(...importedStatements('notes', noteColumns, rows.notes));
+  statements.push(...importedStatements('settings', settingColumns, rows.settings));
+  await executeSqlTransaction(statements);
+}
+
+export async function seedInitialData(): Promise<void> {
+  const state = await ready();
+  if (state.legacy) {
+    await state.legacy.seedInitialData();
+    return;
+  }
+  if ((await getPatients()).length) return;
+  const now = timestamp();
+  const patientId = newId();
+  const visitId = newId();
+  const secondPatientId = newId();
+  const statements: SqlStatement[] = [{
+    sql: `INSERT INTO patients (${patientColumns.join(',')}) VALUES (${placeholders(patientColumns.length)})`,
+    values: [
+      patientId, 'Ahmed Mahmoud', '123456789', 45, '0599123456', null, 'Gaza City',
+      'Al-Rimal', 'Ahmed Mahmoud', serializeArray(['Dust/Mites']),
+      serializeArray(['Hypertension']), 'Internal Medicine', now, now,
+    ],
+  }, {
+    sql: `INSERT INTO visits (${visitColumns.join(',')}) VALUES (${placeholders(visitColumns.length)})`,
+    values: [
+      visitId, patientId, now, 'Dr. Salem', 'paid', 'Headache and dizziness',
+      'Internal Medicine', null, 'Essential Hypertension', now, now,
+    ],
+  }, {
+    sql: `INSERT INTO vitals (${vitalColumns.join(',')}) VALUES (${placeholders(vitalColumns.length)})`,
+    values: [newId(), visitId, patientId, 150, 95, 85, null, null, null, null, null, now],
+  }, {
+    sql: `INSERT INTO patients (${patientColumns.join(',')}) VALUES (${placeholders(patientColumns.length)})`,
+    values: [
+      secondPatientId, 'Sara Khalid', '987654321', 28, '0599654321', null, 'Khan Yunis',
+      'City Center', 'Sara Khalid', serializeArray([]), serializeArray([]),
+      'OB/GYN Clinic', now, now,
+    ],
+  }];
+  await executeSqlTransaction(statements);
+}

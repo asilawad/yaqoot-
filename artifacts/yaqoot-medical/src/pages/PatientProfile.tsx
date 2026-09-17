@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
@@ -12,6 +12,7 @@ import AddPatientModal from "@/components/patients/AddPatientModal";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
+import { Visit, Investigation, Treatment, QuickNote, VitalSigns } from "@/lib/db/types";
 
 /* ─── Timestamp formatter ─── */
 function fmtTimestamp(iso: string): string {
@@ -282,7 +283,7 @@ export default function PatientProfile() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
-  const { patients, visits, vitalSettings, refreshData } = useData();
+  const { patients, visits, vitalSettings, error } = useData();
   const { toast } = useToast();
   const { createQuickNote, deleteQuickNote, clearVitalSignsByPatient, deletePatient } = useData();
 
@@ -299,8 +300,34 @@ export default function PatientProfile() {
   const [noteText, setNoteText] = useState("");
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [vitalHistoryModal, setVitalHistoryModal] = useState<string | null>(null);
+  const [pageLoadError, setPageLoadError] = useState<string | null>(null);
+  const [patientInvestigations, setPatientInvestigations] = useState<Investigation[]>([]);
+  const [patientTreatments, setPatientTreatments] = useState<Treatment[]>([]);
+  const [patientNotes, setPatientNotes] = useState<QuickNote[]>([]);
+  const [allPatientVitals, setAllPatientVitals] = useState<VitalSigns[]>([]);
+  const [patientVisits, setPatientVisits] = useState<Visit[]>([]);
 
   const patient = patients.find(p => p.id === params.id);
+  useEffect(() => {
+    if (!patient) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [nextVisits, nextInvestigations, nextTreatments, nextNotes, nextVitals] = await Promise.all([
+          repo.getVisitsByPatient(patient.id), repo.getInvestigationsByPatient(patient.id),
+          repo.getTreatmentsByPatient(patient.id), repo.getQuickNotes(patient.id),
+          repo.getVitalSignsByPatient(patient.id),
+        ]);
+        if (cancelled) return;
+        setPatientVisits(nextVisits); setPatientInvestigations(nextInvestigations);
+        setPatientTreatments(nextTreatments); setPatientNotes(nextNotes); setAllPatientVitals(nextVitals);
+        setPageLoadError(null);
+      } catch (cause) {
+        if (!cancelled) setPageLoadError(`${t("profile.recordsLoadError")} ${cause instanceof Error ? cause.message : String(cause)}`);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [patient?.id]);
   if (!patient) {
     return (
       <div style={{ padding: 60, textAlign: "center" }}>
@@ -310,11 +337,7 @@ export default function PatientProfile() {
     );
   }
 
-  const patientVisits       = repo.getVisitsByPatient(patient.id);
-  const patientInvestigations = repo.getInvestigationsByPatient(patient.id);
-  const patientTreatments   = repo.getTreatmentsByPatient(patient.id);
-  const patientNotes        = repo.getQuickNotes(patient.id);
-  const latestVitals        = repo.getVitalSignsByPatient(patient.id)[0];
+  const latestVitals = allPatientVitals[0];
 
   const investigationGroups = (() => {
     const map = new Map<string, typeof patientInvestigations>();
@@ -420,18 +443,50 @@ export default function PatientProfile() {
     },
   ];
 
-  const allPatientVitals = repo.getVitalSignsByPatient(patient.id);
-
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteText.trim()) return;
-    createQuickNote({ patientId: patient.id, text: noteText.trim() });
-    setNoteText("");
-    refreshData();
-    toast({ title: "Note added" });
+    try {
+      await createQuickNote({ patientId: patient.id, text: noteText.trim() });
+      setNoteText("");
+      setPatientNotes(await repo.getQuickNotes(patient.id));
+      toast({ title: t("note.added") });
+    } catch {
+      toast({ title: t("note.addError"), variant: "destructive" });
+    }
+  };
+  const handleDeletePatient = async () => {
+    try {
+      await deletePatient(patient.id);
+      toast({ title: t("deletePatient.success") });
+      setLocation("/patients");
+    } catch {
+      toast({ title: t("patient.deleteError"), variant: "destructive" });
+    }
+  };
+  const handleDeleteNote = async () => {
+    if (!deleteNoteId) return;
+    try {
+      await deleteQuickNote(deleteNoteId);
+      setPatientNotes(await repo.getQuickNotes(patient.id));
+      setDeleteNoteId(null);
+    } catch {
+      toast({ title: t("note.deleteError"), variant: "destructive" });
+    }
+  };
+  const handleClearVitals = async () => {
+    try {
+      await clearVitalSignsByPatient(patient.id);
+      setAllPatientVitals(await repo.getVitalSignsByPatient(patient.id));
+      setVitalHistoryModal(null);
+      toast({ title: t("vitals.clearedSuccess") });
+    } catch {
+      toast({ title: t("vitals.clearError"), variant: "destructive" });
+    }
   };
 
   return (
     <div style={{ maxWidth: 1024 }}>
+      {(pageLoadError || error) && <div style={{ marginBottom: 12, padding: 10, background: "#FEE2E2", color: "#991B1B" }}>{pageLoadError || error}</div>}
 
       {/* Back */}
       <NavigationBackButton
@@ -930,11 +985,7 @@ export default function PatientProfile() {
                 {t("common.cancel")}
               </button>
               <button
-                onClick={() => {
-                  deletePatient(patient.id);
-                  toast({ title: t("deletePatient.success") });
-                  setLocation("/patients");
-                }}
+                onClick={handleDeletePatient}
                 data-testid="btn-confirm-delete-patient"
                 style={{ padding: "11px 24px", borderRadius: 10, border: "none", background: "#dc2626", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif", display: "flex", alignItems: "center", gap: 8 }}
               >
@@ -951,7 +1002,7 @@ export default function PatientProfile() {
         <AddPatientModal
           editPatient={patient}
           onClose={() => setShowEditModal(false)}
-          onSaved={() => { setShowEditModal(false); refreshData(); }}
+          onSaved={() => { setShowEditModal(false); }}
         />
       )}
 
@@ -962,7 +1013,7 @@ export default function PatientProfile() {
             <div style={{ fontSize: 17, fontWeight: 700, color: "#171717", marginBottom: 24 }}>Delete Note?</div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button onClick={() => setDeleteNoteId(null)} style={{ padding: "10px 22px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
-              <button onClick={() => { deleteQuickNote(deleteNoteId); refreshData(); setDeleteNoteId(null); }} data-testid="btn-confirm-delete-note" style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.delete")}</button>
+              <button onClick={handleDeleteNote} data-testid="btn-confirm-delete-note" style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.delete")}</button>
             </div>
           </div>
         </div>
@@ -981,12 +1032,7 @@ export default function PatientProfile() {
             isRTL={isRTL}
             t={t}
             onClose={() => setVitalHistoryModal(null)}
-            onClearHistory={() => {
-              clearVitalSignsByPatient(patient.id);
-              refreshData();
-              setVitalHistoryModal(null);
-              toast({ title: t("vitals.clearedSuccess") });
-            }}
+            onClearHistory={handleClearVitals}
           />
         );
       })()}

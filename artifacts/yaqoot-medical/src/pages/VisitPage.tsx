@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import PrescriptionPrintView from "@/components/prescription/PrescriptionPrintView";
 import * as repo from "@/lib/db/repository";
-import { Treatment, Investigation, VitalSigns } from "@/lib/db/types";
+import { Treatment, Investigation, VitalSigns, Visit } from "@/lib/db/types";
 
 const MAIN_SERVICES = ["Internal Medicine", "Surgical Consultations", "Physical Therapy & Rehab", "OB/GYN Clinic", "Clinical Nutrition", "Nephrology Consultations", "Nursing Services", "Other"];
 
@@ -49,10 +49,10 @@ export default function VisitPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string; visitId?: string }>();
-  const { patients, createVisit, updateVisit, createTreatment, deleteTreatment, createInvestigation, deleteInvestigation, createVitalSigns, refreshData, vitalSettings } = useData();
+  const { patients, createVisit, updateVisit, createTreatment, updateTreatment, deleteTreatment, createInvestigation, updateInvestigation, deleteInvestigation, createVitalSigns, refreshData, vitalSettings, error } = useData();
   const { toast } = useToast();
   const isNew = !params.visitId;
-  const existingVisit = params.visitId ? repo.getVisitById(params.visitId) : undefined;
+  const [existingVisit, setExistingVisit] = useState<Visit | undefined>(undefined);
   const patientId = existingVisit?.patientId || params.id || "";
   const patient = patients.find(p => p.id === patientId);
   const returnTab = (() => {
@@ -77,6 +77,25 @@ export default function VisitPage() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [vitals, setVitals] = useState<VitalSigns | undefined>(undefined);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const visit = params.visitId ? await repo.getVisitById(params.visitId) : undefined;
+        if (cancelled) return;
+        setExistingVisit(visit);
+        if (visit) {
+          setVisitId(visit.id);
+          setForm({ visitDate: visit.visitDate.slice(0, 10), doctor: visit.doctor || "", paymentStatus: visit.paymentStatus, chiefComplaint: visit.chiefComplaint || "", mainService: visit.mainService || "", subService: visit.subService || "", diagnosis: visit.diagnosis || "" });
+        }
+      } catch {
+        if (!cancelled) setPageError(t("visit.loadError"));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [params.visitId]);
 
   const [showTreatmentModal, setShowTreatmentModal] = useState(false);
   const [editTreatment, setEditTreatment] = useState<Treatment | null>(null);
@@ -95,24 +114,24 @@ export default function VisitPage() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     if (visitId) {
-      setTreatments(repo.getTreatmentsByVisit(visitId));
-      setInvestigations(repo.getInvestigationsByVisit(visitId));
-      const v = repo.getVitalSignsByVisit(visitId);
-      setVitals(v);
-      if (v) {
-        setVitalsForm({
-          bpSystolic: v.bpSystolic?.toString() || "",
-          bpDiastolic: v.bpDiastolic?.toString() || "",
-          heartRate: v.heartRate?.toString() || "",
-          temperature: v.temperature?.toString() || "",
-          oxygenSat: v.oxygenSat?.toString() || "",
-          respiratoryRate: v.respiratoryRate?.toString() || "",
-          bloodGlucose: v.bloodGlucose?.toString() || "",
-          currentWeight: v.currentWeight?.toString() || "",
-        });
-      }
+      (async () => {
+        try {
+          const [nextTreatments, nextInvestigations, v] = await Promise.all([repo.getTreatmentsByVisit(visitId), repo.getInvestigationsByVisit(visitId), repo.getVitalSignsByVisit(visitId)]);
+          if (cancelled) return;
+          setTreatments(nextTreatments);
+          setInvestigations(nextInvestigations);
+          setVitals(v);
+          if (v) setVitalsForm({
+            bpSystolic: v.bpSystolic?.toString() || "", bpDiastolic: v.bpDiastolic?.toString() || "", heartRate: v.heartRate?.toString() || "", temperature: v.temperature?.toString() || "",
+            oxygenSat: v.oxygenSat?.toString() || "", respiratoryRate: v.respiratoryRate?.toString() || "", bloodGlucose: v.bloodGlucose?.toString() || "", currentWeight: v.currentWeight?.toString() || "",
+          });
+        } catch { if (!cancelled) setPageError(t("visit.recordsLoadError")); }
+      })();
+      return () => { cancelled = true; };
     }
+    return undefined;
   }, [visitId]);
 
   useEffect(() => {
@@ -133,23 +152,26 @@ export default function VisitPage() {
     }
   }, []);
 
-  const ensureVisit = (): string => {
+  const ensureVisit = async (): Promise<string> => {
     if (visitId) return visitId;
-    const v = createVisit({ patientId, ...form, visitDate: new Date(form.visitDate).toISOString() });
+    const v = await createVisit({ patientId, ...form, visitDate: new Date(form.visitDate).toISOString() });
     setVisitId(v.id);
     return v.id;
   };
 
-  const handleSave = () => {
-    if (visitId) {
-      updateVisit(visitId, { ...form, visitDate: new Date(form.visitDate).toISOString() });
-    } else {
-      const v = createVisit({ patientId, ...form, visitDate: new Date(form.visitDate).toISOString() });
-      setVisitId(v.id);
-    }
-    refreshData();
-    toast({ title: t("visit.success") });
-    setLocation(`/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`);
+  const handleSave = async () => {
+    try {
+      if (visitId) {
+        await updateVisit(visitId, { ...form, visitDate: new Date(form.visitDate).toISOString() });
+      } else {
+        const v = await createVisit({ patientId, ...form, visitDate: new Date(form.visitDate).toISOString() });
+        setVisitId(v.id);
+      }
+      await refreshData();
+      setPageError(null);
+      toast({ title: t("visit.success") });
+      setLocation(`/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`);
+    } catch { setPageError(t("visit.saveError")); }
   };
 
   // Treatments
@@ -159,24 +181,27 @@ export default function VisitPage() {
     setShowTreatmentModal(true);
   };
 
-  const handleSaveTreatment = () => {
+  const handleSaveTreatment = async () => {
     if (!treatmentName.trim()) return;
-    const vid = ensureVisit();
-    if (editTreatment) {
-      repo.updateTreatment(editTreatment.id, { medicineName: treatmentName });
-    } else {
-      repo.createTreatment({ visitId: vid, patientId, medicineName: treatmentName });
-    }
-    setTreatments(repo.getTreatmentsByVisit(vid));
-    setShowTreatmentModal(false);
-    refreshData();
+    try {
+      const vid = await ensureVisit();
+      if (editTreatment) await updateTreatment(editTreatment.id, { medicineName: treatmentName });
+      else await createTreatment({ visitId: vid, patientId, medicineName: treatmentName });
+      setTreatments(await repo.getTreatmentsByVisit(vid));
+      setShowTreatmentModal(false);
+      await refreshData();
+      setPageError(null);
+    } catch { setPageError(t("visit.treatmentSaveError")); }
   };
 
-  const handleDeleteTreatment = (id: string) => {
-    repo.deleteTreatment(id);
-    if (visitId) setTreatments(repo.getTreatmentsByVisit(visitId));
-    setDeleteTreatmentId(null);
-    refreshData();
+  const handleDeleteTreatment = async (id: string) => {
+    try {
+      await deleteTreatment(id);
+      if (visitId) setTreatments(await repo.getTreatmentsByVisit(visitId));
+      setDeleteTreatmentId(null);
+      await refreshData();
+      setPageError(null);
+    } catch { setPageError(t("visit.treatmentDeleteError")); }
   };
 
   // Investigations
@@ -191,30 +216,34 @@ export default function VisitPage() {
     setShowInvModal(true);
   };
 
-  const handleSaveInv = () => {
+  const handleSaveInv = async () => {
     if (!invForm.testName) return;
-    const vid = ensureVisit();
-    if (editInvestigation) {
-      repo.updateInvestigation(editInvestigation.id, invForm);
-    } else {
-      repo.createInvestigation({ visitId: vid, patientId, ...invForm });
-    }
-    setInvestigations(repo.getInvestigationsByVisit(vid));
-    setShowInvModal(false);
-    refreshData();
+    try {
+      const vid = await ensureVisit();
+      if (editInvestigation) await updateInvestigation(editInvestigation.id, invForm);
+      else await createInvestigation({ visitId: vid, patientId, ...invForm });
+      setInvestigations(await repo.getInvestigationsByVisit(vid));
+      setShowInvModal(false);
+      await refreshData();
+      setPageError(null);
+    } catch { setPageError(t("visit.investigationSaveError")); }
   };
 
-  const handleDeleteInv = (id: string) => {
-    repo.deleteInvestigation(id);
-    if (visitId) setInvestigations(repo.getInvestigationsByVisit(visitId));
-    setDeleteInvId(null);
-    refreshData();
+  const handleDeleteInv = async (id: string) => {
+    try {
+      await deleteInvestigation(id);
+      if (visitId) setInvestigations(await repo.getInvestigationsByVisit(visitId));
+      setDeleteInvId(null);
+      await refreshData();
+      setPageError(null);
+    } catch { setPageError(t("visit.investigationDeleteError")); }
   };
 
   // Vitals
-  const handleSaveVitals = () => {
-    const vid = ensureVisit();
-    const data = {
+  const handleSaveVitals = async () => {
+    try {
+      const vid = await ensureVisit();
+      const data = {
       visitId: vid, patientId,
       bpSystolic: vitalsForm.bpSystolic ? parseFloat(vitalsForm.bpSystolic) : undefined,
       bpDiastolic: vitalsForm.bpDiastolic ? parseFloat(vitalsForm.bpDiastolic) : undefined,
@@ -225,15 +254,17 @@ export default function VisitPage() {
       bloodGlucose: vitalsForm.bloodGlucose ? parseFloat(vitalsForm.bloodGlucose) : undefined,
       currentWeight: vitalsForm.currentWeight ? parseFloat(vitalsForm.currentWeight) : undefined,
     };
-    const v = repo.createVitalSigns(data);
-    setVitals(v);
-    setShowVitalsModal(false);
-    refreshData();
+      const v = await createVitalSigns(data);
+      setVitals(v);
+      setShowVitalsModal(false);
+      await refreshData();
+      setPageError(null);
+    } catch { setPageError(t("visit.vitalsSaveError")); }
   };
 
   const getVitalStatus = (value: number | undefined, vitalId: string) => {
     if (value === undefined) return null;
-    const cfg = vitalSettings.find((s: any) => s.id === vitalId);
+    const cfg = vitalSettings.find(s => s.id === vitalId);
     if (!cfg) return null;
     if (value > cfg.maxNormal) return { bg: "#FFEBEE", text: "#c62828", label: t(cfg.highLabel) };
     if (value < cfg.minNormal) return { bg: "#EFF6FF", text: "#1e40af", label: t(cfg.lowLabel) };
@@ -244,6 +275,7 @@ export default function VisitPage() {
 
   return (
     <>
+    {(pageError || error) && <div style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: "#FEE2E2", color: "#991B1B" }}>{pageError || error}</div>}
     <div className="visit-page-screen" style={{ maxWidth: 900 }}>
       {/* Back */}
       <NavigationBackButton
