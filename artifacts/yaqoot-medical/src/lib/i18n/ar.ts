@@ -274,6 +274,7 @@ export const ar = {
   'data.backup.passphraseTitle': 'حماية النسخة الاحتياطية',
   'data.backup.restorePassphraseTitle': 'فتح النسخة الاحتياطية',
   'data.backup.passphraseDescription': 'استخدم 8 أحرف على الأقل. احفظ عبارة المرور جيداً؛ لا يمكن استعادتها.',
+  'data.backup.passphraseWarning': 'اكتب كلمة المرور هذه واحفظها في مكان آمن — لا يمكن استرجاع النسخة الاحتياطية إذا نسيتها، ولا يمكننا استعادتها نيابة عنك.',
   'data.backup.passphrasePlaceholder': 'أدخل عبارة المرور',
   'data.backup.passphraseMin': 'يجب أن تتكون عبارة المرور من 8 أحرف على الأقل.',
   'data.backup.saveEncrypted': 'تشفير وحفظ',

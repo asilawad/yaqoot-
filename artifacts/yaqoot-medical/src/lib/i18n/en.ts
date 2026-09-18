@@ -274,6 +274,7 @@ export const en = {
   'data.backup.passphraseTitle': 'Protect your backup',
   'data.backup.restorePassphraseTitle': 'Unlock your backup',
   'data.backup.passphraseDescription': 'Use at least 8 characters. Keep this passphrase safe; it cannot be recovered.',
+  'data.backup.passphraseWarning': 'Write down this password and store it safely — this backup cannot be recovered if you forget it, and we cannot recover it for you.',
   'data.backup.passphrasePlaceholder': 'Enter passphrase',
   'data.backup.passphraseMin': 'Passphrase must be at least 8 characters.',
   'data.backup.saveEncrypted': 'Encrypt and save',

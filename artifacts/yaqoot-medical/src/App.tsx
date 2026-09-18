@@ -3,6 +3,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/contexts/LocaleContext";
@@ -77,23 +78,25 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <LocaleProvider>
-          <DataProvider>
-            <WouterRouter hook={useHashLocation}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-            <ExitGuardModal
-              open={showExitGuard}
-              onCancel={() => setShowExitGuard(false)}
-              onExit={exitApplication}
-            />
-          </DataProvider>
-        </LocaleProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <LocaleProvider>
+            <DataProvider>
+              <WouterRouter hook={useHashLocation}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+              <ExitGuardModal
+                open={showExitGuard}
+                onCancel={() => setShowExitGuard(false)}
+                onExit={exitApplication}
+              />
+            </DataProvider>
+          </LocaleProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

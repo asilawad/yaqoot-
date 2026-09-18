@@ -1,0 +1,119 @@
+ROLE: Senior Software Engineer. Apply 4 precise, isolated fixes to 
+"Yaqoot Medical Clinic" (Tauri v2 + React) at artifacts/yaqoot-medical/. 
+Each fix is independent — do not refactor unrelated code, do not touch 
+repository.ts/database.ts/transaction.ts/migrations, do not change any 
+function signatures outside what's listed below. Minimize scope strictly to 
+what's described.
+
+═══════════════════════════════════════════════
+FIX 1 — SystemInfoPage.tsx: stale localStorage reference (post-SQLite migration)
+═══════════════════════════════════════════════
+File: src/pages/SystemInfoPage.tsx
+Problem: `getStorageSize()` still reads `Object.keys(localStorage)` filtering 
+`yaqoot_` keys, and the "storagePath" row is hardcoded to the literal string 
+`"localStorage (browser)"`. Both are leftover from the pre-migration 
+architecture and now show incorrect info (near-zero size, wrong path).
+
+Required changes:
+1. Replace `getStorageSize()`: it must become an async function that queries 
+   the actual SQLite file size. Use `@tauri-apps/plugin-fs`'s `stat()` on the 
+   database file path. Resolve the db file path via `@tauri-apps/api/path` 
+   `appConfigDir()` + `"yaqoot.db"` (this matches the path used in 
+   src-tauri/src/lib.rs's `execute_sql_transaction`, which joins 
+   `app.path().app_config_dir()` with `"yaqoot.db"` — do not invent a 
+   different path). If running in the legacy/browser fallback mode (check via 
+   the existing `getRepositoryMode()` export from repository.ts — if it 
+   returns `'legacy'`), fall back to the old localStorage-based size 
+   calculation instead, since that mode genuinely uses localStorage.
+2. Replace the hardcoded `"storagePath"` value: show the real resolved 
+   SQLite file path when in `'sqlite'` mode, or `"localStorage (browser)"` 
+   only when in `'legacy'` mode.
+3. Since size/path resolution is now async, convert the `rows` array 
+   construction to be built inside a `useEffect` + `useState`, with a loading 
+   placeholder (e.g. "...") shown for the size/path values until resolved. 
+   Keep all other rows (version, status) exactly as they are now.
+4. Do not change the visual layout, styling, or the `t(...)` translation 
+   keys already used — only the data source behind the size/path values.
+
+═══════════════════════════════════════════════
+FIX 2 — Global Error Boundary + unhandled error/rejection logging
+═══════════════════════════════════════════════
+1. Create src/components/ErrorBoundary.tsx: a class component implementing 
+   `componentDidCatch(error, info)` that:
+   - Logs the error via `console.error('[ErrorBoundary]', error, info)`.
+   - Renders a full-screen fallback UI (Arabic-first, matching the app's 
+     existing style — reuse colors/fonts already used elsewhere, e.g. 
+     `#171717` text, existing card style) with:
+     - Message: "حدث خطأ غير متوقع، يرجى إعادة تشغيل البرنامج" (and an 
+       English line below it, e.g. "An unexpected error occurred — please 
+       restart the application").
+     - A "إعادة تحميل" / "Reload" button that calls `window.location.reload()`.
+   - Do NOT wire this into the existing `useTranslation` i18n system (a 
+     crashed render tree may not have working context providers) — hardcode 
+     both languages directly in this component as plain strings.
+2. In src/App.tsx, wrap the existing `<QueryClientProvider>` tree (the 
+   entire current return value) with `<ErrorBoundary>` at the outermost level 
+   — do not restructure or reorder any existing provider.
+3. In src/main.tsx, add (before `createRoot(...).render(...)`):
+
+window.addEventListener('error', (event) => {
+console.error('[GlobalError]', event.error ?? event.message);
+});
+window.addEventListener('unhandledrejection', (event) => {
+console.error('[UnhandledRejection]', event.reason);
+});
+
+   These are logging-only (console) — do not show UI from these handlers; 
+   the ErrorBoundary already covers render-time crashes with a visible UI.
+4. Do not add any external error-reporting/telemetry service — console 
+   logging only, this app is fully offline.
+
+═══════════════════════════════════════════════
+FIX 3 — WebView2 offline installer mode
+═══════════════════════════════════════════════
+File: src-tauri/tauri.conf.json
+Change:
+
+"windows": {
+"webviewInstallMode": {
+"type": "downloadBootstrapper"
+}
+}
+
+to:
+
+"windows": {
+"webviewInstallMode": {
+"type": "offlineInstaller"
+}
+}
+
+under `bundle.windows`. Do not change any other key in this file (productName, 
+identifier, window config, CSP, bundle targets, icons must remain untouched).
+
+═══════════════════════════════════════════════
+FIX 4 — Explicit passphrase-loss warning in backup UI
+═══════════════════════════════════════════════
+File: src/pages/DataManagementPage.tsx (the passphrase-entry modal built for 
+encrypted export, from the prior AES-256 task)
+Required change: in that passphrase modal's EXPORT flow only (not the 
+restore/import flow), add a visible, non-dismissible-by-accident warning 
+directly above or below the passphrase input field, styled distinctly (e.g. 
+amber/red warning box consistent with any existing alert/warning component 
+style in src/components/ui) with this exact message pattern, via the existing 
+useTranslation hook (add new EN/AR keys in the same i18n namespace already 
+used for backup strings):
+- AR: "اكتب كلمة المرور هذه واحفظها في مكان آمن — لا يمكن استرجاع النسخة الاحتياطية إذا نسيتها، ولا يمكننا استعادتها نيابة عنك."
+- EN: "Write down this password and store it safely — this backup cannot be recovered if you forget it, and we cannot recover it for you."
+Do not add this warning to the restore/import modal — only to the export/backup 
+creation modal, since that is where the password is first chosen.
+
+═══════════════════════════════════════════════
+VERIFICATION
+═══════════════════════════════════════════════
+- Run `pnpm run typecheck` in artifacts/yaqoot-medical after all 4 fixes; 
+  resolve any errors.
+- Confirm each fix is isolated to its listed file(s) — no changes outside 
+  what's described above.
+- In your final summary, list exactly which files were modified per fix 
+  number (1-4).

@@ -302,6 +302,23 @@ export default function DataManagementPage() {
             placeholder={t("data.backup.passphrasePlaceholder")}
             style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #DDE5DF", borderRadius: 8, fontFamily: "'Cairo', sans-serif" }}
           />
+          {passphraseMode === "backup" && (
+            <div
+              role="alert"
+              style={{
+                marginTop: 12,
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid #F59E0B",
+                background: "#FFF7ED",
+                color: "#9A3412",
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              {t("data.backup.passphraseWarning")}
+            </div>
+          )}
           {passphraseError && <div style={{ color: "#B91C1C", fontSize: 12 }}>{passphraseError}</div>}
           <DialogFooter>
             <button

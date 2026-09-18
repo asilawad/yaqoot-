@@ -3,28 +3,77 @@ import { Tag, HardDrive, CheckCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
+import { useEffect, useState } from "react";
+import { getRepositoryMode } from "@/lib/db/repository";
 
-function getStorageSize(): string {
+type StorageInfo = {
+  size: string;
+  path: string;
+};
+
+function formatStorageSize(total: number): string {
+  if (total < 1024) return `${total} B`;
+  if (total < 1024 * 1024) return `${(total / 1024).toFixed(1)} KB`;
+  return `${(total / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getLegacyStorageSize(): string {
   let total = 0;
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith("yaqoot_")) {
       total += (localStorage.getItem(key) || "").length * 2;
     }
   }
-  if (total < 1024) return `${total} B`;
-  if (total < 1024 * 1024) return `${(total / 1024).toFixed(1)} KB`;
-  return `${(total / (1024 * 1024)).toFixed(2)} MB`;
+  return formatStorageSize(total);
+}
+
+async function getStorageSize(): Promise<StorageInfo> {
+  if (getRepositoryMode() === "legacy") {
+    return {
+      size: getLegacyStorageSize(),
+      path: "localStorage (browser)",
+    };
+  }
+
+  const [{ appConfigDir, join }, { stat }] = await Promise.all([
+    import("@tauri-apps/api/path"),
+    import("@tauri-apps/plugin-fs"),
+  ]);
+  const databasePath = await join(await appConfigDir(), "yaqoot.db");
+  const databaseStat = await stat(databasePath);
+
+  return {
+    size: formatStorageSize(databaseStat.size),
+    path: databasePath,
+  };
 }
 
 export default function SystemInfoPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [storageInfo, setStorageInfo] = useState<StorageInfo>({ size: "…", path: "…" });
+
+  useEffect(() => {
+    let active = true;
+    getStorageSize()
+      .then(info => {
+        if (active) setStorageInfo(info);
+      })
+      .catch(error => {
+        console.error("Unable to resolve storage information:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const rows = [
     { icon: Tag, color: "#50C878", bg: "#E8F5E9", label: t("system.version"), value: "v1.0.0" },
-    { icon: HardDrive, color: "#6366f1", bg: "#EEF2FF", label: t("system.storagePath"), value: "localStorage (browser)" },
+    { icon: HardDrive, color: "#6366f1", bg: "#EEF2FF", label: t("system.storagePath"), value: storageInfo.path },
     { icon: CheckCircle, color: "#50C878", bg: "#E8F5E9", label: t("system.status"), value: t("system.operational") },
-    { icon: HardDrive, color: "#3b82f6", bg: "#EFF6FF", label: t("system.totalStorage"), value: getStorageSize() },
+    { icon: HardDrive, color: "#3b82f6", bg: "#EFF6FF", label: t("system.totalStorage"), value: storageInfo.size },
   ];
 
   return (
