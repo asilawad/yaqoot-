@@ -4,6 +4,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import { useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { getRepositoryMode } from "@/lib/db/repository";
 
 type StorageInfo = {
@@ -53,6 +54,7 @@ export default function SystemInfoPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [storageInfo, setStorageInfo] = useState<StorageInfo>({ size: "…", path: "…" });
+  const [appVersion, setAppVersion] = useState("1.0.0");
 
   useEffect(() => {
     let active = true;
@@ -69,8 +71,18 @@ export default function SystemInfoPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const isTauri = typeof window !== "undefined" &&
+      Boolean((window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+    if (!isTauri) return;
+
+    getVersion()
+      .then(setAppVersion)
+      .catch(() => setAppVersion("1.0.0"));
+  }, []);
+
   const rows = [
-    { icon: Tag, color: "#50C878", bg: "#E8F5E9", label: t("system.version"), value: "v1.0.0" },
+    { icon: Tag, color: "#50C878", bg: "#E8F5E9", label: t("system.version"), value: appVersion },
     { icon: HardDrive, color: "#6366f1", bg: "#EEF2FF", label: t("system.storagePath"), value: storageInfo.path },
     { icon: CheckCircle, color: "#50C878", bg: "#E8F5E9", label: t("system.status"), value: t("system.operational") },
     { icon: HardDrive, color: "#3b82f6", bg: "#EFF6FF", label: t("system.totalStorage"), value: storageInfo.size },

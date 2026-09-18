@@ -44,6 +44,7 @@ export default function PatientList() {
 
   // General search state
   const [search, setSearch]           = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("");
   const [showAddModal, setShowAddModal]   = useState(false);
@@ -59,6 +60,11 @@ export default function PatientList() {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate,   setFilterEndDate]   = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), 200);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   const monthNames = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => {
@@ -168,7 +174,7 @@ export default function PatientList() {
 
     // ── Default: text search on patient fields ─────────────────────────────
     const filteredPatients = patients.filter((p) => {
-      const q = search.toLowerCase();
+      const q = debouncedSearch.toLowerCase();
       let matchSearch = true;
       if (q) {
         const locationSearchText = getLocationSearchText(p.region, p.neighborhood, t).toLowerCase();
@@ -193,7 +199,7 @@ export default function PatientList() {
       visit: getLastVisit(p.id) ?? null,
       rowKey: p.id,
     }));
-  }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, locale, t]);
+  }, [patients, visits, debouncedSearch, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, locale, t]);
 
   const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
   const { page, setPage, totalPages, pageItems } = usePagination(displayRows, 25);

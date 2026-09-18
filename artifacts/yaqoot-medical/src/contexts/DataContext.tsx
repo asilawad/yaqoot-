@@ -36,6 +36,19 @@ interface DataContextType {
   importData: (json: string) => Promise<void>;
 }
 
+type ScopedMutation = {
+  scope: 'treatments' | 'investigations' | 'vitals' | 'notes';
+  action: 'upsert' | 'delete' | 'deleteByPatient';
+};
+
+function upsertById<T extends { id: string }>(items: T[], item: T): T[] {
+  const index = items.findIndex(current => current.id === item.id);
+  if (index === -1) return [...items, item];
+  const next = [...items];
+  next[index] = item;
+  return next;
+}
+
 export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -87,16 +100,57 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return () => { cancelled = true; };
   }, []);
 
-  const wrap = <T extends unknown[], R>(fn: (...args: T) => Promise<R>) => {
+  const applyScopedMutation = (
+    mutation: ScopedMutation,
+    result: unknown,
+    args: unknown[],
+  ) => {
+    if (mutation.action === 'upsert') {
+      if (mutation.scope === 'treatments') {
+        setTreatments(current => upsertById(current, result as Treatment));
+      } else if (mutation.scope === 'investigations') {
+        setInvestigations(current => upsertById(current, result as Investigation));
+      } else if (mutation.scope === 'vitals') {
+        setVitals(current => upsertById(current, result as VitalSigns));
+      } else {
+        setNotes(current => upsertById(current, result as QuickNote));
+      }
+      return;
+    }
+
+    const id = args[0] as string;
+    if (mutation.scope === 'treatments') {
+      setTreatments(current => current.filter(item => item.id !== id));
+    } else if (mutation.scope === 'investigations') {
+      setInvestigations(current => current.filter(item => item.id !== id));
+    } else if (mutation.scope === 'vitals') {
+      if (mutation.action === 'deleteByPatient') {
+        setVitals(current => current.filter(item => item.patientId !== id));
+      } else {
+        setVitals(current => current.filter(item => item.id !== id));
+      }
+    } else {
+      setNotes(current => current.filter(item => item.id !== id));
+    }
+  };
+
+  const wrap = <T extends unknown[], R>(
+    fn: (...args: T) => Promise<R>,
+    mutation?: ScopedMutation,
+  ) => {
     return async (...args: T): Promise<R> => {
       try {
         const res = await fn(...args);
-        try {
-          await refreshData();
-        } catch (cause) {
-          // The mutation has already committed; report stale UI separately and
-          // do not make callers retry a write that succeeded.
-          setError(`${t('data.refreshError')} ${cause instanceof Error ? cause.message : String(cause)}`);
+        if (mutation && visits.length >= 2000) {
+          applyScopedMutation(mutation, res, args);
+        } else {
+          try {
+            await refreshData();
+          } catch (cause) {
+            // The mutation has already committed; report stale UI separately and
+            // do not make callers retry a write that succeeded.
+            setError(`${t('data.refreshError')} ${cause instanceof Error ? cause.message : String(cause)}`);
+          }
         }
         return res;
       } catch (cause) {
@@ -121,16 +175,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     deletePatient: wrap(repo.deletePatient),
     createVisit: wrap(repo.createVisit),
     updateVisit: wrap(repo.updateVisit),
-    createTreatment: wrap(repo.createTreatment),
-    updateTreatment: wrap(repo.updateTreatment),
-    deleteTreatment: wrap(repo.deleteTreatment),
-    createInvestigation: wrap(repo.createInvestigation),
-    updateInvestigation: wrap(repo.updateInvestigation),
-    deleteInvestigation: wrap(repo.deleteInvestigation),
-    createVitalSigns: wrap(repo.createVitalSigns),
-    clearVitalSignsByPatient: wrap(repo.clearVitalSignsByPatient),
-    createQuickNote: wrap(repo.createQuickNote),
-    deleteQuickNote: wrap(repo.deleteQuickNote),
+    createTreatment: wrap(repo.createTreatment, { scope: 'treatments', action: 'upsert' }),
+    updateTreatment: wrap(repo.updateTreatment, { scope: 'treatments', action: 'upsert' }),
+    deleteTreatment: wrap(repo.deleteTreatment, { scope: 'treatments', action: 'delete' }),
+    createInvestigation: wrap(repo.createInvestigation, { scope: 'investigations', action: 'upsert' }),
+    updateInvestigation: wrap(repo.updateInvestigation, { scope: 'investigations', action: 'upsert' }),
+    deleteInvestigation: wrap(repo.deleteInvestigation, { scope: 'investigations', action: 'delete' }),
+    createVitalSigns: wrap(repo.createVitalSigns, { scope: 'vitals', action: 'upsert' }),
+    clearVitalSignsByPatient: wrap(repo.clearVitalSignsByPatient, { scope: 'vitals', action: 'deleteByPatient' }),
+    createQuickNote: wrap(repo.createQuickNote, { scope: 'notes', action: 'upsert' }),
+    deleteQuickNote: wrap(repo.deleteQuickNote, { scope: 'notes', action: 'delete' }),
     saveVitalSettings: wrap(repo.saveVitalSettings),
     importData: wrap(repo.importData),
   };
