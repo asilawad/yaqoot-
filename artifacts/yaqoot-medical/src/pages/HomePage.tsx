@@ -29,7 +29,8 @@ export default function HomePage() {
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
-        padding: "8px 0 24px",
+        padding: "0 0 20px",
+        marginTop: -16,
         boxSizing: "border-box",
       }}
     >
@@ -50,7 +51,7 @@ export default function HomePage() {
             width: 216,
             height: 216,
             objectFit: "contain",
-            marginBottom: 4,
+            marginBottom: 2,
           }}
         />
 
@@ -68,7 +69,7 @@ export default function HomePage() {
 
         <p
           style={{
-            margin: "8px 0 34px",
+            margin: "4px 0 24px",
             color: "#717182",
             fontSize: 15,
             lineHeight: 1.7,
