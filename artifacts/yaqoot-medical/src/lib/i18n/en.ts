@@ -270,5 +270,21 @@ export const en = {
   'data.restoreError': 'Error restoring data.',
   'vitalsConfig.saveError': 'Unable to save vital settings.',
   'vitalsConfig.resetError': 'Unable to reset vital settings.',
-  'analytics.loading': 'Loading analytics…'
+  'analytics.loading': 'Loading analytics…',
+  'data.backup.passphraseTitle': 'Protect your backup',
+  'data.backup.restorePassphraseTitle': 'Unlock your backup',
+  'data.backup.passphraseDescription': 'Use at least 8 characters. Keep this passphrase safe; it cannot be recovered.',
+  'data.backup.passphrasePlaceholder': 'Enter passphrase',
+  'data.backup.passphraseMin': 'Passphrase must be at least 8 characters.',
+  'data.backup.saveEncrypted': 'Encrypt and save',
+  'data.backup.restoreEncrypted': 'Unlock and restore',
+  'data.backup.invalidPassphrase': 'Incorrect passphrase or corrupted backup.',
+  'pagination.navigation': 'Pagination',
+  'pagination.previous': 'Previous',
+  'pagination.next': 'Next',
+  'pagination.pageOf': 'Page {page} of {total}',
+  'exitGuard.title': 'Before you exit',
+  'exitGuard.description': 'Would you like to create an encrypted backup before closing the clinic?',
+  'exitGuard.backupAndExit': 'Backup & Exit',
+  'exitGuard.exitWithoutBackup': 'Exit Without Backup'
 };

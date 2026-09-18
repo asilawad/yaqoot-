@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +18,7 @@ import VitalsConfigPage from "@/pages/VitalsConfigPage";
 import DataManagementPage from "@/pages/DataManagementPage";
 import SystemInfoPage from "@/pages/SystemInfoPage";
 import NotFound from "@/pages/not-found";
+import ExitGuardModal from "@/components/ExitGuardModal";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +43,39 @@ function Router() {
 }
 
 function App() {
+  const [showExitGuard, setShowExitGuard] = useState(false);
+  const isExiting = useRef(false);
+
+  useEffect(() => {
+    const isTauri = typeof window !== "undefined" &&
+      Boolean((window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+    if (!isTauri) return;
+
+    const appWindow = getCurrentWindow();
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+
+    appWindow.onCloseRequested(async event => {
+      if (isExiting.current) return;
+      event.preventDefault();
+      setShowExitGuard(true);
+    }).then(stopListening => {
+      if (disposed) stopListening();
+      else unlisten = stopListening;
+    });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
+  const exitApplication = async () => {
+    isExiting.current = true;
+    setShowExitGuard(false);
+    await getCurrentWindow().destroy();
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -49,6 +85,11 @@ function App() {
               <Router />
             </WouterRouter>
             <Toaster />
+            <ExitGuardModal
+              open={showExitGuard}
+              onCancel={() => setShowExitGuard(false)}
+              onExit={exitApplication}
+            />
           </DataProvider>
         </LocaleProvider>
       </TooltipProvider>

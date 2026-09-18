@@ -270,5 +270,21 @@ export const ar = {
   'data.restoreError': 'تعذر استعادة البيانات.',
   'vitalsConfig.saveError': 'تعذر حفظ إعدادات العلامات الحيوية.',
   'vitalsConfig.resetError': 'تعذر إعادة ضبط إعدادات العلامات الحيوية.',
-  'analytics.loading': 'جارٍ تحميل التحليلات…'
+  'analytics.loading': 'جارٍ تحميل التحليلات…',
+  'data.backup.passphraseTitle': 'حماية النسخة الاحتياطية',
+  'data.backup.restorePassphraseTitle': 'فتح النسخة الاحتياطية',
+  'data.backup.passphraseDescription': 'استخدم 8 أحرف على الأقل. احفظ عبارة المرور جيداً؛ لا يمكن استعادتها.',
+  'data.backup.passphrasePlaceholder': 'أدخل عبارة المرور',
+  'data.backup.passphraseMin': 'يجب أن تتكون عبارة المرور من 8 أحرف على الأقل.',
+  'data.backup.saveEncrypted': 'تشفير وحفظ',
+  'data.backup.restoreEncrypted': 'فتح واستعادة',
+  'data.backup.invalidPassphrase': 'عبارة المرور غير صحيحة أو النسخة الاحتياطية تالفة.',
+  'pagination.navigation': 'التنقل بين الصفحات',
+  'pagination.previous': 'السابق',
+  'pagination.next': 'التالي',
+  'pagination.pageOf': 'صفحة {page} من {total}',
+  'exitGuard.title': 'قبل الخروج',
+  'exitGuard.description': 'هل تريد إنشاء نسخة احتياطية مشفرة قبل إغلاق العيادة؟',
+  'exitGuard.backupAndExit': 'نسخ احتياطي وخروج',
+  'exitGuard.exitWithoutBackup': 'خروج دون نسخ احتياطي'
 };

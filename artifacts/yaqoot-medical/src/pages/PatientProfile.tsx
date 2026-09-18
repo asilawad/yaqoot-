@@ -13,6 +13,8 @@ import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 import { Visit, Investigation, Treatment, QuickNote, VitalSigns } from "@/lib/db/types";
+import { usePagination } from "@/hooks/usePagination";
+import PaginationControls from "@/components/PaginationControls";
 
 /* ─── Timestamp formatter ─── */
 function fmtTimestamp(iso: string): string {
@@ -308,6 +310,18 @@ export default function PatientProfile() {
   const [patientVisits, setPatientVisits] = useState<Visit[]>([]);
 
   const patient = patients.find(p => p.id === params.id);
+  const {
+    page: visitPage,
+    setPage: setVisitPage,
+    totalPages: visitTotalPages,
+    pageItems: visitPageItems,
+    pageSize: visitPageSize,
+  } = usePagination(patientVisits, 25);
+
+  useEffect(() => {
+    setVisitPage(1);
+  }, [patient?.id, setVisitPage]);
+
   useEffect(() => {
     if (!patient) return;
     let cancelled = false;
@@ -730,17 +744,17 @@ export default function PatientProfile() {
                 borderRadius: 2,
               }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {patientVisits.map((v, idx) => (
+                {visitPageItems.map((v, idx) => (
                   <div key={v.id} style={{ display: "flex", alignItems: "flex-start", gap: 20, flexDirection: "row" }}>
                     <div style={{ flexShrink: 0, position: "relative", zIndex: 1, marginTop: 14 }}>
                       <div style={{
                         width: 32, height: 32,
                         borderRadius: "50%",
-                        background: idx === 0 ? "#50C878" : "#fff",
-                        border: `2px solid ${idx === 0 ? "#50C878" : "#D1D5DB"}`,
+                         background: (visitPage - 1) * visitPageSize + idx === 0 ? "#50C878" : "#fff",
+                         border: `2px solid ${(visitPage - 1) * visitPageSize + idx === 0 ? "#50C878" : "#D1D5DB"}`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                       }}>
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: idx === 0 ? "#fff" : "#D1D5DB" }} />
+                         <div style={{ width: 10, height: 10, borderRadius: "50%", background: (visitPage - 1) * visitPageSize + idx === 0 ? "#fff" : "#D1D5DB" }} />
                       </div>
                     </div>
                     <button
@@ -786,6 +800,7 @@ export default function PatientProfile() {
                   </div>
                 ))}
               </div>
+              <PaginationControls page={visitPage} setPage={setVisitPage} totalPages={visitTotalPages} />
             </div>
           )
         )}

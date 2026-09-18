@@ -5,7 +5,17 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
-import * as repo from "@/lib/db/repository";
+import { DecryptionError, exportEncryptedBackup, importEncryptedBackup } from "@/lib/db/secureBackup";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const MIN_PASSPHRASE_LENGTH = 8;
 
 function getStorageSize(): string {
   let total = 0;
@@ -22,47 +32,70 @@ function getStorageSize(): string {
 export default function DataManagementPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
-  const { importData, refreshData } = useData();
+  const { refreshData } = useData();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingFile, setPendingFile] = useState<string | null>(null);
+  const [passphraseMode, setPassphraseMode] = useState<"backup" | "restore" | null>(null);
+  const [passphrase, setPassphrase] = useState("");
+  const [passphraseError, setPassphraseError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [storageSize, setStorageSize] = useState("…");
   useEffect(() => { setStorageSize(getStorageSize()); }, []);
 
   const handleBackup = async () => {
+    setPassphrase("");
+    setPassphraseError("");
+    setPassphraseMode("backup");
+  };
+
+  const writeBackupFile = async (data: string, filename: string): Promise<boolean> => {
+    const isTauri = "__TAURI_INTERNALS__" in window;
+    if (isTauri) {
+      const [{ save }, { writeTextFile }] = await Promise.all([
+        import("@tauri-apps/plugin-dialog"),
+        import("@tauri-apps/plugin-fs"),
+      ]);
+      const filePath = await save({
+        defaultPath: filename,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!filePath) return false;
+      await writeTextFile(filePath, data);
+      return true;
+    }
+
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    return true;
+  };
+
+  const handleBackupWithPassphrase = async () => {
+    if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+      setPassphraseError(t("data.backup.passphraseMin"));
+      return;
+    }
+    setIsProcessing(true);
+    setPassphraseError("");
     try {
-      const data = await repo.exportData();
+      const data = await exportEncryptedBackup(passphrase);
       const today = new Date().toISOString().slice(0, 10);
       const filename = `yaqoot_backup_${today}.json`;
-      const isTauri = "__TAURI_INTERNALS__" in window;
-
-      if (isTauri) {
-        const [{ save }, { writeTextFile }] = await Promise.all([
-          import("@tauri-apps/plugin-dialog"),
-          import("@tauri-apps/plugin-fs"),
-        ]);
-        const filePath = await save({
-          defaultPath: filename,
-          filters: [{ name: "JSON", extensions: ["json"] }],
-        });
-
-        if (!filePath) return;
-        await writeTextFile(filePath, data);
-      } else {
-        const blob = new Blob([data], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-
+      const saved = await writeBackupFile(data, filename);
+      if (!saved) return;
+      setPassphraseMode(null);
       toast({ title: t("common.save") + " ✓" });
     } catch (error) {
       console.error("Backup failed:", error);
       toast({ title: t("data.backupError"), variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -81,15 +114,57 @@ export default function DataManagementPage() {
   const handleRestoreConfirm = async () => {
     if (!pendingFile) return;
     try {
-      await importData(pendingFile);
-      await refreshData();
-      setStorageSize(getStorageSize());
-      toast({ title: t("data.restoreSuccess") });
+      const parsed = JSON.parse(pendingFile) as { encrypted?: unknown };
+      if (parsed && parsed.encrypted === true) {
+        setPassphrase("");
+        setPassphraseError("");
+        setPassphraseMode("restore");
+        setShowRestoreConfirm(false);
+        return;
+      }
+      await completeRestore(pendingFile);
     } catch {
       toast({ title: t("data.restoreError"), variant: "destructive" });
+      setShowRestoreConfirm(false);
+      setPendingFile(null);
     }
-    setShowRestoreConfirm(false);
-    setPendingFile(null);
+  };
+
+  const completeRestore = async (contents: string, restorePassphrase?: string) => {
+    try {
+      await importEncryptedBackup(contents, restorePassphrase);
+      await refreshData();
+      setStorageSize(getStorageSize());
+      setShowRestoreConfirm(false);
+      setPassphraseMode(null);
+      setPendingFile(null);
+      setPassphrase("");
+      setPassphraseError("");
+      toast({ title: t("data.restoreSuccess") });
+    } catch (error) {
+      if (error instanceof DecryptionError) {
+        setPassphraseError(t("data.backup.invalidPassphrase"));
+        toast({ title: t("data.backup.invalidPassphrase"), variant: "destructive" });
+        return;
+      }
+      throw error;
+    }
+  };
+
+  const handleRestoreWithPassphrase = async () => {
+    if (!pendingFile) return;
+    if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+      setPassphraseError(t("data.backup.passphraseMin"));
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await completeRestore(pendingFile, passphrase);
+    } catch {
+      toast({ title: t("data.restoreError"), variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const cardStyle: React.CSSProperties = {
@@ -189,6 +264,74 @@ export default function DataManagementPage() {
           </div>
         </div>
       )}
+
+      <Dialog
+        open={passphraseMode !== null}
+        onOpenChange={open => {
+          if (!open && !isProcessing) {
+            setPassphraseMode(null);
+            setPassphrase("");
+            setPassphraseError("");
+            if (passphraseMode === "restore") {
+              setPendingFile(null);
+              setShowRestoreConfirm(false);
+            }
+          }
+        }}
+      >
+        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>
+              {passphraseMode === "backup"
+                ? t("data.backup.passphraseTitle")
+                : t("data.backup.restorePassphraseTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("data.backup.passphraseDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            autoFocus
+            type="password"
+            value={passphrase}
+            onChange={event => {
+              setPassphrase(event.target.value);
+              setPassphraseError("");
+            }}
+            data-testid="input-backup-passphrase"
+            placeholder={t("data.backup.passphrasePlaceholder")}
+            style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #DDE5DF", borderRadius: 8, fontFamily: "'Cairo', sans-serif" }}
+          />
+          {passphraseError && <div style={{ color: "#B91C1C", fontSize: 12 }}>{passphraseError}</div>}
+          <DialogFooter>
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => {
+                setPassphraseMode(null);
+                setPassphrase("");
+                setPassphraseError("");
+                if (passphraseMode === "restore") {
+                  setPendingFile(null);
+                  setShowRestoreConfirm(false);
+                }
+              }}
+              style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #DDE5DF", background: "#fff", cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              disabled={isProcessing}
+              data-testid="btn-submit-backup-passphrase"
+              onClick={passphraseMode === "backup" ? handleBackupWithPassphrase : handleRestoreWithPassphrase}
+              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#50C878", color: "#fff", cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+            >
+              {passphraseMode === "backup" ? t("data.backup.saveEncrypted") : t("data.backup.restoreEncrypted")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

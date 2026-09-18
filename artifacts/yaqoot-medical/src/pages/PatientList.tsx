@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Search, Plus, Calendar, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -7,6 +7,8 @@ import AddPatientModal from "@/components/patients/AddPatientModal";
 import type { Visit } from "@/lib/db/types";
 import type { Patient } from "@/lib/db/types";
 import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
+import { usePagination } from "@/hooks/usePagination";
+import PaginationControls from "@/components/PaginationControls";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
@@ -194,6 +196,22 @@ export default function PatientList() {
   }, [patients, visits, search, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, locale, t]);
 
   const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
+  const { page, setPage, totalPages, pageItems } = usePagination(displayRows, 25);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    searchField,
+    serviceFilter,
+    sortNewestFirst,
+    filterDay,
+    filterMonth,
+    filterYear,
+    filterStartDate,
+    filterEndDate,
+    setPage,
+  ]);
 
   // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -587,7 +605,7 @@ export default function PatientList() {
                   <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#717182", fontSize: 14 }}>{t("table.empty")}</td>
                 </tr>
               ) : (
-                displayRows.map((row, idx) => {
+                pageItems.map((row, idx) => {
                   const { patient: p, visit: v } = row;
                   return (
                     <tr
@@ -625,6 +643,7 @@ export default function PatientList() {
           </table>
         </div>
       </div>
+      <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
 
       {showAddModal && (
         <AddPatientModal
