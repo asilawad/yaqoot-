@@ -55,28 +55,30 @@ export default function HomePage() {
           }}
         />
 
-        <h1
-          style={{
-            margin: 0,
-            color: "#171717",
-            fontSize: 28,
-            fontWeight: 800,
-            lineHeight: 1.35,
-          }}
-        >
-          {t("sidebar.clinicName")}
-        </h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem" }}>
+          <h1
+            style={{
+              margin: "-0.75rem 0 0",
+              color: "#171717",
+              fontSize: 28,
+              fontWeight: 800,
+              lineHeight: 1.35,
+            }}
+          >
+            {t("sidebar.clinicName")}
+          </h1>
 
-        <p
-          style={{
-            margin: "4px 0 24px",
-            color: "#717182",
-            fontSize: 15,
-            lineHeight: 1.7,
-          }}
-        >
-          {t("home.welcome", { date: formattedDate })}
-        </p>
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: "#717182",
+              fontSize: 15,
+              lineHeight: 1.7,
+            }}
+          >
+            {t("home.welcome", { date: formattedDate })}
+          </p>
+        </div>
 
         <div
           style={{
