@@ -1,0 +1,166 @@
+ROLE: You are implementing the remaining non-database hardening features on 
+"Yaqoot Medical Clinic" (Tauri v2 + React), located at 
+artifacts/yaqoot-medical/. The data layer has ALREADY been migrated to async 
+SQLite (src/lib/db/repository.ts — every function returns a Promise, backed 
+by tauri-plugin-sql + a Rust `execute_sql_transaction` command in 
+src-tauri/src/lib.rs). Cascading deletes, orphan prevention, and transaction 
+atomicity are ALREADY solved at the database level — do NOT reintroduce 
+localStorage-era patterns (no runAtomicTxn, no cleanupOrphanedRecords, no 
+yaqoot_txn_pending flags). DataContext.tsx already exposes async, Promise-
+returning functions via its `wrap()` helper and an `isLoading` state — build 
+on top of that, do not replace it.
+
+Do NOT modify src/lib/db/database.ts, transaction.ts, migrateFromLocalStorage.ts, 
+or the SQL schema in src-tauri/migrations/001_initial.sql. Do NOT touch 
+repository.legacy.ts (kept intentionally as the browser/dev fallback referenced 
+by initializeRepository()).
+
+═══════════════════════════════════════════════
+TASK A — ENCRYPTED EXPORT/IMPORT (AES-256, passphrase-based)
+═══════════════════════════════════════════════
+1. Add `crypto-js` + `@types/crypto-js` to artifacts/yaqoot-medical/package.json.
+2. Create src/lib/security/crypto.ts:
+   - `encryptString(plain: string, passphrase: string): string` — 
+     `CryptoJS.AES.encrypt(plain, passphrase).toString()`.
+   - `decryptString(cipher: string, passphrase: string): string` — decrypt, 
+     then explicitly validate the result is non-empty valid UTF-8/JSON before 
+     returning; throw a typed `DecryptionError('Invalid passphrase or 
+     corrupted file')` on failure (CryptoJS silently returns garbage on wrong 
+     key instead of throwing — you must detect this by attempting 
+     `JSON.parse` on the decrypted string and catching failure).
+3. In src/lib/db/repository.ts, do NOT change `exportData()`/`importData()` 
+   internals (they correctly produce/consume plaintext JSON of the current 
+   SQLite state — leave this contract as-is). Instead, wrap them one layer up:
+   - Create src/lib/db/secureBackup.ts:
+     - `exportEncryptedBackup(passphrase: string): Promise<string>` — calls 
+       the existing `repo.exportData()`, then `encryptString(json, 
+       passphrase)`, then wraps as 
+       `JSON.stringify({ version: 1, encrypted: true, payload: cipherText })`.
+     - `importEncryptedBackup(fileContents: string, passphrase?: string): Promise<void>` 
+       — `JSON.parse(fileContents)`; if `parsed.encrypted === true`, require 
+       `passphrase`, decrypt `parsed.payload`, then call 
+       `repo.importData(decryptedJson)`. If no `encrypted` flag (legacy 
+       plaintext backup from before this feature), call `repo.importData(fileContents)` 
+       directly for backward compatibility.
+4. In src/pages/DataManagementPage.tsx:
+   - Add a passphrase-entry modal (reuse existing dialog primitives from 
+     src/components/ui) shown BEFORE the `save()`/`writeTextFile()` call on 
+     backup, and BEFORE decrypt on restore.
+   - Enforce a minimum passphrase length (e.g. 8 chars) with inline validation 
+     text via the existing useTranslation hook.
+   - Backup flow: prompt passphrase → `await exportEncryptedBackup(passphrase)` 
+     → `writeTextFile(filePath, result)` (keep the existing dynamic 
+     `import("@tauri-apps/plugin-dialog")`/`import("@tauri-apps/plugin-fs")` 
+     pattern already used in this file).
+   - Restore flow: read file → prompt passphrase only if the parsed JSON has 
+     `encrypted: true` → `await importEncryptedBackup(contents, passphrase)` 
+     → on `DecryptionError`, show a toast ("Incorrect passphrase or corrupted 
+     backup") and keep the modal open for retry rather than closing it.
+   - Wrap both flows in try/catch; all existing toast calls (`useToast`) must 
+     remain for success/error feedback.
+5. All new UI strings go through useTranslation (add EN + AR keys under a 
+   `data.backup.*` or similar namespace matching existing i18n file structure 
+   in src/lib/i18n).
+
+═══════════════════════════════════════════════
+TASK B — EXIT CONFIRMATION GUARD
+═══════════════════════════════════════════════
+1. In src-tauri/capabilities/default.json, add whatever window-close 
+   permissions are required for `onCloseRequested`/`destroy()` from the 
+   frontend (check current tauri-plugin v2 window permission identifiers, 
+   e.g. `core:window:allow-close`, `core:window:allow-destroy` — add only 
+   what's missing; current file has `core:default`, `dialog:default`, 
+   `fs:default`, `sql:default`, `sql:allow-execute`).
+2. Create src/components/ExitGuardModal.tsx: a dialog (reuse existing 
+   dialog/alert-dialog primitives) with three actions:
+   - "Backup & Exit" → opens/reuses the Task A encrypted-export flow 
+     (passphrase prompt → `exportEncryptedBackup` → `writeTextFile`) → on 
+     success, proceed to close.
+   - "Exit Without Backup" → proceed to close immediately.
+   - "Cancel" → dismiss, app stays open.
+   All strings via useTranslation, bilingual EN/AR.
+3. In src/App.tsx (top level, inside the already-mounted `DataProvider`/
+   `LocaleProvider` tree — do not restructure the provider order), add a 
+   `useEffect` that, once on mount:
+
+import { getCurrentWindow } from "@tauri-apps/api/window";
+...
+useEffect(() => {
+const appWindow = getCurrentWindow();
+let unlisten: (() => void) | undefined;
+appWindow.onCloseRequested(async (event) => {
+event.preventDefault();
+setShowExitGuard(true); // opens ExitGuardModal, stored in local state
+}).then(fn => { unlisten = fn; });
+return () => { if (unlisten) unlisten(); };
+}, []);
+
+   Only register this listener when running inside Tauri (guard with the 
+   same `isTauri()`-style check already used in repository.ts — reuse or 
+   duplicate that check, do not assume `window.__TAURI_INTERNALS__` exists in 
+   a plain browser/dev preview).
+4. When the user confirms exit (either button), call `appWindow.destroy()` 
+   to actually close the window — `preventDefault()` alone blocks all 
+   closing, so the confirmed paths must explicitly destroy the window.
+
+═══════════════════════════════════════════════
+TASK C — CLIENT-SIDE PAGINATION
+═══════════════════════════════════════════════
+1. Create src/hooks/usePagination.ts:
+
+export function usePagination<T>(items: T[], pageSize = 25) {
+const [page, setPage] = useState(1);
+const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages]);
+const pageItems = useMemo(
+() => items.slice((page - 1) * pageSize, page * pageSize),
+[items, page, pageSize]
+);
+return { page, setPage, totalPages, pageItems, pageSize };
+}
+
+2. Create src/components/PaginationControls.tsx (Prev/Next, "Page X of Y", 
+   optional page-size selector), styled with existing Radix/shadcn primitives 
+   already used across the app, with `data-testid="pagination-prev"` / 
+   `"pagination-next"`.
+3. In src/pages/PatientList.tsx:
+   - `filteredRows` (line ~78) and `displayRows` (line ~196) already compute 
+     the fully filtered/sorted list from context state (`patients` — loaded 
+     async via DataContext, already resolved by the time this page renders 
+     since App-level `isLoading` gates rendering). Do not touch that logic.
+   - Add `const { page, setPage, totalPages, pageItems } = usePagination(displayRows, 25);` 
+     immediately after `displayRows` is computed.
+   - Replace the render at line ~590 (`displayRows.map((row, idx) => {...})`) 
+     with `pageItems.map((row, idx) => {...})`.
+   - Render `<PaginationControls page={page} setPage={setPage} totalPages={totalPages} />` 
+     below the table, above/near the existing results-count text (line ~235, 
+     `t("patients.showingResults"...)`).
+   - Add a `useEffect` that resets `setPage(1)` whenever `search`, 
+     `searchField`, `serviceFilter`, `sortNewestFirst`, or any of the date-
+     filter states change — search/filtering must always operate on the FULL 
+     `patients` array; pagination applies only to final rendering.
+4. Apply the identical pattern to the visit-history table in 
+   src/pages/PatientProfile.tsx (confirmed as the file rendering a patient's 
+   visit list) — locate its full-list `.map()` render and swap in 
+   `usePagination`/`PaginationControls` the same way, with its own filter-
+   change → `setPage(1)` reset if that view has any local filters.
+5. Do not paginate any data used for totals/aggregates/exports — only the 
+   rendered rows.
+6. Run `pnpm run typecheck` in artifacts/yaqoot-medical and fix all errors 
+   before finishing.
+
+═══════════════════════════════════════════════
+CONSTRAINTS
+═══════════════════════════════════════════════
+- Everything touching data must use `await`/async — no synchronous 
+  localStorage access anywhere in new code.
+- Do not alter repository.ts, database.ts, transaction.ts, 
+  migrateFromLocalStorage.ts, or the SQL migration file.
+- Do not remove or bypass the existing `isTauri()`-based legacy fallback path.
+- All new user-facing text must go through the existing useTranslation hook — 
+  full EN/AR bilingual support, no hardcoded strings.
+- Preserve all existing data-testid attributes; add new ones only for newly 
+  created interactive elements (passphrase inputs, exit-guard buttons, 
+  pagination controls).
+- After implementation, list explicitly which files were created/modified 
+  for each of Task A, B, and C in your final summary.
