@@ -1,0 +1,25 @@
+Task: Audit artifacts/yaqoot-medical/ for hardcoded (untranslated) user-facing text and wire it into the existing i18n/localization system, WITHOUT changing any functionality, layout, styling, or logic.
+
+Context: The app already has a localization system (check src/lib/i18n/ or equivalent) with translation keys used via a hook/function like t('some.key'). Some strings across the app were written directly in JSX/TSX instead of going through this system, so they don't translate when the language is switched.
+
+Step 1 — Audit (do this first, report before editing):
+- Scan every .tsx/.ts file under src/ (pages, components, layouts, contexts) for hardcoded user-facing strings: Arabic or English text sitting directly in JSX (e.g. <div>نص هنا</div>, placeholder="...", title="...", aria-label="...", alert/confirm/toast messages, button labels, table headers, empty-state messages, error messages, tooltips, form validation messages).
+- Explicitly exclude from the audit: code comments, variable/function/CSS class names, console.log messages, non-visible technical strings (IDs, keys, routes), and any text that's already going through the t() translation function.
+- Produce a list of every hardcoded string found, grouped by file, before making any changes, so I can review scope first.
+
+Step 2 — Fix (only after the audit list is reasonable and nothing looks miscategorized):
+- For each genuine hardcoded string, add a matching key to the existing translation files (both languages currently supported — Arabic and English, or whichever locales already exist) following the exact same naming/nesting convention already used in the project.
+- Replace the hardcoded string in the component with a call to the existing translation function/hook, using the new key.
+- Do NOT invent a new i18n system, new hook, new file structure, or new naming convention — strictly reuse what's already there.
+- If a string appears in multiple places with the same meaning, reuse a single key rather than creating duplicates.
+- Preserve exact wording/meaning of the original text in both languages — for the language that's missing a translation, write an accurate, natural translation of the existing string, not a placeholder.
+
+Critical safety constraints:
+- Do NOT change any logic, component structure, props, function signatures, database/repository code, or styling.
+- Do NOT rename existing translation keys or restructure existing translation files beyond adding new keys.
+- Do NOT touch strings that are already properly localized.
+- Make changes incrementally, file by file, and after each file confirm the string still renders identically in the UI (same text, same position) — this should be an invisible change when the current active language is used, and only become visible when switching languages.
+- Run `pnpm run typecheck` after all changes and confirm 0 errors.
+- Keep the diff strictly scoped to: (a) additions to translation files, (b) replacing hardcoded strings with t() calls in the affected components. No unrelated refactors, formatting changes, or file reorganization.
+
+Output: End with a summary list of every file touched and how many strings were localized in each, so I can spot-check them.
