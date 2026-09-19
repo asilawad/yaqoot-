@@ -24,9 +24,9 @@ export const en = {
 
   // Home
   'home.welcome': 'Welcome to Yaqoot Medical Clinic — {date}',
-  'home.visionTitle': 'Vision',
+  'home.visionTitle': 'Our Vision',
   'home.visionText': 'Comprehensive healthcare that reaches every home in the Gaza Strip',
-  'home.missionTitle': 'Mission',
+  'home.missionTitle': 'Our Mission',
   'home.missionText': 'Comprehensive home healthcare and health education for every family member, delivered by a medical team distinguished by professionalism, experience, and technical competence.',
 
   // Patient List

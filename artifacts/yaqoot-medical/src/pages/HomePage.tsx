@@ -1,5 +1,5 @@
 import logoSrc from "@assets/yaqoot logo 1.png";
-import { Eye, Target } from "lucide-react";
+import { Compass, HeartHandshake } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function HomePage() {
@@ -30,7 +30,7 @@ export default function HomePage() {
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "0 0 20px",
-        marginTop: -16,
+        marginTop: -24,
         boxSizing: "border-box",
       }}
     >
@@ -51,14 +51,14 @@ export default function HomePage() {
             width: 216,
             height: 216,
             objectFit: "contain",
-            marginBottom: 2,
+            marginBottom: 0,
           }}
         />
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem" }}>
           <h1
             style={{
-              margin: "-0.75rem 0 0",
+              margin: "-1rem 0 0",
               color: "#171717",
               fontSize: 28,
               fontWeight: 800,
@@ -91,7 +91,7 @@ export default function HomePage() {
         >
           <section style={cardStyle}>
             <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 18, fontWeight: 800 }}>
-              <Eye size={20} strokeWidth={1.9} />
+              <Compass size={20} strokeWidth={1.9} />
               {t("home.visionTitle")}
             </h2>
             <p style={{ margin: 0, color: "#4B5563", fontSize: 14, lineHeight: 1.9 }}>
@@ -101,7 +101,7 @@ export default function HomePage() {
 
           <section style={cardStyle}>
             <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 18, fontWeight: 800 }}>
-              <Target size={20} strokeWidth={1.9} />
+              <HeartHandshake size={20} strokeWidth={1.9} />
               {t("home.missionTitle")}
             </h2>
             <p style={{ margin: 0, color: "#4B5563", fontSize: 14, lineHeight: 1.9 }}>
