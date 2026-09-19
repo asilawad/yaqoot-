@@ -58,9 +58,9 @@ export default function HomePage() {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2.5rem" }}>
           <h1
             style={{
-              margin: "-1.25rem 0 0",
+              margin: "-3rem 0 0",
               color: "#171717",
-              fontSize: 28,
+              fontSize: 30,
               fontWeight: 800,
               lineHeight: 1.35,
             }}
@@ -72,7 +72,7 @@ export default function HomePage() {
             style={{
               margin: "4px 0 0",
               color: "#717182",
-              fontSize: 15,
+              fontSize: 16,
               lineHeight: 1.7,
             }}
           >
@@ -90,21 +90,21 @@ export default function HomePage() {
           }}
         >
           <section style={cardStyle}>
-            <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 18, fontWeight: 800 }}>
-              <Compass size={20} strokeWidth={1.9} />
+            <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 20, fontWeight: 800 }}>
+              <Compass size={22} strokeWidth={1.9} />
               {t("home.visionTitle")}
             </h2>
-            <p style={{ margin: 0, color: "#4B5563", fontSize: 14, lineHeight: 1.9 }}>
+            <p style={{ margin: 0, color: "#4B5563", fontSize: 15, lineHeight: 1.9 }}>
               {t("home.visionText")}
             </p>
           </section>
 
           <section style={cardStyle}>
-            <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 18, fontWeight: 800 }}>
-              <HeartHandshake size={20} strokeWidth={1.9} />
+            <h2 style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", color: "#50C878", fontSize: 20, fontWeight: 800 }}>
+              <HeartHandshake size={22} strokeWidth={1.9} />
               {t("home.missionTitle")}
             </h2>
-            <p style={{ margin: 0, color: "#4B5563", fontSize: 14, lineHeight: 1.9 }}>
+            <p style={{ margin: 0, color: "#4B5563", fontSize: 15, lineHeight: 1.9 }}>
               {t("home.missionText")}
             </p>
           </section>
