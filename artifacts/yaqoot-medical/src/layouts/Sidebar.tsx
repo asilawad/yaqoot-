@@ -1,6 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { Home as HomeIcon, Users, Settings } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import logoSrc from "@assets/yaqoot logo 1.png";
 
 export default function Sidebar() {
   const { t, locale, setLocale } = useTranslation();
@@ -29,30 +30,67 @@ export default function Sidebar() {
       }}
     >
       {/* Clinic Identity */}
-      <div style={{ marginBottom: 32, textAlign: "start", paddingInline: 6 }}>
+      <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
         <div
           style={{
-            fontSize: 17,
-            fontWeight: 800,
-            color: "#171717",
-            lineHeight: 1.35,
-            letterSpacing: "-0.2px",
+            marginBottom: 32,
+            paddingInline: 6,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            textAlign: "start",
           }}
         >
-          {t("sidebar.clinicName")}
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              flexShrink: 0,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={logoSrc}
+              alt=""
+              aria-hidden="true"
+              style={{
+                width: 144,
+                height: 144,
+                maxWidth: "none",
+                objectFit: "contain",
+                flexShrink: 0,
+              }}
+            />
+          </div>
+          <div>
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: "#171717",
+                lineHeight: 1.35,
+                letterSpacing: "-0.2px",
+              }}
+            >
+              {t("sidebar.clinicName")}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#717182",
+                lineHeight: 1.5,
+                marginTop: 5,
+                fontWeight: 400,
+              }}
+            >
+              {t("sidebar.slogan")}
+            </div>
+          </div>
         </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#717182",
-            lineHeight: 1.5,
-            marginTop: 5,
-            fontWeight: 400,
-          }}
-        >
-          {t("sidebar.slogan")}
-        </div>
-      </div>
+      </Link>
 
       {/* Divider */}
       <div style={{ borderBottom: "1px solid #F1F1F1", marginBottom: 20 }} />
