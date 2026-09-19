@@ -24,9 +24,9 @@ export const ar = {
 
   // Home
   'home.welcome': 'مرحباً بك في عيادة ياقوت الطبية — {date}',
-  'home.visionTitle': 'رؤيتنا',
+  'home.visionTitle': 'الرؤية',
   'home.visionText': 'خدمة صحية متكاملة تصل لكل بيت في قطاع غزة',
-  'home.missionTitle': 'رسالتنا',
+  'home.missionTitle': 'الرسالة',
   'home.missionText': 'رعاية صحية منزلية متكاملة، وتثقيف صحي لجميع أفراد الأسرة بفريق طبي يتميّز بالمهنية والخبرة والكفاءة التقنية.',
 
   // Patient List

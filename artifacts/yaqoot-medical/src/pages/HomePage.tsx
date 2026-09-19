@@ -55,10 +55,10 @@ export default function HomePage() {
           }}
         />
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2.5rem" }}>
           <h1
             style={{
-              margin: "-1rem 0 0",
+              margin: "-1.25rem 0 0",
               color: "#171717",
               fontSize: 28,
               fontWeight: 800,
