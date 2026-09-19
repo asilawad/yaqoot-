@@ -70,7 +70,7 @@ export default function Sidebar() {
               }}
               data-testid={`nav-${key}`}
             >
-              <Icon size={19} strokeWidth={2} color={isActive(href) ? "#50C878" : "#374151"} />
+              <Icon size={19} strokeWidth={2} color={isActive(href) ? "#50C878" : "#9CA3AF"} />
               <span>{t(key)}</span>
             </div>
           </Link>
