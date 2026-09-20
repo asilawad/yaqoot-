@@ -183,6 +183,16 @@ export const en = {
   'data.storage': 'Storage Usage',
   'data.restoreConfirm': 'This will overwrite all current data. Are you sure?',
   'data.restoreSuccess': 'Data restored successfully',
+  'data.factoryReset.title': 'Factory Reset',
+  'data.factoryReset.description': 'Permanently delete all patients, visits, treatments, investigations, vital signs, and notes. App settings will be kept.',
+  'data.factoryReset.button': 'Factory Reset',
+  'data.factoryReset.confirmTitle': 'Confirm Factory Reset',
+  'data.factoryReset.confirmBody': 'This permanently deletes all patient and clinical data and cannot be undone. App settings will not be deleted.',
+  'data.factoryReset.confirmLabel': 'Type DELETE to confirm',
+  'data.factoryReset.confirmPlaceholder': 'DELETE',
+  'data.factoryReset.confirm': 'Delete all patient data',
+  'data.factoryReset.success': 'All patient data was deleted',
+  'data.factoryReset.error': 'Unable to reset patient data.',
 
   // System Info
   'system.title': 'System Info',

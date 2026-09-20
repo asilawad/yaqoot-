@@ -67,6 +67,14 @@ export const deletePatient = (id: string): void => {
   saveList(KEYS.VITALS, getList<VitalSigns>(KEYS.VITALS).filter(v => v.patientId !== id));
   saveList(KEYS.NOTES, getList<QuickNote>(KEYS.NOTES).filter(n => n.patientId !== id));
 };
+export const clearAllPatientData = (): void => {
+  saveList(KEYS.PATIENTS, []);
+  saveList(KEYS.VISITS, []);
+  saveList(KEYS.TREATMENTS, []);
+  saveList(KEYS.INVESTIGATIONS, []);
+  saveList(KEYS.VITALS, []);
+  saveList(KEYS.NOTES, []);
+};
 
 // Visits
 export const getVisitsByPatient = (patientId: string): Visit[] => getList<Visit>(KEYS.VISITS).filter(v => v.patientId === patientId).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());

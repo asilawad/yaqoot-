@@ -214,6 +214,15 @@ export async function deletePatient(id: string): Promise<void> {
   await executeSqlTransaction([{ sql: 'DELETE FROM patients WHERE id=?', values: [id] }]);
 }
 
+export async function clearAllPatientData(): Promise<void> {
+  const state = await ready();
+  if (state.legacy) {
+    await state.legacy.clearAllPatientData();
+    return;
+  }
+  await execute('DELETE FROM patients');
+}
+
 export async function getVisitsByPatient(patientId: string): Promise<Visit[]> {
   const state = await ready();
   if (state.legacy) return state.legacy.getVisitsByPatient(patientId);

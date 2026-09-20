@@ -183,6 +183,16 @@ export const ar = {
   'data.storage': 'مساحة التخزين',
   'data.restoreConfirm': 'سيتم مسح جميع البيانات الحالية واستبدالها بالبيانات من الملف. هل أنت متأكد؟',
   'data.restoreSuccess': 'تم استعادة البيانات بنجاح',
+  'data.factoryReset.title': 'إعادة ضبط المصنع',
+  'data.factoryReset.description': 'سيؤدي هذا إلى حذف جميع المرضى والزيارات والعلاجات والفحوصات والعلامات الحيوية والملاحظات نهائياً. ستبقى إعدادات التطبيق محفوظة.',
+  'data.factoryReset.button': 'إعادة ضبط المصنع',
+  'data.factoryReset.confirmTitle': 'تأكيد إعادة ضبط المصنع',
+  'data.factoryReset.confirmBody': 'سيؤدي هذا إلى حذف جميع بيانات المرضى والبيانات السريرية نهائياً ولا يمكن التراجع عنه. لن يتم حذف إعدادات التطبيق.',
+  'data.factoryReset.confirmLabel': 'اكتب DELETE للتأكيد',
+  'data.factoryReset.confirmPlaceholder': 'DELETE',
+  'data.factoryReset.confirm': 'حذف جميع بيانات المرضى',
+  'data.factoryReset.success': 'تم حذف جميع بيانات المرضى',
+  'data.factoryReset.error': 'تعذر إعادة ضبط بيانات المرضى.',
 
   // System Info
   'system.title': 'معلومات النظام',
