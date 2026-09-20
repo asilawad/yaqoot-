@@ -265,7 +265,7 @@ export default function DataManagementPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: "#171717" }}>{t("data.storage")}</div>
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#171717" }}>{storageSize}</div>
-          <div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>localStorage (browser)</div>
+          <div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>{"__TAURI_INTERNALS__" in window ? "localStorage (desktop app)" : "localStorage (browser)"}</div>
         </div>
 
         {/* Factory Reset */}

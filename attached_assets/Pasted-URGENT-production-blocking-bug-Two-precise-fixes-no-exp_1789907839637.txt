@@ -1,0 +1,29 @@
+URGENT — production-blocking bug. Two precise fixes, no exploration needed.
+
+FIX 1 (root cause of desktop backup save failure):
+In artifacts/yaqoot-medical/src-tauri/capabilities/default.json, the "fs:default" permission does not grant write access to arbitrary user-chosen file paths (only to the app's internal sandboxed directories). This causes writeTextFile() to silently fail with a permission error whenever the user picks a save location via the native dialog (Desktop, a Google Drive synced folder, etc.) — which is exactly why backup save fails on the desktop build while working fine on web.
+
+Add this permission entry to the "permissions" array in that file:
+
+{
+  "identifier": "fs:allow-write-text-file",
+  "allow": [{ "path": "**" }]
+}
+
+This is safe and appropriate here because the write only ever happens after the user explicitly picks the destination via the native save dialog — never a background/automatic write to an arbitrary path.
+
+After adding it, rebuild the Tauri app and manually test: Settings → Data Management → Backup → choose a passphrase → save to a real folder (e.g. Desktop or a Google Drive folder) → confirm the file is written successfully and the success toast appears, not the failure toast.
+
+FIX 2 (cosmetic, quick):
+In artifacts/yaqoot-medical/src/pages/DataManagementPage.tsx, find this hardcoded line:
+
+<div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>localStorage (browser)</div>
+
+Replace it with a value that reflects the actual runtime platform:
+
+<div style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>{"__TAURI_INTERNALS__" in window ? "localStorage (desktop app)" : "localStorage (browser)"}</div>
+
+CONSTRAINTS:
+- Do NOT touch encryption logic (secureBackup.ts), the passphrase modal, or anything else — these are already working correctly.
+- Do NOT modify repository.ts or any data storage logic.
+- After both fixes, run typecheck/build, then manually verify the actual backup-save flow works on the desktop build as described above. Report the exact test result — do not report success without having actually tested the save operation.
