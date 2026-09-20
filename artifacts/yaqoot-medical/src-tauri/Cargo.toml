@@ -1,6 +1,6 @@
 [package]
 name = "yaqoot-medical"
-version = "1.0.0"
+version = "1.0.1"
 description = "Yaqoot Medical Clinic — offline-first patient records"
 edition = "2021"
 
