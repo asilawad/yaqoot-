@@ -1,0 +1,19 @@
+Task: In artifacts/yaqoot-medical/, redesign the display of the "Investigations" tab (الفحوصات) on the patient profile page — visual/layout changes only, do NOT touch any logic, data model, or the 3 existing entry states (name-only / name+result / name+result+note). All must keep behaving exactly as they do now.
+
+1. Fix missing localization in this section:
+   - The English screenshot shows "Result:" but the Arabic version also shows "Result:" untranslated (should be "النتيجة:").
+   - Audit this entire investigations tab (test name, result label, date, notes label, "THERE IS NO NOTE" / empty states, etc.) for any hardcoded strings not going through the existing translation system, and add proper Arabic + English keys for each using the app's existing i18n convention. Every piece of text in this section must respect the active language.
+
+2. Restructure the result line layout — currently everything (label + value + date) is crammed onto one line, e.g. "Result: 88(9/20/2026)". Change to two clean lines:
+   - Line 1: the label ("Result:" / "النتيجة:") followed by the date, right where it currently is.
+   - Line 2 (new row below it): just the result value itself, laid out clearly and with a bit of visual breathing room — not squeezed against the date or label.
+   - This restructuring applies only when a result value exists (respect the existing conditional display — investigations with no result should look exactly as they do now, nothing added).
+
+3. Typography polish:
+   - Increase the overall font size slightly across this tab's entries for better readability.
+   - Make the investigation/test name (e.g. "KFT", "CBC", "FBS") visually stand out more than the surrounding details (date, result, notes) — e.g. bolder weight and/or slightly larger size than the rest, so it reads as the primary heading of each entry.
+
+Constraints:
+- Purely presentational — no changes to data structure, state, props, or business logic.
+- Run `pnpm run typecheck` and confirm 0 errors.
+- Keep the diff scoped to this investigations tab's rendering + its translation keys only.

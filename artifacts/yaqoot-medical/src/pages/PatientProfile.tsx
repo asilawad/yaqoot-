@@ -809,12 +809,12 @@ export default function PatientProfile() {
         {activeTab === "investigations" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {investigationGroups.length === 0 ? (
-              <p style={{ color: "#717182", fontSize: 15 }}>No investigations</p>
+              <p style={{ color: "#717182", fontSize: 16 }}>{t("profile.investigations.empty")}</p>
             ) : investigationGroups.map(group => (
               <div key={group.visitId} style={{ border: "1px solid #F1F1F1", borderRadius: 12, overflow: "hidden" }}>
                 <div style={{ padding: "10px 16px", background: "#EAF7EF", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={14} color="#50C878" />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>
                     {group.visit ? new Date(group.visit.visitDate).toLocaleDateString() : ""}
                   </span>
                 </div>
@@ -834,17 +834,19 @@ export default function PatientProfile() {
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EAF7EF"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
                     >
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>{inv.testName}</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{inv.testName}</span>
                       {inv.result && (
-                        <span style={{ fontSize: 13, color: "#717182", whiteSpace: "pre-wrap" }}>
-                          <span style={{ fontWeight: 700, color: "#171717" }}>Result: </span>
-                          {inv.result}
-                          {inv.resultDate && <span style={{ color: "#aaa", marginInlineStart: 6 }}>({new Date(inv.resultDate).toLocaleDateString()})</span>}
-                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14, color: "#717182" }}>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                            <span style={{ fontWeight: 700, color: "#171717" }}>{t("profile.investigations.result")}</span>
+                            {inv.resultDate && <span style={{ color: "#aaa" }}>{new Date(inv.resultDate).toLocaleDateString()}</span>}
+                          </div>
+                          <div style={{ paddingInlineStart: 4, color: "#171717", whiteSpace: "pre-wrap" }}>{inv.result}</div>
+                        </div>
                       )}
                       {inv.notes && (
-                        <span style={{ fontSize: 12, color: "#aaa", whiteSpace: "pre-wrap" }}>
-                          <span style={{ fontWeight: 700, color: "#717182" }}>Notes: </span>
+                        <span style={{ fontSize: 13, color: "#aaa", whiteSpace: "pre-wrap" }}>
+                          <span style={{ fontWeight: 700, color: "#717182" }}>{t("profile.investigations.notes")} </span>
                           {inv.notes}
                         </span>
                       )}
