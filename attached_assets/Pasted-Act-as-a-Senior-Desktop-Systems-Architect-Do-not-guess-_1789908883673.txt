@@ -1,0 +1,21 @@
+Act as a Senior Desktop Systems Architect. Do not guess or re-run a generic icon command blindly — follow these exact steps.
+
+TASK: Update the official desktop executable icon using the designated master image (the version with the solid white background), fixing the "icon too small/tiny" issue definitively.
+
+1. SOURCE IMAGE — NO CROPPING:
+   - Use the master icon image with the solid white background as the new source for the application bundle icon.
+   - Do NOT crop, mask, or auto-trim the artwork or its background in any way. Use the image exactly as provided.
+
+2. SCALE CHECK BEFORE GENERATING:
+   - Before running the icon generation command, verify that the logo artwork fills approximately 85-90% of the 1024x1024 canvas (not a small centered graphic surrounded by excess empty space). If the current master image doesn't already meet this, resize/scale the artwork within the canvas to reach that ratio — WITHOUT cropping or trimming the white background itself, only scaling the artwork's proportion within the existing canvas.
+   - Then run: `pnpm tauri icon <path-to-white-bg-master-image>` from inside `artifacts/yaqoot-medical/` to regenerate every required size and format: `32x32.png`, `128x128.png`, `128x128@2x.png`, `Square30x30Logo.png`, `Square150x150Logo.png`, `icon.ico`, `icon.icns`, and any other files this command produces.
+
+3. BUILD CLEANUP & VERIFICATION:
+   - Delete the previous build cache output (`src-tauri/target/`) so no stale binary with the old cached icon gets reused.
+   - Open and visually inspect a couple of the regenerated PNGs (e.g. `src-tauri/icons/128x128.png`) and confirm the logo is now full-sized, sharp, and clearly readable at that resolution — not a tiny dot.
+   - Run `pnpm run typecheck` and confirm 0 errors.
+
+CONSTRAINTS:
+- Icon/asset change only — no functional or code changes.
+- Do not hand-edit individual icon files — rely on the `pnpm tauri icon` command as the single source of truth for consistency across all sizes.
+- Report back the exact pass/fail result of the visual inspection and typecheck — do not report success without confirming both.
