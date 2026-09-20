@@ -1,0 +1,31 @@
+Add a "Factory Reset" feature to the Settings / Data Management page of the Yaqoot Medical Clinic app (Tauri v2 + React, SQLite-backed via src/lib/db/repository.ts).
+
+CONTEXT: The app currently has no way to wipe all patient data from the UI. All data lives in SQLite tables: patients, visits, treatments, investigations, vitals, quick_notes (vital_thresholds/settings should NOT be wiped — those are app configuration, not patient data). Foreign keys with ON DELETE CASCADE already exist on patient_id/visit_id references, so deleting all rows from `patients` should cascade correctly to the rest.
+
+STEP 1 — Add a new repository function in src/lib/db/repository.ts:
+
+export async function clearAllPatientData(): Promise<void> {
+  const state = await ready();
+  if (state.legacy) {
+    await state.legacy.clearAllPatientData();
+    return;
+  }
+  await state.db.execute('DELETE FROM patients');
+}
+
+If the "legacy" (browser/localStorage) fallback path used elsewhere in this file has a different mechanism (e.g. clearing specific localStorage keys), add a matching `clearAllPatientData` method there too, following the same pattern as the existing `seedInitialData` legacy branch in this file — mirror that exact pattern, don't invent a new one.
+
+STEP 2 — In the Data Management / Settings page (find the page that already has Backup/Restore buttons — likely DataManagementPage.tsx), add a new "Factory Reset" section:
+- A clearly danger-styled button (red, like existing delete-confirmation patterns already used elsewhere in this app for patient/note deletion — match that exact visual style, don't invent a new one).
+- Clicking it opens a confirmation modal/dialog (reuse the existing confirmation modal pattern already present in this codebase for other destructive actions — do not build a new modal component from scratch).
+- The confirmation text must clearly warn this permanently deletes ALL patient, visit, and clinical data and cannot be undone, and should require the user to type a confirmation word (e.g. "DELETE" or the Arabic equivalent already used for other translated strings in this app) before the button becomes active — check if a similar type-to-confirm pattern already exists anywhere in this app first, and reuse it if so.
+- On confirm, call the new `clearAllPatientData()` repository function, then refresh the app's data context/state so the UI immediately reflects zero patients.
+- Add appropriate i18n translation keys in both en.ts and ar.ts, following the existing key-naming convention in this file exactly.
+
+STRICT CONSTRAINTS:
+- Do NOT touch vital_thresholds / settings data — only patients/visits/treatments/investigations/vitals/notes.
+- Do NOT modify the database schema or migrations.
+- Do NOT change the existing Backup/Restore functionality — this is an additional, separate feature.
+- Reuse existing UI patterns/components/styles already in the codebase rather than introducing new ones.
+- After implementation, run: pnpm --filter @workspace/yaqoot-medical run typecheck
+- Report the output and confirm it passes with zero errors.
