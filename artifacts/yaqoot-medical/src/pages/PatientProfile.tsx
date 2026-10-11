@@ -17,6 +17,7 @@ import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
 import DateText from "@/components/DateText";
 import { formatDateTime } from "@/lib/date";
+import { getServiceLabel } from "@/lib/services";
 
 /* ─── Vital status badge ─── */
 function VitalStatusBadge({
@@ -775,7 +776,7 @@ export default function PatientProfile() {
                           <DateText value={v.visitDate} />
                         </div>
                         <div style={{ fontSize: 13, color: "#717182" }}>
-                          {v.mainService || "—"}
+                          {getServiceLabel(v.mainService, t) || "—"}
                           {v.doctor ? ` · ${v.doctor}` : ""}
                         </div>
                         {v.diagnosis && (

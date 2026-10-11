@@ -9,16 +9,7 @@ import PrescriptionPrintView from "@/components/prescription/PrescriptionPrintVi
 import DateText from "@/components/DateText";
 import * as repo from "@/lib/db/repository";
 import { Treatment, Investigation, VitalSigns, Visit } from "@/lib/db/types";
-
-const MAIN_SERVICES = ["Internal Medicine", "Surgical Consultations", "Physical Therapy & Rehab", "OB/GYN Clinic", "Clinical Nutrition", "Nephrology Consultations", "Nursing Services", "Other"];
-
-const SUB_SERVICES: Record<string, string[]> = {
-  "Internal Medicine": ["Cardiology", "Gastroenterology", "Pulmonology", "Endocrinology", "Nephrology", "Rheumatology", "Hematology", "Infectious Diseases", "Oncology", "Immunology", "Geriatrics", "Neurology"],
-  "Surgical Consultations": ["General Surgery", "Neurosurgery", "Urology", "Pediatric Surgery"],
-  "Nursing Services": ["Vital Signs Monitoring", "Medication Administration", "IV Therapy & Cannulation", "Wound Care", "Catheterization & Fluid Output", "Airway & Oxygen Therapy", "Patient Hygiene & Bed Sore Prevention", "Post-Operative Care", "Feeding Tube Care", "ECG Monitoring", "Emergency Response & CPR", "Patient & Family Education", "Nebulization"],
-  "OB/GYN Clinic": ["Antenatal/Prenatal Care", "High-Risk Pregnancy Management", "Recurrent Miscarriage Investigation", "Infertility & Delayed Conception", "PCOS Care", "Menstrual Disorders", "Contraception Counseling", "Gynecological Infections", "Menopause Management", "Cancer Screening/Pap Smear", "3D/4D Ultrasound"],
-};
-
+import { SERVICES, getSubServices } from "@/lib/services";
 const INVESTIGATIONS_LIST = ["CBC", "FBS", "HbA1c", "Lipid Profile", "KFT", "LFT", "Thyroid Profile", "Electrolytes", "Vit D3/B12", "Iron/Ferritin", "Uric Acid", "Urine Analysis", "Stool Analysis", "CRP/ESR", "Coagulation Profile", "Other"];
 
 const inputStyle: React.CSSProperties = {
@@ -291,7 +282,7 @@ export default function VisitPage() {
     return { bg: "#E8F5E9", text: "#2e7d32", label: t("vitals.normal") };
   };
 
-  const subServices = SUB_SERVICES[form.mainService] || [];
+  const subServices = getSubServices(form.mainService);
 
   return (
     <>
@@ -374,15 +365,21 @@ export default function VisitPage() {
             <label style={{ fontSize: 12, fontWeight: 600, color: "#717182", display: "block", marginBottom: 6 }}>{t("visit.mainService")}</label>
             <select style={inputStyle} value={form.mainService} onChange={e => setForm(f => ({ ...f, mainService: e.target.value, subService: "" }))}>
               <option value="">—</option>
-              {MAIN_SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
+              {SERVICES.map(service => <option key={service.value} value={service.value}>{t(service.labelKey)}</option>)}
+              {form.mainService && !SERVICES.some(service => service.value === form.mainService) && (
+                <option value={form.mainService}>{form.mainService}</option>
+              )}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "#717182", display: "block", marginBottom: 6 }}>{t("visit.subService")}</label>
             <select style={inputStyle} value={form.subService} onChange={e => setForm(f => ({ ...f, subService: e.target.value }))}>
               <option value="">—</option>
-              {subServices.map(s => <option key={s} value={s}>{s}</option>)}
-              <option value="Other">Other</option>
+              {subServices.map(sub => <option key={sub.value} value={sub.value}>{t(sub.labelKey)}</option>)}
+              {form.subService && form.subService !== "Other" && !subServices.some(sub => sub.value === form.subService) && (
+                <option value={form.subService}>{form.subService}</option>
+              )}
+              <option value="Other">{t("service.other")}</option>
             </select>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>

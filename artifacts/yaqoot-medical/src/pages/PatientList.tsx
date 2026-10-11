@@ -10,16 +10,11 @@ import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/l
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
 import DateText from "@/components/DateText";
+import { SERVICES, getSubServices, getServiceLabel, matchesServiceFilter } from "@/lib/services";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
-  { key: "service.internal", value: "Internal Medicine" },
-  { key: "service.surgery", value: "Surgery" },
-  { key: "service.nutrition", value: "Clinical Nutrition" },
-  { key: "service.nursing", value: "Nursing" },
-  { key: "service.nephrology", value: "Nephrology" },
-  { key: "service.pt", value: "Physical Therapy" },
-  { key: "service.obgyn", value: "OB/GYN" },
+  ...SERVICES.map(({ labelKey, value }) => ({ key: labelKey, value })),
 ];
 
 const SEARCH_FIELDS = [
@@ -48,6 +43,7 @@ export default function PatientList() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("");
+  const [subServiceFilter, setSubServiceFilter] = useState("");
   const [showAddModal, setShowAddModal]   = useState(false);
   const [sortNewestFirst, setSortNewestFirst] = useState(() => {
     const saved = localStorage.getItem("yaqoot:patientListSortNewestFirst");
@@ -82,6 +78,8 @@ export default function PatientList() {
       .filter((v) => v.patientId === patientId)
       .sort((a, b) => b.visitDate.localeCompare(a.visitDate))[0];
 
+  const filterSubServices = getSubServices(serviceFilter);
+
   // ── Filtering ──────────────────────────────────────────────────────────────
 
   const filteredRows = useMemo((): TableRow[] => {
@@ -108,7 +106,7 @@ export default function PatientList() {
         // Optional year filter — must be exact year
         if (filterYear && d.getFullYear() !== parseInt(filterYear)) continue;
         // Service filter
-        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+        if (!matchesServiceFilter(v.mainService, v.subService, serviceFilter, subServiceFilter)) continue;
 
         const patient = patients.find((p) => p.id === v.patientId);
         if (!patient) continue;
@@ -137,7 +135,7 @@ export default function PatientList() {
         const d = new Date(v.visitDate);
         if (!isAllMonths && d.getMonth() + 1 !== month) continue;
         if (d.getFullYear() !== year)   continue;
-        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+        if (!matchesServiceFilter(v.mainService, v.subService, serviceFilter, subServiceFilter)) continue;
 
         const patient = patients.find((p) => p.id === v.patientId);
         if (!patient) continue;
@@ -163,7 +161,7 @@ export default function PatientList() {
       for (const v of visits) {
         const d = new Date(v.visitDate);
         if (d < start || d > end) continue;
-        if (serviceFilter && !(v.mainService ?? "").toLowerCase().includes(serviceFilter.toLowerCase())) continue;
+        if (!matchesServiceFilter(v.mainService, v.subService, serviceFilter, subServiceFilter)) continue;
 
         const patient = patients.find((p) => p.id === v.patientId);
         if (!patient) continue;
@@ -190,8 +188,8 @@ export default function PatientList() {
         else if (searchField === "mobile")       matchSearch = p.mobile.includes(q);
         else if (searchField === "location")     matchSearch = locationSearchText.includes(q);
       }
-      const latestService = getLastVisit(p.id)?.mainService || "";
-      const matchService = !serviceFilter || latestService.toLowerCase().includes(serviceFilter.toLowerCase());
+      const latestVisit = getLastVisit(p.id);
+      const matchService = matchesServiceFilter(latestVisit?.mainService, latestVisit?.subService, serviceFilter, subServiceFilter);
       return matchSearch && matchService;
     });
 
@@ -200,7 +198,7 @@ export default function PatientList() {
       visit: getLastVisit(p.id) ?? null,
       rowKey: p.id,
     }));
-  }, [patients, visits, debouncedSearch, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, locale, t]);
+  }, [patients, visits, debouncedSearch, searchField, filterDay, filterMonth, filterYear, filterStartDate, filterEndDate, serviceFilter, subServiceFilter, locale, t]);
 
   const displayRows = sortNewestFirst ? filteredRows : [...filteredRows].reverse();
   const { page, setPage, totalPages, pageItems } = usePagination(displayRows, 25);
@@ -211,6 +209,7 @@ export default function PatientList() {
     search,
     searchField,
     serviceFilter,
+    subServiceFilter,
     sortNewestFirst,
     filterDay,
     filterMonth,
@@ -378,7 +377,10 @@ export default function PatientList() {
           <div style={{ position: "relative" }}>
             <select
               value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
+              onChange={(e) => {
+                setServiceFilter(e.target.value);
+                setSubServiceFilter("");
+              }}
               data-testid="select-service-filter"
               style={selectStyle}
             >
@@ -388,6 +390,23 @@ export default function PatientList() {
             </select>
             <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
           </div>
+          {filterSubServices.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <select
+                value={subServiceFilter}
+                onChange={e => setSubServiceFilter(e.target.value)}
+                data-testid="select-subservice-filter"
+                style={selectStyle}
+              >
+                <option value="">{t("patients.allSubServices")}</option>
+                {filterSubServices.map(sub => (
+                  <option key={sub.value} value={sub.value}>{t(sub.labelKey)}</option>
+                ))}
+                <option value="Other">{t("service.other")}</option>
+              </select>
+              <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
+            </div>
+          )}
         </div>
 
         {showDateFilter && (
@@ -642,7 +661,7 @@ export default function PatientList() {
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
                         {v ? <DateText value={v.visitDate} /> : "-"}
                       </td>
-                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{v?.mainService || "-"}</td>
+                      <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{v ? getServiceLabel(v.mainService, t) || "-" : "-"}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v?.chiefComplaint || "-"}</td>
                     </tr>
                   );

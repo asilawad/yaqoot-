@@ -4,9 +4,10 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { SERVICES, matchesServiceFilter } from "@/lib/services";
 
 export default function AnalyticsPage() {
-  const { t, isRTL, locale } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const { patients, visits, isLoading, error } = useData();
   if (isLoading) return <div style={{ padding: 48, textAlign: "center" }}>{t("analytics.loading")}</div>;
@@ -20,20 +21,11 @@ export default function AnalyticsPage() {
   const monthVisits = visits.filter(v => v.visitDate >= startOfMonth).length;
   const pendingPayments = visits.filter(v => v.paymentStatus === "unpaid").length;
 
-  const serviceKeys = [
-    { key: "service.internal", label_en: "Internal Medicine", label_ar: "الباطنة", values: ["Internal Medicine", "استشارات الباطنة"] },
-    { key: "service.surgery", label_en: "Surgery", label_ar: "الجراحة", values: ["Surgery", "الجراحة"] },
-    { key: "service.pt", label_en: "Physical Therapy", label_ar: "العلاج الطبيعي", values: ["Physical Therapy", "العلاج الطبيعي"] },
-    { key: "service.obgyn", label_en: "OB/GYN", label_ar: "النساء", values: ["OB/GYN", "النساء"] },
-    { key: "service.nutrition", label_en: "Nutrition", label_ar: "التغذية", values: ["Clinical Nutrition", "التغذية"] },
-    { key: "service.nephrology", label_en: "Nephrology", label_ar: "الكلى", values: ["Nephrology", "الكلى"] },
-    { key: "service.nursing", label_en: "Nursing", label_ar: "التمريض", values: ["Nursing", "التمريض"] },
-  ];
-
-  const chartData = serviceKeys
-    .map(({ key, label_en, label_ar, values }) => ({
-      name: locale === "ar" ? label_ar : label_en,
-      count: visits.filter(v => v.mainService && values.some(val => v.mainService?.includes(val))).length,
+  const chartData = SERVICES
+    .filter(service => service.value !== "Other")
+    .map(service => ({
+      name: t(service.labelKey),
+      count: visits.filter(v => matchesServiceFilter(v.mainService, v.subService, service.value, "")).length,
     }))
     .sort((a, b) => b.count - a.count);
 

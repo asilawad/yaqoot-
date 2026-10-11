@@ -1,0 +1,116 @@
+CONSTRAINT (read first):
+You MUST ONLY apply the code changes below, run `pnpm run typecheck`, and perform a quick verification. You MUST NOT attempt to build, compile, or package the final desktop application (Tauri / Windows installer / executable). Final desktop compilation is performed exclusively on the local Windows environment.
+
+NOTE ON PRIOR WORK: This prompt SUPERSEDES any earlier version of the "services / sub-services update". If src/lib/services.ts already exists, rewrite it to match this spec exactly. If VisitPage.tsx, PatientList.tsx or AnalyticsPage.tsx already import from it, adapt those edits instead of duplicating them. When done there must be exactly ONE definition of the services list in the whole app (src/lib/services.ts).
+
+TASK: Make the Visit Details screen's service structure the SINGLE SOURCE OF TRUTH for all medical services and sub-services, localize every service/sub-service label (Arabic + English), and mirror the same structure in the Patient List filter (with a dependent sub-service filter). Work only inside artifacts/yaqoot-medical/src.
+
+NON-REGRESSION RULES (highest priority)
+1. No data migration and no change to stored values. Existing visits keep their mainService/subService strings untouched. New visits keep storing ENGLISH strings in visit.mainService / visit.subService (labels are translated only for display). Do NOT touch lib/db (repositories, types, migrations), src-tauri, DataContext, backup/restore, or Patient.serviceType.
+2. i18n changes are additive: never rename or delete an existing key. Keep 'service.nephrology' (it is still used to label historical standalone-Nephrology visits).
+3. Do not change anything not listed here (date handling, other pages, styles other than the new sub-filter select).
+
+CONTEXT (verified in the code)
+- Today the lists are duplicated with conflicting vocabularies: VisitPage.tsx lines ~12-17 (MAIN_SERVICES / SUB_SERVICES, English values, rendered as raw English even in the Arabic UI; used at ~293, ~374-377, ~381-385), PatientList.tsx lines ~13-21 (SERVICE_TYPES with different values: "Surgery", "Nursing", "Physical Therapy", "OB/GYN", "Nephrology"), AnalyticsPage.tsx lines ~23-31 (serviceKeys with hardcoded label_en/label_ar and its own value lists).
+- PatientList filters by case-insensitive substring on mainService at 4 places: ~110, ~139, ~165 (v.mainService) and ~193 (latestService from getLastVisit); filter deps appear in the filteredRows useMemo dependency array (~202) and the page-reset useEffect (~207-215).
+- The Service table cell is at PatientList.tsx ~642 ({v?.mainService || "-"}); PatientProfile.tsx ~787 shows {v.mainService || "—"}. Both display the raw stored string.
+- Bug being fixed: the filter value "Surgery" never matches "Surgical Consultations" (what VisitPage saves). Real data contains BOTH vocabularies (long forms from the Visit page: "OB/GYN Clinic", "Clinical Nutrition", "Surgical Consultations", "Nursing Services", "Physical Therapy & Rehab", "Nephrology Consultations"; short forms: "Surgery", "OB/GYN", "Nephrology", "Nursing"). Both must keep matching and keep displaying sensibly.
+
+STEP 1 – Create/rewrite src/lib/services.ts (pure TS, no React)
+Types:
+- SubServiceDef = { value: string; labelKey: string; aliases?: string[]; legacyMainTerms?: string[] } — value = English string stored for new visits; aliases = old stored sub-service strings that should still match this sub-service in filters (case-insensitive, trimmed); legacyMainTerms = lowercase substrings of an OLD mainService that should also count as this sub-service.
+- ServiceDef = { value: string; labelKey: string; terms: string[]; subServices: SubServiceDef[] } — terms = lowercase substrings used to match old and new stored mainService values in filters/analytics.
+Exports:
+- SERVICES: ServiceDef[] in exactly this order (it is the Visit page dropdown order minus Nephrology):
+  1. "Internal Medicine" / service.internal / terms ["internal medicine", "استشارات الباطنة", "الباطنة", "nephrology", "الكلى"] (the last two fold historical standalone-Nephrology visits into Internal Medicine for filtering/analytics) / subs, in this order:
+     "General" (subservice.general); "Pulmonology / Chest" (subservice.pulmonology, aliases ["Pulmonology"]); "Nephrology" (subservice.nephrology, legacyMainTerms ["nephrology", "الكلى"]); "Endocrinology" (subservice.endocrinology); "Rheumatology" (subservice.rheumatology); "Neurology" (subservice.neurology); "Hematology & Oncology" (subservice.hematologyOncology, aliases ["Hematology", "Oncology"])
+  2. "Surgical Consultations" / service.surgery / terms ["surgery", "surgical", "الجراحة"] / subs: "General" (subservice.general, aliases ["General Surgery"]); "Urology" (subservice.urology); "Neurology" (subservice.neurology, aliases ["Neurosurgery"]); "Orthopedics" (subservice.orthopedics)
+  3. "Physical Therapy & Rehab" / service.pt / terms ["physical therapy", "العلاج الطبيعي"] / subs []
+  4. "OB/GYN Clinic" / service.obgyn / terms ["ob/gyn", "النساء"] / subs, EXACTLY the current 11 strings from VisitPage in the same order, each with a labelKey: "Antenatal/Prenatal Care" (subservice.obgyn.antenatal), "High-Risk Pregnancy Management" (subservice.obgyn.highRisk), "Recurrent Miscarriage Investigation" (subservice.obgyn.recurrentMiscarriage), "Infertility & Delayed Conception" (subservice.obgyn.infertility), "PCOS Care" (subservice.obgyn.pcos), "Menstrual Disorders" (subservice.obgyn.menstrual), "Contraception Counseling" (subservice.obgyn.contraception), "Gynecological Infections" (subservice.obgyn.gynInfections), "Menopause Management" (subservice.obgyn.menopause), "Cancer Screening/Pap Smear" (subservice.obgyn.cancerScreening), "3D/4D Ultrasound" (subservice.obgyn.ultrasound3d4d)
+  5. "Clinical Nutrition" / service.nutrition / terms ["clinical nutrition", "التغذية"] / subs []
+  6. "Nursing Services" / service.nursing / terms ["nursing", "التمريض"] / subs, EXACTLY the current 13 strings in the same order: "Vital Signs Monitoring" (subservice.nursing.vitalSigns), "Medication Administration" (subservice.nursing.medication), "IV Therapy & Cannulation" (subservice.nursing.ivTherapy), "Wound Care" (subservice.nursing.woundCare), "Catheterization & Fluid Output" (subservice.nursing.catheterization), "Airway & Oxygen Therapy" (subservice.nursing.airwayOxygen), "Patient Hygiene & Bed Sore Prevention" (subservice.nursing.hygieneBedSore), "Post-Operative Care" (subservice.nursing.postOp), "Feeding Tube Care" (subservice.nursing.feedingTube), "ECG Monitoring" (subservice.nursing.ecg), "Emergency Response & CPR" (subservice.nursing.emergencyCpr), "Patient & Family Education" (subservice.nursing.education), "Nebulization" (subservice.nursing.nebulization)
+  7. "Other" / service.other / terms ["other"] / subs []
+  There is NO standalone Nephrology main service. The old Internal Medicine sub-service strings not in the new list (Cardiology, Gastroenterology, Infectious Diseases, Immunology, Geriatrics) and the old Surgery one (Pediatric Surgery) are intentionally gone from the dropdowns.
+- getSubServices(serviceValue: string): SubServiceDef[] — exact match on ServiceDef.value, else [].
+- getServiceLabel(stored: string | undefined, t: (key: string) => string): string — returns "" for empty. Otherwise: (1) exact case-insensitive/trimmed match on a ServiceDef.value -> t(labelKey); (2) if the lowercased stored value contains "nephrology" or "الكلى" -> t("service.nephrology") (historical standalone Nephrology visits keep their own label); (3) the first ServiceDef (in order) whose terms match as substrings -> t(labelKey); (4) otherwise return the stored string unchanged.
+- matchesServiceFilter(mainService: string | undefined, subService: string | undefined, serviceValue: string, subValue: string): boolean —
+  * serviceValue empty -> true.
+  * Main match: find the ServiceDef whose value === serviceValue; true if lowercased mainService contains any of its terms; if no ServiceDef is found, fall back to lowercased substring match of serviceValue.
+  * subValue empty -> main match result. Otherwise additionally require a sub match: stored subService (lowercased, trimmed) equals subValue (lowercased) OR equals one of that SubServiceDef's aliases OR (the SubServiceDef has legacyMainTerms and the lowercased mainService contains one of them). The value "Other" (no SubServiceDef) matches by case-insensitive equality only.
+
+STEP 2 – i18n: add to BOTH src/lib/i18n/en.ts and ar.ts near the existing "// Services" block (identical key names; do not touch existing keys)
+- 'service.other' | Other | أخرى
+- 'patients.allSubServices' | All Sub-services | الخدمة الفرعية
+- 'subservice.general' | General | عام
+- 'subservice.pulmonology' | Pulmonology / Chest | صدرية
+- 'subservice.nephrology' | Nephrology | كلى
+- 'subservice.endocrinology' | Endocrinology | غدد
+- 'subservice.rheumatology' | Rheumatology | روماتيزم
+- 'subservice.neurology' | Neurology | أعصاب
+- 'subservice.hematologyOncology' | Hematology & Oncology | أمراض دم وأورام
+- 'subservice.urology' | Urology | مسالك بولية
+- 'subservice.orthopedics' | Orthopedics | عظام
+OB/GYN (EN = the exact English string from Step 1):
+- 'subservice.obgyn.antenatal' | Antenatal/Prenatal Care | متابعة الحمل (رعاية ما قبل الولادة)
+- 'subservice.obgyn.highRisk' | High-Risk Pregnancy Management | إدارة الحمل عالي الخطورة
+- 'subservice.obgyn.recurrentMiscarriage' | Recurrent Miscarriage Investigation | فحص حالات الإجهاض المتكرر
+- 'subservice.obgyn.infertility' | Infertility & Delayed Conception | العقم وتأخر الإنجاب
+- 'subservice.obgyn.pcos' | PCOS Care | رعاية تكيس المبايض
+- 'subservice.obgyn.menstrual' | Menstrual Disorders | اضطرابات الدورة الشهرية
+- 'subservice.obgyn.contraception' | Contraception Counseling | استشارات تنظيم الأسرة (وسائل منع الحمل)
+- 'subservice.obgyn.gynInfections' | Gynecological Infections | الالتهابات النسائية
+- 'subservice.obgyn.menopause' | Menopause Management | إدارة سن اليأس
+- 'subservice.obgyn.cancerScreening' | Cancer Screening/Pap Smear | الكشف المبكر عن السرطان / مسحة عنق الرحم
+- 'subservice.obgyn.ultrasound3d4d' | 3D/4D Ultrasound | الموجات فوق الصوتية ثلاثية ورباعية الأبعاد
+Nursing:
+- 'subservice.nursing.vitalSigns' | Vital Signs Monitoring | مراقبة العلامات الحيوية
+- 'subservice.nursing.medication' | Medication Administration | إعطاء الأدوية
+- 'subservice.nursing.ivTherapy' | IV Therapy & Cannulation | العلاج الوريدي وتركيب الكانيولا
+- 'subservice.nursing.woundCare' | Wound Care | العناية بالجروح
+- 'subservice.nursing.catheterization' | Catheterization & Fluid Output | القسطرة ومراقبة السوائل الخارجة
+- 'subservice.nursing.airwayOxygen' | Airway & Oxygen Therapy | العناية بالمجرى الهوائي والأكسجين
+- 'subservice.nursing.hygieneBedSore' | Patient Hygiene & Bed Sore Prevention | نظافة المريض والوقاية من قرح الفراش
+- 'subservice.nursing.postOp' | Post-Operative Care | الرعاية بعد العمليات الجراحية
+- 'subservice.nursing.feedingTube' | Feeding Tube Care | العناية بأنبوب التغذية
+- 'subservice.nursing.ecg' | ECG Monitoring | مراقبة تخطيط القلب (ECG)
+- 'subservice.nursing.emergencyCpr' | Emergency Response & CPR | الاستجابة للطوارئ والإنعاش القلبي الرئوي
+- 'subservice.nursing.education' | Patient & Family Education | تثقيف المريض وعائلته
+- 'subservice.nursing.nebulization' | Nebulization | جلسات البخار (نيبولايزر)
+Use the Arabic strings exactly as given (they are the user-reviewable proposed translations).
+
+STEP 3 – src/pages/VisitPage.tsx
+a) Remove the MAIN_SERVICES and SUB_SERVICES constants; import { SERVICES, getSubServices } from "@/lib/services". INVESTIGATIONS_LIST stays.
+b) Replace `const subServices = SUB_SERVICES[form.mainService] || [];` with const subServices = getSubServices(form.mainService).
+c) Main select: keep the "—" option; map SERVICES to <option key={s.value} value={s.value}>{t(s.labelKey)}</option>. If form.mainService is non-empty and not one of SERVICES' values (old "Nephrology Consultations", "Nephrology", "Surgery", etc.), add one extra <option value={form.mainService}>{form.mainService}</option> so the saved value stays visible and is preserved on re-save.
+d) Sub select: keep the "—" option; map subServices to <option key={sub.value} value={sub.value}>{t(sub.labelKey)}</option>; keep the existing option with value="Other" but display {t("service.other")}; if form.subService is non-empty, is not "Other" and is not in the current list (old "Cardiology", "Oncology", etc.), add one extra <option value={form.subService}>{form.subService}</option>. The mainService onChange that resets subService to "" stays. handleSave and all stored-value logic stay untouched.
+
+STEP 4 – src/pages/PatientList.tsx
+a) Import { SERVICES, getSubServices, getServiceLabel, matchesServiceFilter } from "@/lib/services".
+b) Main service filter MIRRORS the Visit page: rebuild SERVICE_TYPES in the same { key, value } shape (so the existing render code at ~384-386 stays untouched): first { key: "patients.allServices", value: "" }, then one entry per SERVICES item in SERVICES order (all 7, including "Other"), with key = labelKey and value = the service's value. Nephrology must not appear.
+c) New state: const [subServiceFilter, setSubServiceFilter] = useState(""). The main select's onChange must also reset it: setServiceFilter(e.target.value); setSubServiceFilter("").
+d) Sub-service filter UI: compute const filterSubServices = getSubServices(serviceFilter). Immediately AFTER the existing service filter wrapper <div> and only when filterSubServices.length > 0, render a second wrapper <div style={{ position: "relative" }}> containing a <select> with value={subServiceFilter}, onChange={e => setSubServiceFilter(e.target.value)}, data-testid="select-subservice-filter", style={selectStyle}, plus the same ChevronDown icon element used by the other selects. Options: first { value "", label t("patients.allSubServices") }, then each filterSubServices item -> <option key={sub.value} value={sub.value}>{t(sub.labelKey)}</option>, then a final <option value="Other">{t("service.other")}</option>. It appears instantly when a main service that has sub-services is selected (Internal Medicine, Surgery, OB/GYN, Nursing) and disappears (and resets) otherwise. The filter row already wraps (flexWrap: "wrap"), so no layout changes are needed.
+e) Replace the four inline service conditions (~110, ~139, ~165, ~193) with matchesServiceFilter(v.mainService, v.subService, serviceFilter, subServiceFilter) — for the default mode use the latest visit (getLastVisit(p.id)?.mainService / ?.subService) — preserving each surrounding `continue` / boolean structure. Add subServiceFilter to the useMemo dependency array (~202) and to the page-reset useEffect dependency list (~207-215).
+f) Table cell (~642): replace {v?.mainService || "-"} with {v ? getServiceLabel(v.mainService, t) || "-" : "-"} (keep the cell style). Keep the "-" fallback.
+
+STEP 5 – src/pages/PatientProfile.tsx (~787)
+Import getServiceLabel from "@/lib/services" and replace {v.mainService || "—"} with {getServiceLabel(v.mainService, t) || "—"}. Nothing else in this file changes.
+
+STEP 6 – src/pages/AnalyticsPage.tsx
+- Import { SERVICES, getServiceLabel? } — only what is needed. Rebuild serviceKeys/chartData from SERVICES: for every service EXCEPT "Other", name = t(service.labelKey) (replacing the locale-based hardcoded label_en/label_ar) and count = visits.filter(v => matchesServiceFilter(v.mainService, v.subService, service.value, "")).length; keep the existing descending sort and the existing BarChart markup untouched.
+- The `locale` destructured at the top of the component becomes unused: remove it from the destructuring if nothing else uses it (so typecheck/lint stays clean).
+- Expected effects: no standalone Nephrology bar; historical Nephrology visits are counted under Internal Medicine; visits saved as "Surgical Consultations" are now counted under Surgery; bar labels use the same full names as the rest of the app.
+
+STEP 7 – Verification (report briefly)
+1. Run: pnpm run typecheck and fix every error introduced by this change.
+2. Run: grep -rn "Nephrology Consultations\|SUB_SERVICES\|MAIN_SERVICES\|label_ar" src and confirm no stale definitions remain. Confirm the services list exists only in src/lib/services.ts.
+3. Diff audit: `git diff --stat` must show only src/lib/services.ts, VisitPage.tsx, PatientList.tsx, PatientProfile.tsx, AnalyticsPage.tsx, en.ts, ar.ts. i18n diffs must be additions only.
+4. Manual checks in BOTH Arabic and English UI:
+   a) Visit page: main dropdown (no Nephrology) and all sub-service dropdowns show translated labels; Internal Medicine shows exactly 7 sub-services, Surgery exactly 4, OB/GYN 11, Nursing 13 (same order as before); saving stores English values.
+   b) Open an old visit with mainService "Nephrology"/"Nephrology Consultations" or subService "Cardiology": the old value is shown and unchanged after saving without edits.
+   c) Patient List: the service filter order equals the Visit page order (no Nephrology); selecting Internal Medicine / Surgery / OB/GYN / Nursing reveals the sub-service filter instantly; selecting Physical Therapy / Nutrition / Other / All hides it and clears it; changing the main service resets the sub filter; combined with search, month/year, day and range filters it still works (note: when a date mode is active but incomplete, the existing code ignores service filters; keep that behavior).
+   d) Filtering Surgery returns visits stored as "Surgery" and as "Surgical Consultations"; Internal Medicine + sub "Nephrology" also returns historical Nephrology visits; Internal Medicine + "Hematology & Oncology" also returns old "Hematology"/"Oncology" visits.
+   e) The table Service column and the Patient Profile visit history show translated service names in Arabic and English (old short strings like "OB/GYN" or "Nephrology" also show translated labels).
+   f) Analytics page renders with translated bar labels and no Nephrology bar.
+5. Do NOT build the desktop installer/binary.
+
+When finished, reply with ONLY: the files created/changed, the typecheck result, the grep result, the diff-audit result, and the manual check results. 
