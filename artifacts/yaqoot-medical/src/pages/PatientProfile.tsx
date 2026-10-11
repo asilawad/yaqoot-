@@ -15,17 +15,8 @@ import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels"
 import { Visit, Investigation, Treatment, QuickNote, VitalSigns } from "@/lib/db/types";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
-
-/* ─── Timestamp formatter ─── */
-function fmtTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, "0");
-  const dy = String(d.getDate()).padStart(2, "0");
-  const h = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${y}-${mo}-${dy} ${h}:${mi}`;
-}
+import DateText from "@/components/DateText";
+import { formatDateTime } from "@/lib/date";
 
 /* ─── Vital status badge ─── */
 function VitalStatusBadge({
@@ -114,7 +105,7 @@ function VitalCard({
       {/* Timestamp */}
       {timestamp && displayValue !== "—" && (
         <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10, textAlign: "start" }}>
-          {timestamp}
+          <bdi dir="ltr" style={{ unicodeBidi: "isolate" }}>{timestamp}</bdi>
         </div>
       )}
 
@@ -227,7 +218,7 @@ function VitalHistoryModal({
                 {/* Right: clock + timestamp */}
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, flexDirection: "row" }}>
                   <Clock size={13} strokeWidth={1.7} color="#9CA3AF" />
-                  <span style={{ fontSize: 12, color: "#6B7280" }}>{fmtTimestamp(r.createdAt)}</span>
+                  <span style={{ fontSize: 12, color: "#6B7280" }}><DateText value={r.createdAt} withTime /></span>
                 </div>
               </div>
             </div>
@@ -402,7 +393,7 @@ export default function PatientProfile() {
     { id: "notes"          as const, label: t("profile.tab.notes") },
   ];
 
-  const ts = latestVitals?.createdAt ? fmtTimestamp(latestVitals.createdAt) : null;
+  const ts = latestVitals?.createdAt ? formatDateTime(latestVitals.createdAt) : null;
 
   /* vital card definitions */
   const vitalCards = [
@@ -781,7 +772,7 @@ export default function PatientProfile() {
                     >
                       <div style={{ textAlign: "start" }}>
                         <div style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 4 }}>
-                          {new Date(v.visitDate).toLocaleDateString()}
+                          <DateText value={v.visitDate} />
                         </div>
                         <div style={{ fontSize: 13, color: "#717182" }}>
                           {v.mainService || "—"}
@@ -815,7 +806,7 @@ export default function PatientProfile() {
                 <div style={{ padding: "10px 16px", background: "#EAF7EF", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={14} color="#50C878" />
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>
-                    {group.visit ? new Date(group.visit.visitDate).toLocaleDateString() : ""}
+                    {group.visit && <DateText value={group.visit.visitDate} />}
                   </span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -839,7 +830,7 @@ export default function PatientProfile() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14, color: "#717182" }}>
                           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                             <span style={{ fontWeight: 700, color: "#171717" }}>{t("profile.investigations.result")}</span>
-                            {inv.resultDate && <span style={{ color: "#aaa" }}>{new Date(inv.resultDate).toLocaleDateString()}</span>}
+                            {inv.resultDate && <span style={{ color: "#aaa" }}><DateText value={inv.resultDate} /></span>}
                           </div>
                           <div style={{ paddingInlineStart: 4, color: "#171717", whiteSpace: "pre-wrap" }}>{inv.result}</div>
                         </div>
@@ -868,7 +859,7 @@ export default function PatientProfile() {
                 <div style={{ padding: "10px 16px", background: "#EAF7EF", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={14} color="#50C878" />
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>
-                    {group.visit ? new Date(group.visit.visitDate).toLocaleDateString() : ""}
+                    {group.visit && <DateText value={group.visit.visitDate} />}
                   </span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -927,7 +918,7 @@ export default function PatientProfile() {
                 <div key={n.id} style={{ padding: "14px 18px", background: "#F9FAFB", borderRadius: 12, border: "1px solid #F1F1F1", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexDirection: "row" }}>
                   <div style={{ textAlign: "start" }}>
                     <div style={{ fontSize: 14, color: "#171717" }}>{n.text}</div>
-                    <div style={{ fontSize: 12, color: "#bbb", marginTop: 5 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 12, color: "#bbb", marginTop: 5 }}><DateText value={formatDateTime(n.createdAt)} withTime={false} /></div>
                   </div>
                   <button onClick={() => setDeleteNoteId(n.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4, flexShrink: 0 }}>
                     <Trash2 size={15} strokeWidth={1.5} />

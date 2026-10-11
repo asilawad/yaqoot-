@@ -1,0 +1,51 @@
+CRITICAL CONSTRAINT (read first):
+You MUST ONLY apply the code changes below, run `pnpm run typecheck`, and perform a quick verification. You MUST NOT attempt to build, compile, or package the final desktop application (Tauri / Windows installer / executable). Final desktop compilation is performed exclusively on the local Windows environment.
+
+TASK: Standardize ALL date displays in the Yaqoot clinic app to Year-Month-Day (YYYY-MM-DD) using Latin digits, in both English (LTR) and Arabic (RTL), and make date strings immune to bidi flipping. Work only inside artifacts/yaqoot-medical/src. Do not touch src-tauri, SQL migrations, the API server, or any stored data format (stored values stay ISO strings). Keep the change minimal. Do not refactor unrelated code.
+
+CONTEXT (already verified)
+- There is NO central date helper. src/lib contains only utils.ts (cn helper), db/, i18n/, security/.
+- Current inconsistent displays:
+  * src/pages/PatientList.tsx line ~640: new Date(v.visitDate).toLocaleDateString()
+  * src/pages/PatientProfile.tsx lines ~784, ~818, ~871: new Date(...visitDate).toLocaleDateString(); line ~842: inv.resultDate .toLocaleDateString(); line ~930: n.createdAt .toLocaleDateString()
+  * src/pages/VisitPage.tsx line ~458: ({new Date(inv.resultDate).toLocaleDateString()})
+  * toLocaleDateString() with no arguments uses the OS/browser locale, so it gives M/D/Y or D/M/Y depending on the machine, and Arabic-Indic digits in Arabic locales. This is the core bug.
+  * src/pages/PatientProfile.tsx has a local fmtTimestamp(iso) at lines ~20-27 that already outputs "YYYY-MM-DD HH:mm". It is used at line ~230 (vitals history row) and line ~405 (const ts, passed as timestamp to the vitals cards). This is the correct format; it just needs to move into the shared helper.
+- Already correct and NOT to be changed: src/components/prescription/PrescriptionPrintView.tsx (formatPrescriptionDate plus the print CSS in src/index.css that isolates the date with direction: ltr and unicode-bidi: isolate; it is a fixed physical print form). Also leave file-name date stamps (ExitGuardModal.tsx line ~61, DataManagementPage.tsx line ~93), the date-filter logic in PatientList.tsx (month/year/range comparisons), AnalyticsPage.tsx, and the month-name dropdown labels in PatientList.tsx (line ~74).
+- Document direction is set globally in src/contexts/LocaleContext.tsx (document.documentElement.dir = 'rtl' | 'ltr'), so any date placed inside Arabic text inherits RTL and can visually reorder "2026-10-11" unless isolated.
+- Important data semantics: visitDate and resultDate are DATE values (VisitPage stores new Date("YYYY-MM-DD").toISOString(), which is UTC midnight). createdAt/updatedAt are real TIMESTAMPS. These need different handling to avoid off-by-one-day errors.
+
+STEP 1 – Create src/lib/date.ts (pure functions, no React, no locale dependence)
+Export:
+a) formatDate(value?: string | null): string
+   - Returns "" for empty/undefined/invalid input.
+   - If the string starts with /^\d{4}-\d{2}-\d{2}/, return those first 10 characters directly (no Date parsing, no timezone shift). This is how VisitPage already treats visitDate.
+   - Otherwise parse with new Date(value); if invalid return ""; else build YYYY-MM-DD from the LOCAL getFullYear/getMonth/getDate with zero padding.
+   - Always Latin digits. Never call toLocaleDateString/toLocaleString/Intl for this.
+b) formatDateTime(value?: string | null): string
+   - Returns "" for empty/invalid. Otherwise "YYYY-MM-DD HH:mm" from LOCAL components with zero padding, exactly matching the existing fmtTimestamp output. Do NOT use the slice shortcut here, because timestamps must convert to local time.
+c) Add a short comment: date-only fields (visitDate, resultDate) use formatDate; timestamps (createdAt, updatedAt) use formatDateTime.
+
+STEP 2 – Create src/components/DateText.tsx (bidi isolation)
+A small component: props { value?: string | null; withTime?: boolean }. It renders nothing (null) when the formatted result is empty; otherwise <bdi dir="ltr" style={{ unicodeBidi: "isolate" }}>{formatted}</bdi>, using formatDateTime when withTime is true, else formatDate. Use <bdi> (not a raw string with Unicode control characters) so copied text, tests and aria labels stay clean. Do not add LRI/PDI characters (\u2066/\u2069) to the helper output.
+
+STEP 3 – Replace every display site (exact locations above; re-grep to confirm line numbers)
+- PatientList.tsx (~640): replace the table-cell expression with <DateText value={v?.visitDate} /> keeping the existing "-" fallback when there is no visit.
+- PatientProfile.tsx: replace the four toLocaleDateString() usages (~784, ~818, ~842, ~871) with <DateText value={...visitDate or resultDate} />, keeping the surrounding conditionals and styles (the span at ~842 keeps its color and only swaps its content). Replace the note date (~930, createdAt) with <DateText value={n.createdAt} withTime={false} /> since it is a timestamp shown date-only; for this one, format with local time components and render only the YYYY-MM-DD part.
+- PatientProfile.tsx: delete the local fmtTimestamp function and import formatDateTime from "@/lib/date". At ~230 render <DateText value={r.createdAt} withTime />. At ~405, keep `ts` as a plain string from formatDateTime(...), and wrap the rendered string at its render site with <bdi dir="ltr" style={{ unicodeBidi: "isolate" }}>. (Find that render site with: grep -n "timestamp" src/pages/PatientProfile.tsx)
+- VisitPage.tsx (~458): keep surrounding parentheses outside: (<DateText value={inv.resultDate} />).
+- HomePage.tsx: leave unchanged.
+
+STEP 4 – Date inputs (do not replace them)
+Add dir="ltr" to native <input type="date"> controls (VisitPage.tsx ~351 and ~558, PatientList.tsx ~517 and ~526) so segments do not reorder in Arabic layout. Do not change value/onChange.
+
+STEP 5 – Verification (report briefly)
+1. Run: pnpm run typecheck and fix any type errors.
+2. Run: grep -rn "toLocaleDateString\|toLocaleTimeString\|fmtTimestamp" src and confirm NO unintended matches remain.
+3. Perform a quick runtime sanity check in both English and Arabic. Do NOT attempt to build a desktop installer/binary.
+
+CONSTRAINTS
+- Format is YYYY-MM-DD with hyphens everywhere.
+- No new dependencies.
+- Do not touch stored data, backend, or desktop build processes.
+- When finished, reply with ONLY: modified files list, typecheck result, and grep verification.

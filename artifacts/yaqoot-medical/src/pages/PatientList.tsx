@@ -9,6 +9,7 @@ import type { Patient } from "@/lib/db/types";
 import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
+import DateText from "@/components/DateText";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
@@ -515,6 +516,7 @@ export default function PatientList() {
                     <div style={{ position: "relative" }}>
                       <input
                         type="date"
+                        dir="ltr"
                         value={filterStartDate}
                         onChange={(e) => setFilterStartDate(e.target.value)}
                         data-testid="input-filter-start-date"
@@ -524,6 +526,7 @@ export default function PatientList() {
                     <div style={{ position: "relative" }}>
                       <input
                         type="date"
+                        dir="ltr"
                         value={filterEndDate}
                         onChange={(e) => setFilterEndDate(e.target.value)}
                         data-testid="input-filter-end-date"
@@ -637,7 +640,7 @@ export default function PatientList() {
                         {getRegionLabel(p.region, t)} - {getNeighborhoodLabel(p.neighborhood, t)}
                       </td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>
-                        {v ? new Date(v.visitDate).toLocaleDateString() : "-"}
+                        {v ? <DateText value={v.visitDate} /> : "-"}
                       </td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#171717" }}>{v?.mainService || "-"}</td>
                       <td style={{ padding: "11px 16px", fontSize: 13, color: "#717182", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v?.chiefComplaint || "-"}</td>

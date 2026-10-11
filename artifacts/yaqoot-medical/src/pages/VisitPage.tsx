@@ -6,6 +6,7 @@ import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import PrescriptionPrintView from "@/components/prescription/PrescriptionPrintView";
+import DateText from "@/components/DateText";
 import * as repo from "@/lib/db/repository";
 import { Treatment, Investigation, VitalSigns, Visit } from "@/lib/db/types";
 
@@ -348,7 +349,7 @@ export default function VisitPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "#717182", display: "block", marginBottom: 6 }}>{t("visit.date")}</label>
-            <input type="date" style={inputStyle} value={form.visitDate} onChange={e => setForm(f => ({ ...f, visitDate: e.target.value }))} />
+            <input type="date" dir="ltr" style={inputStyle} value={form.visitDate} onChange={e => setForm(f => ({ ...f, visitDate: e.target.value }))} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "#717182", display: "block", marginBottom: 6 }}>{t("visit.doctor")}</label>
@@ -455,7 +456,7 @@ export default function VisitPage() {
                   <div style={{ fontSize: 12, color: "#717182", marginTop: 4, textAlign: "start", whiteSpace: "pre-wrap" }}>
                     <span style={{ fontWeight: 700, color: "#171717" }}>Result: </span>
                     {inv.result}
-                    {inv.resultDate && <span style={{ color: "#aaa", marginInlineStart: 8 }}>({new Date(inv.resultDate).toLocaleDateString()})</span>}
+                    {inv.resultDate && <span style={{ color: "#aaa", marginInlineStart: 8 }}>(<DateText value={inv.resultDate} />)</span>}
                   </div>
                 )}
                 {inv.notes && (
@@ -555,7 +556,7 @@ export default function VisitPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "#717182", display: "block", marginBottom: 4 }}>Result Date</label>
-                <input type="date" style={inputStyle} value={invForm.resultDate} onChange={e => setInvForm(f => ({ ...f, resultDate: e.target.value }))} />
+                <input type="date" dir="ltr" style={inputStyle} value={invForm.resultDate} onChange={e => setInvForm(f => ({ ...f, resultDate: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "#717182", display: "block", marginBottom: 4 }}>Notes</label>
