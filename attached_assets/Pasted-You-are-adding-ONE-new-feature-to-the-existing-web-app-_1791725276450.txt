@@ -1,0 +1,97 @@
+You are adding ONE new feature to the existing web app: "Print Patient File" (طباعة ملف المريض). Do ONLY what is described below. Do NOT refactor, redesign, rename, restyle, or "improve" anything else. Do NOT touch database/storage logic, routing, or unrelated components. Do NOT install new dependencies (use only what is already installed). Do NOT build, generate, or package any .exe / Electron / desktop build. Do NOT invent data fields: use ONLY fields that already exist in the app's data model.
+
+==================================================
+CREDIT-SAVING RULES (follow strictly)
+==================================================
+- Work in a SINGLE pass. Do not explore the whole codebase. Open only the files you need: the patient detail/profile view, the visits data/types, the translations file(s), the shared main-services list, and the app's global print/CSS entry if it exists.
+- Do NOT run the app repeatedly, do NOT take screenshots, do NOT run test loops, do NOT re-read files you already read, do NOT rewrite files you do not need to change. Do not add tests, docs, or README changes.
+- Create the minimum number of new files (ideally 2: one modal component and one print-view component, plus small helper functions inside them). Edit existing files with small targeted edits only.
+- If something is unclear, choose the simplest option consistent with this spec and keep existing behavior. Do not ask questions.
+- When done, reply ONLY with the list of files changed/created and one line per file.
+
+==================================================
+STEP 0: Inspect the existing data model (read-only, quick)
+==================================================
+Before writing code, check which of these data exist per patient and per visit in the app, and build the feature ONLY for what exists:
+- Patient basic info: name, ID number, phone, address, etc.
+- Visit info: date, service, sub-service, complaint/diagnosis, etc.
+- Vital signs, examinations/tests, treatments, notes, payments.
+Any section that does not exist in the data model must be silently omitted from the modal (no checkbox, no placeholder). Do not create new data fields or new storage.
+
+==================================================
+STEP 1: Entry point (the button)
+==================================================
+- Add a "Print Patient File" button (translated, with a printer icon from the icon library already used in the app) in the patient's detail/profile page header area, next to existing action buttons, matching existing button styling.
+- If the app has no patient detail page, add it as an action in each patient row in the Patients Records table instead.
+- Clicking it opens a modal dialog (use the app's existing modal/dialog component and styling).
+
+==================================================
+STEP 2: The modal — 4 sections + presets
+==================================================
+The modal receives the patient and that patient's visits. State is local to the modal (no persistence needed).
+
+A) PRESETS bar (top of modal, as chip/segmented buttons). Each preset only sets the checkboxes/options below, and the user can still change anything afterwards:
+   1. "Full file": all visits, all existing content sections checked, detailed layout.
+   2. "Treatments only": all visits, only treatments checked, "By type" layout.
+   3. "Tests only": all visits, only examinations/tests checked, "By type" layout.
+   4. "Vital signs only": all visits, only vital signs checked, "By type" layout.
+   5. "Last 3 visits summary": last 3 visits, patient info + visit info + treatments checked, compact table layout.
+   Omit any preset whose required section does not exist in the data model.
+
+B) VISITS SCOPE (radio group, one selected):
+   - All visits (default)
+   - Date range: two date inputs (From / To), inclusive. Validate From <= To.
+   - Last N visits: a number input (min 1, default 5), most recent first by visit date.
+   - Manual selection: a scrollable checklist of this patient's visits (date + service), with "Select all / Clear" links.
+   Plus an OPTIONAL "Service" filter (single select, default "All services") that further narrows the visits. Use the SAME shared main-services list used in the Patients Records filter and Add Visit form (do not create a copy). Selecting a main service includes all visits of its sub-services too.
+   Below the scope, show a live counter: "X visits selected" (translated). If 0, disable the Print button and show a small hint.
+
+C) CONTENT (checkboxes, only for sections that exist):
+   - Patient basic info (default checked)
+   - Visit info (date, service, complaint/diagnosis) (default checked)
+   - Vital signs
+   - Examinations / tests
+   - Treatments
+   - Notes
+   - Payments (default UNCHECKED)
+   Include "Select all / Clear all" for this group. Print is disabled if nothing is checked.
+
+D) LAYOUT (radio group):
+   - "Detailed": one card per visit, with a heading per checked section inside it.
+   - "Compact table": one row per visit, one column per checked section (values joined compactly in the cell).
+   - "By type": NO per-visit cards. For each checked content section, one single table across all selected visits sorted by date ascending (a Date column + that section's fields). For vital signs this means one table: date vs each vital measurement. Patient basic info (if checked) appears once at the top.
+   Default: Detailed.
+
+E) PAPER OPTIONS (checkboxes/selects):
+   - Include clinic header (logo + clinic name, using the existing logo and clinic name already in the app) — default checked
+   - Include signature/stamp area at the end — default unchecked
+   - Paper size: A4 (default) or A5; orientation: portrait (default) or landscape
+
+F) Footer buttons: Cancel, and "Print" (primary, green accent like the app). Print opens the print view (Step 3).
+
+==================================================
+STEP 3: Print view
+==================================================
+- Build a dedicated PrintView component that renders ONLY the selected content in the selected layout. Render it into a hidden container or a portal, then call window.print().
+- Add print CSS (@media print) so that ONLY the PrintView is printed (hide the app sidebar, modal, banners, everything else). Use @page with the chosen size and orientation (inject the @page rule dynamically from the selected options).
+- Print styling: white background, black text, no shadows, no rounded app chrome, readable font size (~11-12pt), the app's existing font. Visit cards and table rows must avoid splitting across pages (page-break-inside: avoid). Table header rows repeat on each page (thead display: table-header-group).
+- Header (if enabled): clinic logo + clinic name + document title "Patient File" + print date. Footer: page numbers are optional; skip if complex.
+- Full RTL support when the app language is Arabic, and LTR when English. Dates formatted exactly as the app already formats them.
+- Remove the print container from the DOM after printing (afterprint event).
+- Do NOT generate PDFs with any library; rely on the browser print dialog (user can "Save as PDF" from it).
+
+==================================================
+STEP 4: Translations and styling
+==================================================
+- ALL new labels (button, modal title, section names, presets, layout names, paper options, counters, hints, document title) must be added to the app's existing translation system for BOTH Arabic and English. No hardcoded text.
+- Match existing design: fonts, colors, radius, spacing, green accent, input styles, and the modal/dialog pattern already used in the app (e.g., the Vision/Mission edit modals).
+
+==================================================
+STRICT DON'Ts
+==================================================
+- No new data fields, no new storage, no backend/API changes.
+- No changes to existing pages other than adding the one button.
+- No new dependencies, no .exe/Electron/build changes.
+- No extra features (no email/share, no saved templates, no export to Excel, no charts).
+
+When done, only list the files you changed/created with one line each.

@@ -3,12 +3,13 @@ import { useLocation, useParams } from "wouter";
 import {
   Pencil, Plus, Trash2, AlertTriangle, ShieldAlert,
   Heart, Activity, Thermometer, Wind, Droplets, Droplet, Scale,
-  User, Phone, MapPin, UserCheck, Clock, X, Calendar,
+  User, Phone, MapPin, UserCheck, Clock, X, Calendar, Printer,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import AddPatientModal from "@/components/patients/AddPatientModal";
+import PrintPatientFileModal from "@/components/patients/PrintPatientFileModal";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import * as repo from "@/lib/db/repository";
 import { getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
@@ -291,6 +292,7 @@ export default function PatientProfile() {
   });
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [vitalHistoryModal, setVitalHistoryModal] = useState<string | null>(null);
@@ -540,6 +542,14 @@ export default function PatientProfile() {
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 10, flexShrink: 0, flexDirection: "row" }}>
+            <button
+              onClick={() => setShowPrintModal(true)}
+              data-testid="btn-print-patient-file"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif", flexDirection: "row" }}
+            >
+              <Printer size={15} strokeWidth={1.5} />
+              {t("printFile.button")}
+            </button>
             <button
               onClick={() => setShowEditModal(true)}
               data-testid="btn-edit-patient"
@@ -1007,6 +1017,18 @@ export default function PatientProfile() {
       )}
 
       {/* ── Modals ── */}
+      {showPrintModal && (
+        <PrintPatientFileModal
+          open={showPrintModal}
+          onClose={() => setShowPrintModal(false)}
+          patient={patient}
+          visits={patientVisits}
+          investigations={patientInvestigations}
+          treatments={patientTreatments}
+          notes={patientNotes}
+          vitals={allPatientVitals}
+        />
+      )}
       {showEditModal && (
         <AddPatientModal
           editPatient={patient}
