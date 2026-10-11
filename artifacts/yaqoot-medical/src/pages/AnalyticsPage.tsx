@@ -21,13 +21,19 @@ export default function AnalyticsPage() {
   const monthVisits = visits.filter(v => v.visitDate >= startOfMonth).length;
   const pendingPayments = visits.filter(v => v.paymentStatus === "unpaid").length;
 
-  const chartData = SERVICES
-    .filter(service => service.value !== "Other")
-    .map(service => ({
-      name: t(service.labelKey),
-      count: visits.filter(v => matchesServiceFilter(v.mainService, v.subService, service.value, "")).length,
-    }))
-    .sort((a, b) => b.count - a.count);
+  const otherService = SERVICES.find(service => service.value === "Other");
+  const visitCounts = new Map<string, number>(SERVICES.map(service => [service.value, 0] as const));
+  for (const visit of visits) {
+    const matchedService = SERVICES.find(service =>
+      service.value !== "Other" && matchesServiceFilter(visit.mainService, visit.subService, service.value, ""),
+    );
+    const service = matchedService ?? (visit.mainService?.trim() ? otherService : undefined);
+    if (service) visitCounts.set(service.value, (visitCounts.get(service.value) ?? 0) + 1);
+  }
+  const chartData = SERVICES.map(service => ({
+    name: t(service.labelKey),
+    count: visitCounts.get(service.value) ?? 0,
+  }));
 
   const kpis = [
     { key: "analytics.totalPatients", value: totalPatients, icon: Users, color: "#50C878" },

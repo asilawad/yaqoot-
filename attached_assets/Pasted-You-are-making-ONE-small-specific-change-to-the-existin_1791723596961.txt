@@ -1,0 +1,22 @@
+You are making ONE small, specific change to the existing web app. Do ONLY what is described below. Do NOT refactor, redesign, rename, restyle, or "improve" anything else. Do NOT add new features, pages, dependencies, or files unless strictly required. Do NOT touch the database/storage logic, routing, or any other component. Do NOT try to build or generate any .exe / Electron / desktop build. If something is unclear, keep the existing behavior.
+
+==================================================
+CHANGE: Unify the main-services list in the Analytics chart
+==================================================
+Page: Settings > Analytics (الإعدادات > إحصائيات العيادة), the bar chart titled "Demand by Services" (الطلب على الخدمات).
+
+PROBLEM:
+The main-services categories shown on this chart's X axis are NOT the same as the main services used in the Patients Records page (Service filter) and in the "Add Visit" form (Service field). The lists differ (different names, different set, and/or different order). They must all come from ONE shared source of truth.
+
+REQUIRED:
+1. Find the existing main-services list/constant that is used by the Patients Records Service filter and the Add Visit form. Use that SAME list (same keys/ids, same translated labels via the app's existing translation system, same order) as the categories of this chart. Do NOT create a second copy of the list. If the Analytics page currently uses its own separate list, remove it and import the shared one. If the shared list is not yet in a common place, move it to a shared location and make all three places import from it, without changing any of their behavior.
+
+2. Show ONLY main services on the chart. Do NOT display sub-services as separate bars or labels. However, each visit that belongs to a sub-service must be counted under its parent main service (so the bar for a main service = all visits whose service equals that main service, including visits registered under any of its sub-services).
+
+3. The chart must count VISITS, not patient profiles. One patient with 3 visits in the same service counts as 3. Keep this as is if it is already counting visits; fix it only if it counts unique patients.
+
+4. Every main service in the shared list must appear on the chart, including those with zero visits (bar value 0), in the same order as the shared list. Do not show categories that are not in the shared list. If some old visits have a service value that does not match any main service in the shared list, put them under the "Other" (أخرى) main service if it exists in the list; otherwise ignore them.
+
+5. Keep everything else on this page exactly as is: the 4 stat cards (total patients, total visits, this month's visits, pending payments), the chart style, colors, size, axis styling, tooltips, RTL/LTR behavior, and translations. All labels must use the app's existing translation system (no hardcoded text).
+
+When done, only list the files you changed and a one-line summary per file. Do not make any other changes.
