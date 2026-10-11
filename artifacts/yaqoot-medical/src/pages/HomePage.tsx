@@ -3,7 +3,7 @@ import { Pencil, Compass, HeartHandshake } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/hooks/use-toast";
-import { clearHomeText, getHomeText, HOME_TEXT_MAX_LENGTH, HomeTextKind, setHomeText } from "@/lib/homeContent";
+import { getHomeText, HOME_TEXT_MAX_LENGTH, HomeTextKind, setHomeText } from "@/lib/homeContent";
 
 export default function HomePage() {
   const { t, locale, isRTL } = useTranslation();
@@ -44,18 +44,6 @@ export default function HomePage() {
     const trimmed = draft.trim();
     if (editingKind === "vision") setSavedVision(trimmed || null);
     else setSavedMission(trimmed || null);
-    setEditingKind(null);
-    toast({ title: t("home.editSaved") });
-  };
-
-  const restoreDefault = () => {
-    if (!editingKind) return;
-    if (!clearHomeText(editingKind, locale)) {
-      toast({ title: t("home.editError"), variant: "destructive" });
-      return;
-    }
-    if (editingKind === "vision") setSavedVision(null);
-    else setSavedMission(null);
     setEditingKind(null);
     toast({ title: t("home.editSaved") });
   };
@@ -218,15 +206,7 @@ export default function HomePage() {
             <div style={{ textAlign: "end", color: "#9CA3AF", fontSize: 12, marginTop: 4 }}>
               {draft.length}/{HOME_TEXT_MAX_LENGTH}
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={restoreDefault}
-                data-testid="btn-home-restore-default"
-                style={{ padding: "8px 0", border: "none", background: "transparent", color: "#717182", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
-              >
-                {t("home.restoreDefault")}
-              </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   type="button"

@@ -1,16 +1,26 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Search, Plus, Calendar, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Calendar, ChevronDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Check } from "lucide-react";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import AddPatientModal from "@/components/patients/AddPatientModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Visit } from "@/lib/db/types";
 import type { Patient } from "@/lib/db/types";
 import { getLocationSearchText, getNeighborhoodLabel, getRegionLabel } from "@/lib/i18n/locationLabels";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
 import DateText from "@/components/DateText";
-import { SERVICES, getSubServices, getServiceLabel, matchesServiceFilter } from "@/lib/services";
+import { SERVICES, getServiceLabel, matchesServiceFilter } from "@/lib/services";
 
 const SERVICE_TYPES = [
   { key: "patients.allServices", value: "" },
@@ -44,6 +54,10 @@ export default function PatientList() {
   const [searchField, setSearchField] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("");
   const [subServiceFilter, setSubServiceFilter] = useState("");
+  const [serviceMenuOpen, setServiceMenuOpen] = useState(false);
+  const [openSubmenuService, setOpenSubmenuService] = useState<string | null>(null);
+  const [submenuSide, setSubmenuSide] = useState<"left" | "right" | null>(null);
+  const pointerTypeRef = useRef<string | null>(null);
   const [showAddModal, setShowAddModal]   = useState(false);
   const [sortNewestFirst, setSortNewestFirst] = useState(() => {
     const saved = localStorage.getItem("yaqoot:patientListSortNewestFirst");
@@ -78,7 +92,53 @@ export default function PatientList() {
       .filter((v) => v.patientId === patientId)
       .sort((a, b) => b.visitDate.localeCompare(a.visitDate))[0];
 
-  const filterSubServices = getSubServices(serviceFilter);
+  const selectService = (serviceValue: string, subServiceValue = "") => {
+    setServiceFilter(serviceValue);
+    setSubServiceFilter(subServiceValue);
+    setServiceMenuOpen(false);
+  };
+
+  const updateSubmenuSide = (serviceValue: string, attempt = 0) => {
+    window.requestAnimationFrame(() => {
+      const panel = Array.from(document.querySelectorAll<HTMLElement>("[data-service-submenu]"))
+        .find((element) => element.dataset.serviceSubmenu === serviceValue);
+      const side = panel?.getAttribute("data-side");
+      if (side === "left" || side === "right") {
+        setSubmenuSide(side);
+      } else if (attempt < 3) {
+        updateSubmenuSide(serviceValue, attempt + 1);
+      }
+    });
+  };
+
+  const handleSubmenuOpenChange = (serviceValue: string, open: boolean) => {
+    if (!open) {
+      setOpenSubmenuService((current) => current === serviceValue ? null : current);
+      return;
+    }
+    setOpenSubmenuService(serviceValue);
+    setSubmenuSide(isRTL ? "left" : "right");
+    updateSubmenuSide(serviceValue);
+  };
+
+  const selectedService = SERVICES.find((service) => service.value === serviceFilter);
+  const selectedSubService = selectedService?.subServices.find((sub) => sub.value === subServiceFilter);
+  const serviceTriggerLabel = !selectedService
+    ? t("patients.allServices")
+    : selectedSubService
+      ? `${t(selectedService.labelKey)} ${isRTL ? "‹" : "›"} ${t(selectedSubService.labelKey)}`
+      : t(selectedService.labelKey);
+
+  const serviceMenuItemStyle = (selected: boolean): React.CSSProperties => ({
+    minHeight: 36,
+    width: "100%",
+    whiteSpace: "nowrap",
+    fontFamily: "'Cairo', sans-serif",
+    fontSize: 13,
+    color: selected ? "#2E9F5B" : "#171717",
+    background: selected ? "#E8F5E9" : undefined,
+    cursor: "pointer",
+  });
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
@@ -373,40 +433,135 @@ export default function PatientList() {
             <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
           </div>
 
-          {/* Service filter */}
-          <div style={{ position: "relative" }}>
-            <select
-              value={serviceFilter}
-              onChange={(e) => {
-                setServiceFilter(e.target.value);
-                setSubServiceFilter("");
-              }}
-              data-testid="select-service-filter"
-              style={selectStyle}
-            >
-              {SERVICE_TYPES.map((s) => (
-                <option key={s.key} value={s.value}>{t(s.key)}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-          </div>
-          {filterSubServices.length > 0 && (
-            <div style={{ position: "relative" }}>
-              <select
-                value={subServiceFilter}
-                onChange={e => setSubServiceFilter(e.target.value)}
-                data-testid="select-subservice-filter"
-                style={selectStyle}
+          {/* Cascading service filter */}
+          <DropdownMenu
+            open={serviceMenuOpen}
+            onOpenChange={(open) => {
+              setServiceMenuOpen(open);
+              if (!open) {
+                pointerTypeRef.current = null;
+                setOpenSubmenuService(null);
+                setSubmenuSide(null);
+              }
+            }}
+            dir={isRTL ? "rtl" : "ltr"}
+          >
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={t("patients.serviceType")}
+                title={serviceTriggerLabel}
+                data-testid="select-service-filter"
+                style={{
+                  ...selectStyle,
+                  width: 210,
+                  height: 38,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  paddingInlineEnd: 12,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
-                <option value="">{t("patients.allSubServices")}</option>
-                {filterSubServices.map(sub => (
-                  <option key={sub.value} value={sub.value}>{t(sub.labelKey)}</option>
-                ))}
-                <option value="Other">{t("service.other")}</option>
-              </select>
-              <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "#717182", pointerEvents: "none" }} />
-            </div>
-          )}
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "start" }}>
+                  {serviceTriggerLabel}
+                </span>
+                <ChevronDown size={14} style={{ flexShrink: 0, color: "#717182" }} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              side="bottom"
+              collisionPadding={8}
+              style={{ width: 210, maxHeight: "min(70vh, 420px)", overflowY: "auto", fontFamily: "'Cairo', sans-serif" }}
+            >
+              {SERVICE_TYPES.map((serviceOption) => {
+                const service = SERVICES.find((item) => item.value === serviceOption.value);
+                const isWholeServiceSelected = serviceFilter === serviceOption.value && !subServiceFilter;
+
+                if (!service || service.subServices.length === 0) {
+                  return (
+                    <DropdownMenuItem
+                      key={serviceOption.key}
+                      onSelect={() => selectService(serviceOption.value)}
+                      style={serviceMenuItemStyle(isWholeServiceSelected)}
+                    >
+                      {t(serviceOption.key)}
+                      {isWholeServiceSelected && <Check size={15} aria-hidden="true" style={{ marginInlineStart: "auto", flexShrink: 0 }} />}
+                    </DropdownMenuItem>
+                  );
+                }
+
+                return (
+                  <DropdownMenuSub
+                    key={serviceOption.key}
+                    open={openSubmenuService === service.value}
+                    onOpenChange={(open) => handleSubmenuOpenChange(service.value, open)}
+                  >
+                    <DropdownMenuPrimitive.SubTrigger
+                      className="relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-[#E8F5E9] focus:text-[#2E9F5B] data-[state=open]:bg-[#E8F5E9]"
+                      onPointerDown={(event) => {
+                        pointerTypeRef.current = event.pointerType;
+                      }}
+                      onClick={(event) => {
+                        const pointerType = pointerTypeRef.current;
+                        pointerTypeRef.current = null;
+                        if (pointerType === "touch") return;
+                        event.preventDefault();
+                        selectService(service.value);
+                      }}
+                      style={serviceMenuItemStyle(isWholeServiceSelected)}
+                    >
+                      {t(service.labelKey)}
+                      {isWholeServiceSelected && <Check size={15} aria-hidden="true" style={{ marginInlineStart: "auto", flexShrink: 0 }} />}
+                      {openSubmenuService === service.value && (submenuSide ?? (isRTL ? "left" : "right")) === "left"
+                        ? <ChevronLeft size={15} aria-hidden="true" style={{ flexShrink: 0 }} />
+                        : <ChevronRight size={15} aria-hidden="true" style={{ marginInlineStart: isWholeServiceSelected ? undefined : "auto", flexShrink: 0 }} />}
+                    </DropdownMenuPrimitive.SubTrigger>
+                    <DropdownMenuSubContent
+                      align="start"
+                      sideOffset={-3}
+                      collisionPadding={8}
+                      data-service-submenu={service.value}
+                      style={{
+                        width: 260,
+                        maxWidth: "calc(100vw - 16px)",
+                        maxHeight: "min(70vh, 420px)",
+                        overflowY: "auto",
+                        fontFamily: "'Cairo', sans-serif",
+                      }}
+                    >
+                      <DropdownMenuItem
+                        onSelect={() => selectService(service.value)}
+                        style={serviceMenuItemStyle(isWholeServiceSelected)}
+                      >
+                        {t("patients.allSubServices")}
+                        {isWholeServiceSelected && <Check size={15} aria-hidden="true" style={{ marginInlineStart: "auto", flexShrink: 0 }} />}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {service.subServices.map((subService) => {
+                        const isSubServiceSelected =
+                          serviceFilter === service.value && subServiceFilter === subService.value;
+                        return (
+                          <DropdownMenuItem
+                            key={subService.value}
+                            onSelect={() => selectService(service.value, subService.value)}
+                            style={serviceMenuItemStyle(isSubServiceSelected)}
+                          >
+                            {t(subService.labelKey)}
+                            {isSubServiceSelected && <Check size={15} aria-hidden="true" style={{ marginInlineStart: "auto", flexShrink: 0 }} />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {showDateFilter && (

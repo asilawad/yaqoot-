@@ -34,15 +34,6 @@ export function setHomeText(kind: HomeTextKind, locale: HomeLocale, text: string
   }
 }
 
-export function clearHomeText(kind: HomeTextKind, locale: HomeLocale): boolean {
-  try {
-    localStorage.removeItem(storageKey(kind, locale));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function exportHomeContent(): Record<string, string> {
   const result: Record<string, string> = {};
   for (const kind of kinds) {

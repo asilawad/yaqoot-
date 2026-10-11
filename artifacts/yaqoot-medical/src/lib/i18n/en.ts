@@ -31,7 +31,6 @@ export const en = {
   'home.edit': 'Edit',
   'home.editVision': 'Edit Vision',
   'home.editMission': 'Edit Mission',
-  'home.restoreDefault': 'Restore default text',
   'home.editLangNote': 'You are editing the English text. Switch the app language to edit the Arabic text.',
   'home.editSaved': 'Changes saved',
   'home.editError': 'Unable to save changes.',

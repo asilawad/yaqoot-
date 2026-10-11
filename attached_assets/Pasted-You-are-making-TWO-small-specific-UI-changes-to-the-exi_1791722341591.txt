@@ -1,0 +1,48 @@
+You are making TWO small, specific UI changes to the existing web app. Do ONLY what is described below. Do NOT refactor, redesign, rename, restyle, or "improve" anything else. Do NOT add new features, new pages, new dependencies (unless absolutely unavoidable), or new files unless strictly required for these changes. Do NOT try to build, generate, or package any .exe / Electron / desktop build. Do NOT touch the database/storage logic, routing, translations unrelated to these changes, or any other component. If something is unclear, keep the existing behavior.
+
+==================================================
+CHANGE 1: Remove the "Restore default text" button
+==================================================
+In the Home page, there are two edit modals: "Edit Vision" (تعديل الرؤية) and "Edit Mission" (تعديل الرسالة). Each has a button/link labeled "استعادة النص الافتراضي" (English: restore default text) at the bottom, on the opposite side from the Cancel/Save buttons.
+
+- Remove this button from BOTH modals completely.
+- Also remove its click handler, and any translation keys / state / helper function that are used ONLY by this button (dead code cleanup for this button only).
+- Keep Cancel and Save buttons exactly as they are, same behavior and styling. Keep the layout of the modal footer clean after removal (Cancel/Save stay aligned as before).
+- Do not change anything else in these modals.
+
+==================================================
+CHANGE 2: Patients Records page — convert the Service filter into a cascading (flyout) dropdown
+==================================================
+Page: Patients Records (سجل المرضى), the filters row above the table.
+
+CURRENT (wrong) behavior:
+- There is a "Service" (الخدمة) dropdown. When the user selects a service that has sub-services (e.g. "النساء والولادة"), a SECOND dropdown labeled "Sub-service" (الخدمة الفرعية) appears in the filters row, which changes the layout/shape of the whole filter row. This is impractical and must be removed.
+
+REQUIRED behavior:
+Replace the two-dropdown approach with ONE single custom dropdown (cascading menu / flyout submenu) for Service:
+
+1. The filters row must NEVER change its layout, size, or number of elements when a service or sub-service is selected. Remove the separate "Sub-service" dropdown entirely. The Service dropdown trigger keeps a fixed width/height at all times (use text truncation with ellipsis if the selected label is long).
+
+2. The dropdown list shows the main services (same options and same order as now, including the default "all" option at the top, e.g. "الخدمة"/"Service").
+
+3. Any main service that HAS sub-services must show a small chevron/arrow icon on its row to indicate it has a submenu. In RTL (Arabic) the arrow points LEFT (toward where the submenu opens); in LTR (English) it points RIGHT. Services WITHOUT sub-services show no arrow.
+
+4. On mouse hover over a main service that has sub-services, a second panel (flyout submenu) pops out next to it, aligned vertically with the hovered row, showing that service's sub-services. In RTL the submenu opens to the left of the main list; in LTR it opens to the right. The submenu must stay open while the mouse moves from the parent row into the submenu (no flicker/closing in the gap — use a small close delay or an overlapping/bridged hover area). If there is not enough screen space on that side, flip it to the other side. If the submenu is taller than the viewport, make it scrollable (max-height with overflow-y auto).
+
+5. Selection behavior:
+   - Clicking a main service WITHOUT sub-services selects it and closes the dropdown.
+   - Clicking a main service WITH sub-services selects the whole service (all of its sub-services, i.e. no sub-service filter) and closes the dropdown.
+   - Clicking a sub-service in the flyout selects that specific sub-service (and implicitly its parent service) and closes the whole dropdown.
+   - The trigger button label shows: the main service name if only the main service is selected, or "Main service › Sub-service" (use the proper direction-aware separator for RTL/LTR) if a sub-service is selected. Show the default placeholder when nothing is selected.
+
+6. Filtering logic: keep the existing filtering logic and data model exactly as is (service field + sub-service field on patients). Only the UI control changes; it must set the same filter values the two old dropdowns set. The results counter ("Showing X of Y patients") and table behavior must keep working exactly as before. Selecting the default option resets both service and sub-service filters.
+
+7. Touch/mobile support: on touch devices there is no hover, so tapping a main service that has sub-services should expand/open its submenu (tap again or tap a "select whole service" option at the top of the submenu to choose the parent itself). Keep it simple.
+
+8. Basic accessibility: close on outside click and on Escape, keyboard navigation with arrow keys (Up/Down to move, Right/Left in the correct direction for RTL/LTR to open/close the submenu, Enter to select).
+
+9. Styling: match the existing design of the app (same fonts, colors, border radius, shadows, green accent for hover/selected state, same height as the other filter controls). It must work correctly in both Arabic (RTL) and English (LTR) language modes of the app, and all labels must use the app's existing translation system (no hardcoded text).
+
+10. Do not use a native <select> for this control (native selects cannot show flyout submenus). Build it as a custom dropdown component, or use a library already installed in the project (e.g. an existing Radix/shadcn DropdownMenu with Sub menus) if one is already present — do not install new libraries if one already exists.
+
+When done, only list the files you changed and a one-line summary per file. Do not make any other changes.
