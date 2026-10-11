@@ -22,6 +22,7 @@ interface DataContextType {
   deletePatient: (id: string) => Promise<void>;
   createVisit: (data: Omit<Visit, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Visit>;
   updateVisit: (id: string, data: Partial<Visit>) => Promise<Visit>;
+  deleteVisit: (id: string) => Promise<void>;
   createTreatment: (data: Omit<Treatment, 'id' | 'createdAt'>) => Promise<Treatment>;
   updateTreatment: (id: string, data: Partial<Treatment>) => Promise<Treatment>;
   deleteTreatment: (id: string) => Promise<void>;
@@ -175,6 +176,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     deletePatient: wrap(repo.deletePatient),
     createVisit: wrap(repo.createVisit),
     updateVisit: wrap(repo.updateVisit),
+    deleteVisit: wrap(repo.deleteVisit),
     createTreatment: wrap(repo.createTreatment, { scope: 'treatments', action: 'upsert' }),
     updateTreatment: wrap(repo.updateTreatment, { scope: 'treatments', action: 'upsert' }),
     deleteTreatment: wrap(repo.deleteTreatment, { scope: 'treatments', action: 'delete' }),

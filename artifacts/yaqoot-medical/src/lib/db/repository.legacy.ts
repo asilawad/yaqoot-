@@ -100,6 +100,12 @@ export const updateVisit = (id: string, data: Partial<Visit>): Visit => {
   saveList(KEYS.VISITS, visits);
   return visits[index];
 };
+export const deleteVisit = (id: string): void => {
+  saveList(KEYS.VISITS, getList<Visit>(KEYS.VISITS).filter(visit => visit.id !== id));
+  saveList(KEYS.TREATMENTS, getList<Treatment>(KEYS.TREATMENTS).filter(item => item.visitId !== id));
+  saveList(KEYS.INVESTIGATIONS, getList<Investigation>(KEYS.INVESTIGATIONS).filter(item => item.visitId !== id));
+  saveList(KEYS.VITALS, getList<VitalSigns>(KEYS.VITALS).filter(item => item.visitId !== id));
+};
 
 // Treatments
 export const getTreatmentsByVisit = (visitId: string): Treatment[] => getList<Treatment>(KEYS.TREATMENTS).filter(t => t.visitId === visitId);

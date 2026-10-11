@@ -146,6 +146,11 @@ export const ar = {
   'visit.investigations': 'الفحوصات',
   'visit.vitals': 'المؤشرات الحيوية',
   'visit.printPrescription': 'طباعة الروشتة',
+  'visit.delete': 'حذف الزيارة',
+  'visit.deleteConfirmTitle': 'حذف هذه الزيارة؟',
+  'visit.deleteConfirmMessage': 'هل أنت متأكد أنك تريد حذف هذه الزيارة نهائيًا؟ سيتم حذف العلاجات والفحوصات والعلامات الحيوية المرتبطة بها أيضًا. لا يمكن التراجع عن هذا الإجراء.',
+  'visit.deleteSuccess': 'تم حذف الزيارة',
+  'visit.deleteError': 'تعذر حذف الزيارة.',
   'visit.success': 'تم حفظ الزيارة بنجاح',
 
   // Settings

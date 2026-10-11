@@ -275,6 +275,13 @@ export async function updateVisit(id: string, data: Partial<Visit>): Promise<Vis
   return visit;
 }
 
+export async function deleteVisit(id: string): Promise<void> {
+  const state = await ready();
+  if (state.legacy) return state.legacy.deleteVisit(id);
+  // Treatments, investigations, and vitals cascade through their visit foreign keys.
+  await executeSqlTransaction([{ sql: 'DELETE FROM visits WHERE id=?', values: [id] }]);
+}
+
 export async function getTreatmentsByVisit(visitId: string): Promise<Treatment[]> {
   const state = await ready();
   if (state.legacy) return state.legacy.getTreatmentsByVisit(visitId);

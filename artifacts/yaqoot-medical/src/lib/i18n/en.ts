@@ -146,6 +146,11 @@ export const en = {
   'visit.investigations': 'Investigations',
   'visit.vitals': 'Vital Signs',
   'visit.printPrescription': 'Print Prescription',
+  'visit.delete': 'Delete Visit',
+  'visit.deleteConfirmTitle': 'Delete this visit?',
+  'visit.deleteConfirmMessage': 'Are you sure you want to permanently delete this visit? Its treatments, investigations and vital signs will be deleted too. This cannot be undone.',
+  'visit.deleteSuccess': 'Visit deleted',
+  'visit.deleteError': 'Unable to delete visit.',
   'visit.success': 'Visit saved successfully',
 
   // Settings

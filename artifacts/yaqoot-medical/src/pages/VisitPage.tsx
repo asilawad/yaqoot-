@@ -49,7 +49,7 @@ export default function VisitPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string; visitId?: string }>();
-  const { patients, createVisit, updateVisit, createTreatment, updateTreatment, deleteTreatment, createInvestigation, updateInvestigation, deleteInvestigation, createVitalSigns, refreshData, vitalSettings, error } = useData();
+  const { patients, createVisit, updateVisit, deleteVisit, createTreatment, updateTreatment, deleteTreatment, createInvestigation, updateInvestigation, deleteInvestigation, createVitalSigns, refreshData, vitalSettings, error } = useData();
   const { toast } = useToast();
   const isNew = !params.visitId;
   const [existingVisit, setExistingVisit] = useState<Visit | undefined>(undefined);
@@ -78,6 +78,8 @@ export default function VisitPage() {
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [vitals, setVitals] = useState<VitalSigns | undefined>(undefined);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [showDeleteVisitConfirm, setShowDeleteVisitConfirm] = useState(false);
+  const [isDeletingVisit, setIsDeletingVisit] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +174,23 @@ export default function VisitPage() {
       toast({ title: t("visit.success") });
       setLocation(`/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`);
     } catch { setPageError(t("visit.saveError")); }
+  };
+
+  const handleDeleteVisit = async () => {
+    if (!visitId || isDeletingVisit) return;
+    setIsDeletingVisit(true);
+    const returnUrl = `/patients/${patientId}${returnTab ? `?tab=${returnTab}` : ""}`;
+    try {
+      await deleteVisit(visitId);
+      setShowDeleteVisitConfirm(false);
+      setPageError(null);
+      toast({ title: t("visit.deleteSuccess") });
+      setLocation(returnUrl);
+    } catch {
+      setShowDeleteVisitConfirm(false);
+      setIsDeletingVisit(false);
+      setPageError(t("visit.deleteError"));
+    }
   };
 
   // Treatments
@@ -303,6 +322,16 @@ export default function VisitPage() {
             <Printer size={16} />
             {t("visit.printPrescription")}
           </button>
+          {visitId && (
+            <button
+              onClick={() => setShowDeleteVisitConfirm(true)}
+              data-testid="btn-delete-visit"
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, border: "1px solid #ef4444", background: "#FEE2E2", color: "#b91c1c", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}
+            >
+              <Trash2 size={16} />
+              {t("visit.delete")}
+            </button>
+          )}
           <button
             onClick={handleSave}
             data-testid="btn-save-visit"
@@ -574,6 +603,40 @@ export default function VisitPage() {
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
               <button onClick={() => setShowVitalsModal(false)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.cancel")}</button>
               <button onClick={handleSaveVitals} data-testid="btn-save-vitals-visit" style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#50C878", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif" }}>{t("common.save")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Visit Confirmation */}
+      {showDeleteVisitConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-testid="dialog-delete-visit"
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, direction: isRTL ? "rtl" : "ltr" }}
+        >
+          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <AlertTriangle size={28} color="#ef4444" style={{ margin: "0 auto 12px" }} />
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>{t("visit.deleteConfirmTitle")}</div>
+            <div style={{ fontSize: 13, color: "#717182", lineHeight: 1.6, marginBottom: 22 }}>{t("visit.deleteConfirmMessage")}</div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => setShowDeleteVisitConfirm(false)}
+                disabled={isDeletingVisit}
+                data-testid="btn-cancel-delete-visit"
+                style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F1F1F1", background: "#F9FAFB", fontSize: 13, cursor: isDeletingVisit ? "not-allowed" : "pointer", fontFamily: "'Cairo', sans-serif" }}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={handleDeleteVisit}
+                disabled={isDeletingVisit}
+                data-testid="btn-confirm-delete-visit"
+                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 600, cursor: isDeletingVisit ? "not-allowed" : "pointer", fontFamily: "'Cairo', sans-serif", opacity: isDeletingVisit ? 0.6 : 1 }}
+              >
+                {t("visit.delete")}
+              </button>
             </div>
           </div>
         </div>

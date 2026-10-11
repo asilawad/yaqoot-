@@ -1,0 +1,75 @@
+TASK: Add a "Delete Visit" feature strictly inside the Visit Details screen of the Yaqoot clinic app, with full English/Arabic (RTL) support. Work only in artifacts/yaqoot-medical/src. Do not touch the Rust/Tauri code, the SQL migrations, the API server, or any other page. Keep the change minimal and consistent with the existing inline-style code in the project.
+
+CONTEXT (already verified in the codebase)
+- SQLite schema (src-tauri/migrations/001_initial.sql): treatments, investigations and vitals each have visitId REFERENCES visits(id) ON DELETE CASCADE, and PRAGMA foreign_keys is ON. So deleting one row from visits automatically removes its treatments, investigations and vitals. Do NOT add manual child deletes for the SQLite path.
+- The localStorage fallback (lib/db/repository.legacy.ts) has no cascade, so it must remove child records manually.
+- There is currently no deleteVisit anywhere (repository, legacy repository, or DataContext).
+- DataContext's wrap() helper refreshes data after a mutation. Do not pass a scoped-mutation argument for deleteVisit. Use plain wrap() so a full refreshData() runs and the Patient Profile list updates.
+
+STEP 1 – lib/db/repository.ts
+Add an exported async function deleteVisit(id: string): Promise<void>. Place it right after updateVisit. Follow the same pattern as deletePatient: call ready(); if state.legacy exists, return state.legacy.deleteVisit(id); otherwise run executeSqlTransaction with a single statement deleting from visits where id equals the given id. Add a short comment that the child tables cascade through the foreign keys.
+
+STEP 2 – lib/db/repository.legacy.ts
+Add an exported deleteVisit(id: string): void, placed next to deletePatient. It should use the existing getList/saveList helpers and KEYS constants to filter out: the visit with that id from KEYS.VISITS, and the records whose visitId equals that id from KEYS.TREATMENTS, KEYS.INVESTIGATIONS and KEYS.VITALS. Do not touch KEYS.PATIENTS or KEYS.NOTES.
+
+STEP 3 – contexts/DataContext.tsx
+a) In the DataContextType interface, add deleteVisit: (id: string) => Promise<void>, right after updateVisit.
+b) In contextValue, add deleteVisit: wrap(repo.deleteVisit), right after updateVisit. No scoped-mutation argument.
+
+STEP 4 – i18n (lib/i18n/en.ts and lib/i18n/ar.ts)
+Add exactly these five keys in both files, next to the existing 'visit.printPrescription' entry. Keep key names identical in both files.
+- 'visit.delete'
+  EN: Delete Visit
+  AR: حذف الزيارة
+- 'visit.deleteConfirmTitle'
+  EN: Delete this visit?
+  AR: حذف هذه الزيارة؟
+- 'visit.deleteConfirmMessage'
+  EN: Are you sure you want to permanently delete this visit? Its treatments, investigations and vital signs will be deleted too. This cannot be undone.
+  AR: هل أنت متأكد أنك تريد حذف هذه الزيارة نهائيًا؟ سيتم حذف العلاجات والفحوصات والعلامات الحيوية المرتبطة بها أيضًا. لا يمكن التراجع عن هذا الإجراء.
+- 'visit.deleteSuccess'
+  EN: Visit deleted
+  AR: تم حذف الزيارة
+- 'visit.deleteError'
+  EN: Unable to delete visit.
+  AR: تعذر حذف الزيارة.
+Reuse the existing 'common.cancel' key for the Cancel button. Reuse 'visit.delete' as the confirm button label. Do not add other keys.
+
+STEP 5 – pages/VisitPage.tsx
+a) Destructure deleteVisit from useData() alongside updateVisit. Trash2 and AlertTriangle are already imported from lucide-react.
+b) Add two state variables: one boolean controlling modal visibility, and one boolean for "deleting in progress" to block double clicks.
+c) Add a handler that does the following:
+   - Return early if there is no saved visitId or a delete is already in progress.
+   - Set the in-progress flag.
+   - Before deleting, compute the return URL exactly like handleSave does: the patient profile route /patients/<patientId>, plus ?tab=<returnTab> when returnTab exists.
+   - Await deleteVisit(visitId).
+   - On success: close the modal, clear pageError, show a toast with t("visit.deleteSuccess"), and call setLocation with the return URL.
+   - On failure (catch): close the modal, reset the in-progress flag, and set pageError to t("visit.deleteError"). Do not navigate. The user stays on the visit page, where the existing pageError banner at the top already displays errors.
+d) Button: in the top action bar (the flex container holding the Print Prescription and Save buttons), insert a Delete Visit button BEFORE the Save button. Render it only when visitId is truthy, so it is hidden on new unsaved visits. This must use the saved visitId state, not the isNew flag, because a new visit becomes saved once a treatment/investigation/vitals entry creates it.
+   - Style it like the Print Prescription button but red: border #ef4444, background #FEE2E2, text #b91c1c, same padding, font size 13, weight 700, Cairo font.
+   - Content: Trash2 icon (size 16) plus t("visit.delete"). Add data-testid="btn-delete-visit".
+   - Clicking it only opens the modal.
+e) Modal: add a new confirmation modal, separate from the existing generic one at the bottom of the file. Leave the existing "Delete Confirmations" block (treatments/investigations, hardcoded "Confirm Delete?") untouched. Render the new modal just above it. Match its look: fixed full-screen overlay rgba(0,0,0,0.5), z-index 9999, white card with border radius 16, padding 32, max width about 400, centered text, direction set from isRTL as the existing modal does. Contents:
+   - AlertTriangle icon (red)
+   - Title: t("visit.deleteConfirmTitle") (bold)
+   - Body: t("visit.deleteConfirmMessage") (smaller grey text, comfortable line height)
+   - Cancel button (common.cancel) that only closes the modal, with data-testid="btn-cancel-delete-visit"
+   - Red confirm button (visit.delete) that runs the handler, with data-testid="btn-confirm-delete-visit". Both buttons must be disabled while the delete is in progress.
+   - Add role="dialog", aria-modal="true" and data-testid="dialog-delete-visit" on the overlay.
+f) RTL check: confirm how direction is applied (look at LocaleContext and where document dir is set) and verify that in Arabic the action bar order, the gap between buttons, and the icon-before-text order in the Delete button all mirror naturally. The trash icon is symmetric, so it needs no flipping. If the header row has a hardcoded flexDirection that breaks RTL, make the minimal fix only for the buttons group. Do not restyle anything else.
+
+STEP 6 – Verification (do these, report results briefly)
+1. Run the TypeScript type check for the yaqoot-medical package and fix any errors introduced by this change.
+2. Confirm en.ts and ar.ts contain the same five new keys.
+3. Manually confirm in the running app (English and Arabic):
+   - Open an existing visit: the red Delete Visit button appears. Open a brand-new visit (before saving): it does not appear.
+   - Cancel closes the modal and changes nothing.
+   - Confirm deletes the visit, shows the success toast, and returns to the Patient Profile (same tab as before), where the visit is gone but the patient and their other visits remain.
+   - Treatments, investigations and vitals of the deleted visit no longer exist (check SQLite mode; also the localStorage fallback if reachable).
+   - Simulated failure (e.g. temporarily make the repository throw): the modal closes, the error banner shows, and the user stays on the visit page.
+
+CONSTRAINTS
+- Do not delete or alter patient records, and do not modify PatientProfile.tsx, the print view, or the settings/data-management pages.
+- Do not add new dependencies, and do not add any generic confirm-dialog abstraction.
+- Do not rename existing keys or refactor unrelated code.
+- When finished, reply with a short list of the files changed and the verification results only.
