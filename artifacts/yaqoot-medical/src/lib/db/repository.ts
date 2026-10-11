@@ -11,6 +11,7 @@ import { defaultVitalSettings } from './vitalDefaults';
 import { getDatabase } from './database';
 import { migrateLegacyDataIfNeeded } from './migrateFromLocalStorage';
 import { executeSqlTransaction, SqlStatement } from './transaction';
+import { exportHomeContent, importHomeContent } from '../homeContent';
 
 type Legacy = typeof import('./repository.legacy');
 type Database = Awaited<ReturnType<typeof getDatabase>>;
@@ -506,6 +507,7 @@ export async function exportData(): Promise<string> {
     vitals,
     notes,
     settings,
+    homeContent: exportHomeContent(),
   });
 }
 
@@ -517,6 +519,7 @@ type ImportData = {
   vitals?: unknown;
   notes?: unknown;
   settings?: unknown;
+  homeContent?: unknown;
 };
 
 function importRows(value: unknown, key: string): Record<string, unknown>[] {
@@ -572,6 +575,9 @@ export async function importData(jsonData: string): Promise<void> {
   statements.push(...importedStatements('notes', noteColumns, rows.notes));
   statements.push(...importedStatements('settings', settingColumns, rows.settings));
   await executeSqlTransaction(statements);
+  if (data.homeContent !== undefined) {
+    try { importHomeContent(data.homeContent); } catch { /* never fail a restore because of this */ }
+  }
 }
 
 export async function seedInitialData(): Promise<void> {

@@ -545,3 +545,8 @@
     background: #ffffff;
   }
 }
+
+.home-edit-card { position: relative; }
+.home-edit-btn { position: absolute; top: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity 0.15s ease; }
+.home-edit-card:hover .home-edit-btn, .home-edit-btn:focus-visible { opacity: 1; }
+@media (hover: none) { .home-edit-btn { opacity: 0.6; } }

@@ -28,6 +28,13 @@ export const ar = {
   'home.visionText': 'خدمة صحية متكاملة تصل لكل بيت في قطاع غزة',
   'home.missionTitle': 'الرسالة',
   'home.missionText': 'رعاية صحية منزلية متكاملة، وتثقيف صحي لجميع أفراد الأسرة بفريق طبي يتميّز بالمهنية والخبرة والكفاءة التقنية.',
+  'home.edit': 'تعديل',
+  'home.editVision': 'تعديل الرؤية',
+  'home.editMission': 'تعديل الرسالة',
+  'home.restoreDefault': 'استعادة النص الافتراضي',
+  'home.editLangNote': 'أنت تعدّل النص العربي. بدّل لغة التطبيق لتعديل النص الإنجليزي.',
+  'home.editSaved': 'تم حفظ التعديلات',
+  'home.editError': 'تعذر حفظ التعديلات.',
 
   // Patient List
   'patients.title': 'سجل المرضى',

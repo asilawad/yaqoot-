@@ -28,6 +28,13 @@ export const en = {
   'home.visionText': 'Comprehensive healthcare that reaches every home in the Gaza Strip',
   'home.missionTitle': 'Mission',
   'home.missionText': 'Comprehensive home healthcare and health education for every family member, delivered by a medical team distinguished by professionalism, experience, and technical competence.',
+  'home.edit': 'Edit',
+  'home.editVision': 'Edit Vision',
+  'home.editMission': 'Edit Mission',
+  'home.restoreDefault': 'Restore default text',
+  'home.editLangNote': 'You are editing the English text. Switch the app language to edit the Arabic text.',
+  'home.editSaved': 'Changes saved',
+  'home.editError': 'Unable to save changes.',
 
   // Patient List
   'patients.title': 'Patient Directory',

@@ -1,5 +1,6 @@
 import { Patient, Visit, Treatment, Investigation, VitalSigns, QuickNote, VitalThreshold } from './types';
 import { defaultVitalSettings } from './vitalDefaults';
+import { exportHomeContent, importHomeContent } from '../homeContent';
 
 // Keys
 const KEYS = {
@@ -209,6 +210,7 @@ export const exportData = () => {
     vitals: getList(KEYS.VITALS),
     notes: getList(KEYS.NOTES),
     settings: getList(KEYS.SETTINGS)
+    ,homeContent: exportHomeContent(),
   });
 };
 
@@ -221,6 +223,9 @@ export const importData = (jsonData: string) => {
   if (data.vitals) saveList(KEYS.VITALS, data.vitals);
   if (data.notes) saveList(KEYS.NOTES, data.notes);
   if (data.settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.settings));
+  if (data.homeContent !== undefined) {
+    try { importHomeContent(data.homeContent); } catch {}
+  }
 };
 
 // Seeding

@@ -1,0 +1,85 @@
+CRITICAL CONSTRAINT (read first):
+You MUST ONLY apply the code changes below, run `pnpm run typecheck`, and perform a quick verification. You MUST NOT attempt to build, compile, or package the final desktop application (Tauri / Windows installer / executable). Final desktop compilation is performed exclusively on the local Windows environment.
+
+TASK (one combined change, strictly additive):
+(A) Make the Vision (الرؤية) and Mission (الرسالة) card texts on the HomePage editable (pencil trigger + edit modal), persisted so they survive reloads and app restarts, with the current static texts as fallbacks.
+(B) Include the edited texts in the app's backup/restore (export and import) so they are not lost when moving to another machine or restoring a backup.
+Work only inside artifacts/yaqoot-medical/src.
+
+NON-REGRESSION RULES (highest priority; if any step conflicts with these, these win)
+1. Additive only. Do not rename, delete, reorder, or change the signature/return type of any existing function, type, export, i18n key, CSS rule, or component prop.
+2. Do NOT touch: src-tauri/ (including migrations and lib.rs), the SQLite schema, the `settings` table or getVitalSettings/saveVitalSettings, contexts/DataContext.tsx, lib/db/secureBackup.ts, lib/security/crypto.ts, the Factory Reset logic (clearAllPatientData / DataManagementPage), the prescription print view, or any page other than HomePage.tsx.
+3. Backup compatibility: the existing backup JSON keys (patients, visits, treatments, investigations, vitals, notes, settings) must stay byte-for-byte unchanged in shape. The new data goes in ONE new optional top-level key named `homeContent`. Old backups (made before this change, with no `homeContent` key) must still restore exactly as they do today, and must leave the user's current Vision/Mission untouched. The new key must NEVER be added to the required-key validation in importRows/importData, and handling it must NEVER be able to make a restore fail (wrap it in try/catch and ignore bad data).
+4. The SQL transaction in the SQLite importData path must remain the only thing that decides success/failure of a restore. Apply homeContent only AFTER `await executeSqlTransaction(statements)` has succeeded.
+5. Do not add dependencies. Do not add a database table or migration.
+6. New CSS class names are namespaced (`.home-edit-*`) and are appended at the END of src/index.css only.
+
+CONTEXT (already verified)
+- HomePage.tsx renders two <section style={cardStyle}> cards; the texts come from t("home.visionText") / t("home.missionText"), defined in src/lib/i18n/en.ts and ar.ts (~lines 28 and 30). They stay as the fallbacks.
+- The SQLite `settings` table is the vital-signs thresholds table (fixed columns; saveVitalSettings does DELETE + re-insert; it is part of the backup). Do NOT reuse it.
+- Storage choice: localStorage, following the existing pattern (LocaleContext uses 'yaqoot_locale'; PatientList uses "yaqoot:patientListSortNewestFirst"). Use the key prefix `yaqoot:home:` (with a colon). This prefix is intentionally different from the `yaqoot_` prefix used by the legacy data store and counted by getStorageSize(), so nothing else reads, migrates, or counts these keys. Nothing in the codebase removes localStorage keys by prefix (verified).
+- Backup flow: all backup/restore flows go through repository.exportData() and repository.importData() (via lib/db/secureBackup.ts, which just encrypts/decrypts the same JSON string, so a new key flows through automatically). There are two implementations of each: SQLite path in lib/db/repository.ts and localStorage fallback in lib/db/repository.legacy.ts (the Replit preview may run in the legacy mode). Both must be updated.
+- Existing modals are inline-styled fixed overlays (rgba(0,0,0,0.5), zIndex 9999, white card, borderRadius 16, direction from isRTL). Toasts: useToast from "@/hooks/use-toast".
+
+STEP 1 – Create src/lib/homeContent.ts (pure TS, no React)
+- export const HOME_TEXT_MAX_LENGTH = 600; export type HomeTextKind = "vision" | "mission"; export type HomeLocale = "ar" | "en".
+- Storage key for a text: `yaqoot:home:${kind}:${locale}` (e.g. "yaqoot:home:vision:ar"). Texts are stored PER LANGUAGE.
+- getHomeText(kind, locale): string | null — saved trimmed text or null if missing/empty.
+- setHomeText(kind, locale, text): boolean — trims; empty after trim removes the key (restores default) and returns true; otherwise saves. Returns false if localStorage throws.
+- clearHomeText(kind, locale): boolean — removes the key; false if it throws.
+- exportHomeContent(): Record<string, string> — returns an object containing ONLY the saved entries, keyed "vision:ar", "vision:en", "mission:ar", "mission:en" (so it is `{}` when nothing was customized).
+- importHomeContent(value: unknown): void — if value is not a plain object, do nothing. Otherwise, for each of the four allowed keys: first remove the local key, then if value[key] is a string whose trim is non-empty and length <= HOME_TEXT_MAX_LENGTH, save the trimmed string. Ignore any other keys. Never throw (wrap in try/catch). Semantics: when a backup contains `homeContent`, the app state after restore equals the backup's state.
+- Every localStorage access wrapped in try/catch.
+
+STEP 2 – Backup integration (additive edits only)
+a) lib/db/repository.ts
+   - Add: import { exportHomeContent, importHomeContent } from '../homeContent';
+   - exportData (SQLite path): add ONE property `homeContent: exportHomeContent()` as the LAST property of the object passed to JSON.stringify. Do not touch the other properties.
+   - ImportData type: add an optional field `homeContent?: unknown;`.
+   - importData (SQLite path): leave all validation, the DELETE loop and the INSERT statements exactly as they are. Immediately AFTER `await executeSqlTransaction(statements);` add: `if (data.homeContent !== undefined) { try { importHomeContent(data.homeContent); } catch { /* never fail a restore because of this */ } }`.
+b) lib/db/repository.legacy.ts
+   - Add the same import (relative path '../homeContent').
+   - exportData: add `homeContent: exportHomeContent()` as the last property.
+   - importData: after the existing `if (data.settings) ...` line add the same guarded `if (data.homeContent !== undefined) { try { importHomeContent(data.homeContent); } catch {} }`.
+c) Do not edit secureBackup.ts, DataManagementPage.tsx, ExitGuardModal.tsx, or DataContext.tsx. The Factory Reset keeps its current behavior (it does not clear these texts; they are clinic content, not patient data).
+
+STEP 3 – i18n: append these keys to BOTH src/lib/i18n/en.ts and src/lib/i18n/ar.ts next to the existing 'home.*' keys (same key names in both files; do not modify any existing key)
+- 'home.edit'            EN: Edit                      AR: تعديل
+- 'home.editVision'      EN: Edit Vision               AR: تعديل الرؤية
+- 'home.editMission'     EN: Edit Mission              AR: تعديل الرسالة
+- 'home.restoreDefault'  EN: Restore default text      AR: استعادة النص الافتراضي
+- 'home.editLangNote'    EN: You are editing the English text. Switch the app language to edit the Arabic text.
+                         AR: أنت تعدّل النص العربي. بدّل لغة التطبيق لتعديل النص الإنجليزي.
+- 'home.editSaved'       EN: Changes saved             AR: تم حفظ التعديلات
+- 'home.editError'       EN: Unable to save changes.   AR: تعذر حفظ التعديلات.
+Reuse existing 'common.save' and 'common.cancel'.
+
+STEP 4 – CSS: append to the END of src/index.css (do not edit existing rules)
+.home-edit-card { position: relative; }
+.home-edit-btn { position: absolute; top: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity 0.15s ease; }
+.home-edit-card:hover .home-edit-btn, .home-edit-btn:focus-visible { opacity: 1; }
+@media (hover: none) { .home-edit-btn { opacity: 0.6; } }
+(Adding position: relative must not change how the cards look.)
+
+STEP 5 – src/pages/HomePage.tsx (the only page touched)
+a) Imports: add Pencil to the lucide-react import; useState/useEffect from "react"; useToast from "@/hooks/use-toast"; { getHomeText, setHomeText, clearHomeText, HOME_TEXT_MAX_LENGTH } from "@/lib/homeContent".
+b) State: savedVision and savedMission (string | null), initialised lazily from getHomeText(kind, locale) and re-read in a useEffect on [locale]. Also editingKind (HomeTextKind | null) and draft (string).
+c) Displayed text = saved ?? t("home.visionText") / t("home.missionText"). Add whiteSpace: "pre-wrap" to the two description <p> styles (no other style changes; the default look must stay identical).
+d) Add className="home-edit-card" to both <section> elements. As the first child of each, add <button type="button" className="home-edit-btn"> with a Pencil icon (size 16, color #717182, transparent background, no border, padding 6, borderRadius 8, cursor pointer), aria-label={t("home.editVision")}/{t("home.editMission")}, title={t("home.edit")}, data-testid="btn-edit-vision"/"btn-edit-mission". Click sets editingKind and sets draft to the card's CURRENT displayed text.
+e) Edit modal, rendered once at the end of <main> only while editingKind is set: role="dialog" aria-modal="true" data-testid="dialog-edit-home-text"; fixed overlay rgba(0,0,0,0.5), zIndex 9999; white card, borderRadius 16, padding 28, maxWidth 520, width 92%, direction isRTL ? "rtl" : "ltr". Contents: bold title (t("home.editVision") / t("home.editMission")); small grey note t("home.editLangNote"); a <textarea> with dir="auto", autoFocus, rows 6, maxLength HOME_TEXT_MAX_LENGTH, width 100%, boxSizing border-box, styled like VisitPage's inputStyle (background #F3F3F5, border 1px solid #F1F1F1, borderRadius 8, padding 10px 12px, fontSize 14, lineHeight 1.8, fontFamily "'Cairo', sans-serif", resize vertical), data-testid="input-home-text"; a small character counter (Latin digits); footer with a text-style "Restore default text" button on the start side (data-testid="btn-home-restore-default") and Cancel + Save on the end side (Cancel #F9FAFB with #F1F1F1 border; Save #50C878, white, bold; data-testids "btn-cancel-home-text" / "btn-save-home-text"). Escape and clicking the dark overlay cancel (discard draft). Disable Save when draft.trim() equals the currently displayed text.
+f) Save: call setHomeText(editingKind, locale, draft). On false: toast({ title: t("home.editError"), variant: "destructive" }) and keep the modal open. On true: update that card's saved state (empty draft => null), close the modal, toast({ title: t("home.editSaved") }).
+g) Restore default: clearHomeText(editingKind, locale); set that card's saved state to null; close; success toast; on false show the error toast.
+
+STEP 6 – Verification (report briefly)
+1. Run: pnpm run typecheck and fix every error introduced by this change.
+2. Diff audit: run `git diff --stat` and confirm ONLY these files changed/created: src/lib/homeContent.ts (new), src/lib/db/repository.ts, src/lib/db/repository.legacy.ts, src/lib/i18n/en.ts, src/lib/i18n/ar.ts, src/index.css, src/pages/HomePage.tsx. Run `git diff` on repository.ts, repository.legacy.ts, en.ts, ar.ts, index.css and confirm every change is an ADDITION (no removed or modified existing lines, except the single added import line and the added property lines).
+3. Home feature check in the preview, in BOTH Arabic and English: cards look identical to before when not hovered; pencil appears on hover (top-left in Arabic, top-right in English) and on keyboard focus; modal opens pre-filled; Save updates the card; a full reload keeps the text; Cancel/Escape change nothing; Restore default works; language switch shows each language's own text; typing Arabic and English aligns correctly.
+4. Backup regression checks (use whichever storage mode the preview runs; if SQLite mode cannot run in the preview, verify the SQLite code path by careful code review instead):
+   a) Customize Vision (and Mission) text, create a backup (plain JSON export and the encrypted export), and confirm the JSON/decrypted payload contains `homeContent` with the saved entries.
+   b) Change the texts, restore that backup, and confirm the customized texts return.
+   c) Restore an OLD-format backup (take a valid backup JSON and delete the `homeContent` key): it must restore patients/visits normally and leave the current Vision/Mission untouched.
+   d) A backup made when nothing was customized contains `homeContent: {}`; restoring it resets both cards to the defaults.
+   e) Quickly open Patient List, Patient Profile, Visit page, Settings, and Data Management to confirm nothing else changed or broke.
+5. Do NOT build the desktop installer/binary.
+
+When finished, reply with ONLY: the files created/changed, the typecheck result, the diff-audit result, and the results of checks 3 and 4.
