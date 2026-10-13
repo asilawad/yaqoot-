@@ -1,0 +1,55 @@
+Make ONE small targeted update to ONE existing file only:
+artifacts/yaqoot-medical/src/components/patients/PatientFilePrintView.tsx
+
+Do NOT open or edit any other file. Do NOT touch the print/afterprint/portal logic (the useEffect blocks and the window.print() flow must stay exactly as is). Do NOT add dependencies, translations, tests, or docs. Do NOT run the app, take screenshots, or build anything. Run ONLY `pnpm --filter @workspace/yaqoot-medical run typecheck` once at the end, and fix only errors caused by these edits.
+
+Apply exactly these 8 edits, in order:
+
+1) In buildCss(), replace the line
+   @page { size: ${o.paper} ${o.orientation}; margin: 12mm; }
+with
+   @page { size: ${o.paper} ${o.orientation}; margin: 12mm 12mm 16mm;
+     @bottom-center { content: counter(page) " / " counter(pages); font-family: 'Cairo', sans-serif; font-size: 9pt; color: #000; } }
+
+2) Right after the line
+   const val = (x: string | undefined) => (x && x.trim()) ? x : DASH;
+add:
+   const listSep = isRTL ? "، " : ", ";
+   const emptyRow = (cols: number) => <tr><td colSpan={cols} style={{ textAlign: "center" }}>{DASH}</td></tr>;
+
+3) Replace the 3 occurrences of .join("، ") with .join(listSep)
+   (patient.chronicDiseases, patient.allergies, and the treatments cell in the compact layout).
+
+4) In patientBlock, wrap the values in <bdi>:
+   - {patient.nationalId}  ->  <bdi>{patient.nationalId}</bdi>
+   - {val(patient.mobile)}{patient.altMobile ? ` / ${patient.altMobile}` : ""}  ->  <bdi>{val(patient.mobile)}{patient.altMobile ? ` / ${patient.altMobile}` : ""}</bdi>
+
+5) Compact layout (options.layout === "compact"): remove the nested-block rowSpan cells.
+   - Delete the header cell: {s.patient && <th>{t("printFile.section.patient")}</th>}
+   - Delete the header cell: {s.notes && <th>{t("printFile.section.notesPatient")}</th>}
+   - Delete the body cell: {s.patient && index === 0 && <td rowSpan={asc.length}>{patientBlock}</td>}
+   - Delete the body cell: {s.notes && index === 0 && <td rowSpan={asc.length}>{notesBlock}</td>}
+   - Change asc.map((v, index) => ( to asc.map(v => (  (index is no longer used).
+
+6) In the final JSX, replace
+   {options.layout !== "compact" && patientBlock}  with  {patientBlock}
+   {options.layout !== "compact" && notesBlock}    with  {notesBlock}
+(so patient info is always printed once at the top and notes once at the bottom, in every layout).
+
+7) Skip empty per-visit body when there is no per-visit content. Just before `let body: ReactNode;` add:
+   const hasVisitContent = s.visit || s.vitals || s.tests || s.treatments || s.payments;
+and change
+   if (options.layout === "detailed") {
+to
+   if (options.layout !== "byType" && !hasVisitContent) {
+     body = null;
+   } else if (options.layout === "detailed") {
+
+8) "By type" layout: show a dash row instead of an empty table body. Replace in the four <tbody> elements:
+   - visit table:      {asc.map(v =>   ->  {asc.length === 0 ? emptyRow(6) : asc.map(v =>
+   - vitals table:     {vits.map(x =>  ->  {vits.length === 0 ? emptyRow(VITAL_COLS.length + 1) : vits.map(x =>
+   - tests table:      {invs.map(x =>  ->  {invs.length === 0 ? emptyRow(5) : invs.map(x =>
+   - treatments table: {trts.map(x =>  ->  {trts.length === 0 ? emptyRow(2) : trts.map(x =>
+   (The payments table already lists all visits, leave it.)
+
+When done, reply ONLY with: "Done" + the typecheck result in one line. No explanation.

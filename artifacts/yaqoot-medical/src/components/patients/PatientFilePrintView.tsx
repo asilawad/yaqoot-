@@ -63,7 +63,8 @@ function buildCss(o: PrintOptions): string {
   return `
 @media screen { #${PRINT_ROOT_ID} { display: none !important; } }
 @media print {
-  @page { size: ${o.paper} ${o.orientation}; margin: 12mm; }
+  @page { size: ${o.paper} ${o.orientation}; margin: 12mm 12mm 16mm;
+    @bottom-center { content: counter(page) " / " counter(pages); font-family: 'Cairo', sans-serif; font-size: 9pt; color: #000; } }
   html.${PRINT_CLASS}, body.${PRINT_CLASS} {
     width: auto !important; min-width: 0 !important; height: auto !important; min-height: 0 !important;
     overflow: visible !important; background: #fff !important;
@@ -158,19 +159,21 @@ export default function PatientFilePrintView(props: Props) {
   const notesAsc = [...notes].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const payLabel = (v: Visit) => v.paymentStatus === "paid" ? t("visit.paid") : t("visit.unpaid");
   const val = (x: string | undefined) => (x && x.trim()) ? x : DASH;
+  const listSep = isRTL ? "، " : ", ";
+  const emptyRow = (cols: number) => <tr><td colSpan={cols} style={{ textAlign: "center" }}>{DASH}</td></tr>;
 
   const patientBlock = s.patient && (
     <section>
       <h2>{t("printFile.section.patient")}</h2>
       <div className="pf-card pf-grid">
         <div><strong>{t("addPatient.name")}:</strong> {patient.name}</div>
-        <div><strong>{t("table.nationalId")}:</strong> {patient.nationalId}</div>
+        <div><strong>{t("table.nationalId")}:</strong> <bdi>{patient.nationalId}</bdi></div>
         <div><strong>{t("addPatient.age")}:</strong> {fmtNum(patient.age) || DASH}</div>
-        <div><strong>{t("table.mobile")}:</strong> {val(patient.mobile)}{patient.altMobile ? ` / ${patient.altMobile}` : ""}</div>
+        <div><strong>{t("table.mobile")}:</strong> <bdi>{val(patient.mobile)}{patient.altMobile ? ` / ${patient.altMobile}` : ""}</bdi></div>
         <div><strong>{t("table.location")}:</strong> {getRegionLabel(patient.region, t)} / {getNeighborhoodLabel(patient.neighborhood, t)}</div>
         <div><strong>{t("addPatient.applicantName")}:</strong> {val(patient.applicantName)}</div>
-        <div><strong>{t("addPatient.chronicDiseases")}:</strong> {patient.chronicDiseases.length ? patient.chronicDiseases.join("، ") : DASH}</div>
-        <div><strong>{t("addPatient.allergies")}:</strong> {patient.allergies.length ? patient.allergies.join("، ") : DASH}</div>
+        <div><strong>{t("addPatient.chronicDiseases")}:</strong> {patient.chronicDiseases.length ? patient.chronicDiseases.join(listSep) : DASH}</div>
+        <div><strong>{t("addPatient.allergies")}:</strong> {patient.allergies.length ? patient.allergies.join(listSep) : DASH}</div>
       </div>
     </section>
   );
@@ -201,8 +204,11 @@ export default function PatientFilePrintView(props: Props) {
   const testText = (i: Investigation) =>
     [i.testName, i.result ? `${t("printFile.col.result")}: ${i.result}` : "", i.resultDate ? formatDate(i.resultDate) : "", i.notes ? `${t("printFile.col.notes")}: ${i.notes}` : ""].filter(Boolean).join(" - ");
 
+  const hasVisitContent = s.visit || s.vitals || s.tests || s.treatments || s.payments;
   let body: ReactNode;
-  if (options.layout === "detailed") {
+  if (options.layout !== "byType" && !hasVisitContent) {
+    body = null;
+  } else if (options.layout === "detailed") {
     body = (
       <>
         {asc.map(v => {
@@ -231,24 +237,20 @@ export default function PatientFilePrintView(props: Props) {
       <table>
         <thead><tr>
           <th>{t("printFile.col.date")}</th>
-          {s.patient && <th>{t("printFile.section.patient")}</th>}
           {s.visit && <th>{t("printFile.section.visit")}</th>}
           {s.vitals && <th>{t("printFile.section.vitals")}</th>}
           {s.tests && <th>{t("printFile.section.tests")}</th>}
           {s.treatments && <th>{t("printFile.section.treatments")}</th>}
           {s.payments && <th>{t("printFile.section.payments")}</th>}
-          {s.notes && <th>{t("printFile.section.notesPatient")}</th>}
         </tr></thead>
-        <tbody>{asc.map((v, index) => (
+        <tbody>{asc.map(v => (
           <tr key={v.id}>
             <td style={{ whiteSpace: "nowrap" }}>{formatDate(v.visitDate)}</td>
-            {s.patient && index === 0 && <td rowSpan={asc.length}>{patientBlock}</td>}
             {s.visit && <td>{visitInfoFields(v).filter(([, x]) => x !== DASH).map(([k, x]) => `${k}: ${x}`).join("; ") || DASH}</td>}
             {s.vitals && <td>{vits.filter(x => x.visitId === v.id).map(vitalText).filter(Boolean).join(" / ") || DASH}</td>}
             {s.tests && <td>{invs.filter(x => x.visitId === v.id).map(testText).join("; ") || DASH}</td>}
-            {s.treatments && <td>{trts.filter(x => x.visitId === v.id).map(x => x.medicineName).join("، ") || DASH}</td>}
+            {s.treatments && <td>{trts.filter(x => x.visitId === v.id).map(x => x.medicineName).join(listSep) || DASH}</td>}
             {s.payments && <td>{payLabel(v)}</td>}
-            {s.notes && index === 0 && <td rowSpan={asc.length}>{notesBlock}</td>}
           </tr>
         ))}</tbody>
       </table>
@@ -258,19 +260,19 @@ export default function PatientFilePrintView(props: Props) {
       <>
         {s.visit && (<section><h2>{t("printFile.section.visit")}</h2><table>
           <thead><tr><th>{t("printFile.col.date")}</th><th>{t("visit.doctor")}</th><th>{t("visit.mainService")}</th><th>{t("visit.subService")}</th><th>{t("visit.complaint")}</th><th>{t("visit.diagnosis")}</th></tr></thead>
-          <tbody>{asc.map(v => <tr key={v.id}><td>{formatDate(v.visitDate)}</td>{visitInfoFields(v).map(([k, x]) => <td key={k}>{x}</td>)}</tr>)}</tbody>
+          <tbody>{asc.length === 0 ? emptyRow(6) : asc.map(v => <tr key={v.id}><td>{formatDate(v.visitDate)}</td>{visitInfoFields(v).map(([k, x]) => <td key={k}>{x}</td>)}</tr>)}</tbody>
         </table></section>)}
         {s.vitals && (<section><h2>{t("printFile.section.vitals")}</h2><table>
           <thead><tr><th>{t("printFile.col.date")}</th>{VITAL_COLS.map(c => <th key={c.key}>{t(c.label)}</th>)}</tr></thead>
-          <tbody>{vits.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td>{VITAL_COLS.map(c => <td key={c.key}>{c.get(x) || DASH}</td>)}</tr>)}</tbody>
+          <tbody>{vits.length === 0 ? emptyRow(VITAL_COLS.length + 1) : vits.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td>{VITAL_COLS.map(c => <td key={c.key}>{c.get(x) || DASH}</td>)}</tr>)}</tbody>
         </table></section>)}
         {s.tests && (<section><h2>{t("printFile.section.tests")}</h2><table>
           <thead><tr><th>{t("printFile.col.date")}</th><th>{t("printFile.col.test")}</th><th>{t("printFile.col.result")}</th><th>{t("printFile.col.resultDate")}</th><th>{t("printFile.col.notes")}</th></tr></thead>
-          <tbody>{invs.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td><td>{x.testName}</td><td>{val(x.result)}</td><td>{formatDate(x.resultDate) || DASH}</td><td>{val(x.notes)}</td></tr>)}</tbody>
+          <tbody>{invs.length === 0 ? emptyRow(5) : invs.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td><td>{x.testName}</td><td>{val(x.result)}</td><td>{formatDate(x.resultDate) || DASH}</td><td>{val(x.notes)}</td></tr>)}</tbody>
         </table></section>)}
         {s.treatments && (<section><h2>{t("printFile.section.treatments")}</h2><table>
           <thead><tr><th style={{ width: "22%" }}>{t("printFile.col.date")}</th><th>{t("printFile.col.medicine")}</th></tr></thead>
-          <tbody>{trts.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td><td>{x.medicineName}</td></tr>)}</tbody>
+          <tbody>{trts.length === 0 ? emptyRow(2) : trts.map(x => <tr key={x.id}><td>{visitDate.get(x.visitId)}</td><td>{x.medicineName}</td></tr>)}</tbody>
         </table></section>)}
         {s.payments && (<section><h2>{t("printFile.section.payments")}</h2><table>
           <thead><tr><th style={{ width: "22%" }}>{t("printFile.col.date")}</th><th>{t("visit.paymentStatus")}</th></tr></thead>
@@ -294,9 +296,9 @@ export default function PatientFilePrintView(props: Props) {
       ) : (
         <div className="pf-doc" style={{ marginBottom: 8 }}>{t("printFile.docTitle")} - {formatDateTime(new Date().toISOString())}</div>
       )}
-      {options.layout !== "compact" && patientBlock}
+      {patientBlock}
       {body}
-      {options.layout !== "compact" && notesBlock}
+      {notesBlock}
       {options.signature && (
         <div className="pf-sign"><div>{t("printFile.signature")}</div><div>{t("printFile.stamp")}</div></div>
       )}
