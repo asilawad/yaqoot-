@@ -1,0 +1,64 @@
+Make targeted edits to 4 existing files only. Do NOT open any other file. Do NOT touch the print/afterprint/portal/window.print() flow in PatientFilePrintView.tsx (only the specific lines listed below). Do NOT add dependencies, tests, docs. Do NOT run the app, take screenshots, or build. Run ONLY `pnpm --filter @workspace/yaqoot-medical run typecheck` once at the end and fix only errors caused by these edits.
+
+Base path: artifacts/yaqoot-medical/src
+
+==== FILE 1: lib/i18n/ar.ts (change values only, keep each line's existing quote style) ====
+- 'printFile.visitsSelected'  -> "الزيارات المحددة: {count}"
+- 'printFile.section.visitInfo' -> "بيانات الزيارة"
+- 'printFile.section.notesPatient' -> "ملاحظات المريض"
+- ADD next to the other printFile keys: 'printFile.allServices': "كل الخدمات",
+
+==== FILE 2: lib/i18n/en.ts (same rules) ====
+- 'printFile.visitsSelected'  -> "Selected visits: {count}"
+- 'printFile.section.visitInfo' -> "Visit details"
+- 'printFile.section.notesPatient' -> "Patient notes"
+- ADD: 'printFile.allServices': "All services",
+
+==== FILE 3: components/patients/PrintPatientFileModal.tsx ====
+a) Replace {t("patients.allServices")} with {t("printFile.allServices")} (only inside the service <select> option in this file).
+b) Make the footer sticky: in the footer <div> whose style is
+   { display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 28px 22px", borderTop: "1px solid #F1F1F1" }
+   add: position: "sticky", bottom: 0, background: "#fff", zIndex: 1
+
+==== FILE 4: components/patients/PatientFilePrintView.tsx ====
+a) After `const DASH = "-";` add two module-level helpers:
+   const ltr = (s: string) => (s ? `\u2066${s}\u2069` : s);
+   const cssStr = (s: string) => `"${s.replace(/[\r\n]+/g, " ").replace(/[\\"]/g, "\\$&")}"`;
+
+b) Change `function buildCss(o: PrintOptions): string {` to
+   `function buildCss(o: PrintOptions, footerLabel: string, rtl: boolean): string {`
+   and replace the existing two-line @page rule (the one containing `@bottom-center`) with:
+   @page { size: ${o.paper} ${o.orientation}; margin: 12mm 12mm 16mm;
+     @bottom-center { content: ${cssStr(footerLabel)} counter(page) " / " counter(pages); direction: ${rtl ? "rtl" : "ltr"}; font-family: 'Cairo', sans-serif; font-size: 9pt; color: #000; } }
+   Inside the @media print block, next to the existing h2/h3 rules, add:
+   #${PRINT_ROOT_ID} h2, #${PRINT_ROOT_ID} h3 { break-after: avoid; page-break-after: avoid; }
+   #${PRINT_ROOT_ID} .pf-pt { font-size: 11pt; font-weight: 700; }
+
+c) In the FIRST useEffect (mount portal + style), make exactly these changes:
+   - Before `document.head.appendChild(style)` add:
+       const prevTitle = document.title;
+       document.title = `${t("printFile.docTitle")} - ${patient.name} - ${formatDateTime(new Date().toISOString()).slice(0, 10)}`;
+   - Change `style.textContent = buildCss(options);` to
+       style.textContent = buildCss(options, `${patient.name} · ${patient.nationalId} · `, isRTL);
+   - In the cleanup function add: document.title = prevTitle;
+   Leave everything else in both useEffect blocks untouched.
+
+d) Always identify the patient, regardless of the "patient info" checkbox. Before the final `return createPortal(`, define:
+   const idLine = <div className="pf-pt">{patient.name} — {t("table.nationalId")}: <bdi>{patient.nationalId}</bdi></div>;
+   - In the header branch (options.header true): render {idLine} inside the inner <div> right after the <div className="pf-doc"> element.
+   - In the no-header branch: render {idLine} right after the existing title <div> (keep that div as is).
+
+e) Force dates to render left-to-right (RTL fix). Wrap with ltr(...) the result of EVERY formatDate(...) / formatDateTime(...) call that is rendered in this file:
+   - the visitDate Map: formatDate(v.visitDate) -> ltr(formatDate(v.visitDate))
+   - notes table: formatDateTime(n.createdAt)
+   - testText: formatDate(i.resultDate)
+   - detailed card heading, compact table date cell, "by type" visit table + payments table: formatDate(v.visitDate)
+   - tests table: `formatDate(x.resultDate) || DASH` -> `ltr(formatDate(x.resultDate)) || DASH`
+   - both print-date usages in the header/no-header branches: formatDateTime(new Date().toISOString())
+   Do NOT wrap: the sort comparators (they use raw strings), and the document.title line from step (c).
+
+f) Age with unit: replace `{fmtNum(patient.age) || DASH}` with
+   `{patient.age ? `${fmtNum(patient.age)} ${t("profile.years")}` : DASH}`
+   (the key profile.years already exists).
+
+When done, reply ONLY with: "Done" + the typecheck result in one line. No explanation.

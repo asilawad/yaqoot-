@@ -201,7 +201,7 @@ export default function PrintPatientFileModal({ open, onClose, patient, visits, 
                 <label style={{ ...rowStyle, cursor: "default", marginTop: 4 }}>
                   <span style={{ color: "#717182", fontSize: 13 }}>{t("printFile.serviceFilter")}</span>
                   <select value={service} onChange={e => setService(e.target.value)} style={inputStyle} data-testid="select-service-filter">
-                    <option value="">{t("patients.allServices")}</option>
+                    <option value="">{t("printFile.allServices")}</option>
                     {SERVICES.map(sv => <option key={sv.value} value={sv.value}>{t(sv.labelKey)}</option>)}
                   </select>
                 </label>
@@ -261,7 +261,7 @@ export default function PrintPatientFileModal({ open, onClose, patient, visits, 
             </Group>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 28px 22px", borderTop: "1px solid #F1F1F1" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 28px 22px", borderTop: "1px solid #F1F1F1", position: "sticky", bottom: 0, background: "#fff", zIndex: 1 }}>
             <button type="button" onClick={onClose} data-testid="button-print-cancel"
               style={{ background: "#F9FAFB", border: "1px solid #F1F1F1", borderRadius: 10, padding: "9px 18px", cursor: "pointer", fontSize: 14, color: "#717182", fontFamily: "'Cairo', sans-serif" }}>
               {t("common.cancel")}
