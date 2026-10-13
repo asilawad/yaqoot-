@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import NavigationBackButton from "@/components/NavigationBackButton";
 import { DecryptionError, exportEncryptedBackup, importEncryptedBackup } from "@/lib/db/secureBackup";
 import { clearAllPatientData } from "@/lib/db/repository";
+import * as repo from "@/lib/db/repository";
 import {
   Dialog,
   DialogContent,
@@ -135,8 +136,24 @@ export default function DataManagementPage() {
     }
   };
 
+  const createSafetySnapshot = async (prefix: "pre-restore" | "pre-reset"): Promise<string | null | undefined> => {
+    if (!("__TAURI_INTERNALS__" in window)) return undefined;
+    try {
+      const json = await repo.exportData();
+      const { writeTextFile, BaseDirectory } = await import("@tauri-apps/plugin-fs");
+      const filename = `${prefix}-${new Date().toISOString().replace(/:/g, "-")}.json`;
+      await writeTextFile(filename, json, { baseDir: BaseDirectory.AppConfig });
+      return filename;
+    } catch {
+      toast({ title: t("data.snapshot.error"), variant: "destructive" });
+      return null;
+    }
+  };
+
   const completeRestore = async (contents: string, restorePassphrase?: string) => {
     try {
+      const snapshot = await createSafetySnapshot("pre-restore");
+      if (snapshot === null) return;
       await importEncryptedBackup(contents, restorePassphrase);
       await refreshData();
       setStorageSize(getStorageSize());
@@ -145,7 +162,7 @@ export default function DataManagementPage() {
       setPendingFile(null);
       setPassphrase("");
       setPassphraseError("");
-      toast({ title: t("data.restoreSuccess") });
+      toast({ title: t("data.restoreSuccess"), description: snapshot ? t("data.snapshot.saved", { filename: snapshot }) : undefined });
     } catch (error) {
       if (error instanceof DecryptionError) {
         setPassphraseError(t("data.backup.invalidPassphrase"));
@@ -183,12 +200,17 @@ export default function DataManagementPage() {
     setIsProcessing(true);
     setFactoryResetError("");
     try {
+      const snapshot = await createSafetySnapshot("pre-reset");
+      if (snapshot === null) {
+        setFactoryResetError(t("data.snapshot.error"));
+        return;
+      }
       await clearAllPatientData();
       await refreshData();
       setStorageSize(getStorageSize());
       setShowFactoryResetConfirm(false);
       setFactoryResetConfirmation("");
-      toast({ title: t("data.factoryReset.success") });
+      toast({ title: t("data.factoryReset.success"), description: snapshot ? t("data.snapshot.saved", { filename: snapshot }) : undefined });
     } catch {
       setFactoryResetError(t("data.factoryReset.error"));
       toast({ title: t("data.factoryReset.error"), variant: "destructive" });

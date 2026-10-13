@@ -1,0 +1,38 @@
+You are working on the Tauri + React app in artifacts/yaqoot-medical. We deliver in under an hour, so make ONLY the three changes below. Do not refactor, rename, reformat, or "improve" anything else. Do not change: Rust code, src-tauri/capabilities, tauri.conf.json, SQL migrations/schema, package.json dependencies (keep crypto-js, it is still needed), styling, routing, or any page layout. Follow existing code style, and every user-facing string must go through the existing i18n files (add the same keys to BOTH src/lib/i18n/ar.ts and en.ts).
+
+=== CHANGE 1: No silent fallback to localStorage inside Tauri ===
+File: src/lib/db/repository.ts (initializeRepository) and src/contexts/DataContext.tsx.
+Problem: if SQLite fails to initialize inside the Tauri app, the code silently switches to repository.legacy (localStorage), so clinic data gets split between two stores.
+Required:
+- In initializeRepository, when isTauri() is true and getDatabase()/migrateLegacyDataIfNeeded fails, do NOT load repository.legacy. Reset the cached `initialization` promise to undefined, call resetDatabaseConnection() from ./database, and rethrow the error.
+- Keep the legacy fallback ONLY for the non-Tauri (browser/dev) path exactly as it is today.
+- In DataProvider, if repository initialization fails in Tauri, show a blocking full-screen error state (not the normal app) with the translated message, the technical error text, and a "Retry" button that re-runs the same initialization + refreshData flow. Reuse the existing inline-style look of the loading screen (Cairo font, centered). No new components libraries.
+- Browser/dev behavior must remain unchanged.
+
+=== CHANGE 2: Automatic safety snapshot before restore and before factory reset ===
+File: src/pages/DataManagementPage.tsx (use repo.exportData()).
+Problem: restoring a backup or doing a factory reset permanently overwrites current data with no way back.
+Required:
+- Before completeRestore runs importEncryptedBackup, and before the factory reset executes, create a snapshot: `const json = await repo.exportData()` then write it with writeTextFile from @tauri-apps/plugin-fs to the file name `pre-restore-<ISO timestamp with : replaced by ->.json` (use `pre-reset-...` for factory reset) using `{ baseDir: BaseDirectory.AppConfig }` (BaseDirectory from @tauri-apps/api/path or plugin-fs, whichever this project's installed version exports). Do NOT call mkdir, do NOT touch capabilities: the app config dir already exists because yaqoot.db lives there.
+- Only do this when running inside Tauri (same isTauri check used elsewhere in this file). In the browser/legacy mode skip the snapshot.
+- If the snapshot fails, ABORT the restore/reset, show a destructive toast with a new translated message, and change nothing in the database.
+- On success, continue as today, and mention the snapshot file name in the success toast description (new translated string).
+- Do not add pruning or settings UI.
+
+=== CHANGE 3: Stronger backup encryption (v2) with backward compatibility ===
+Files: src/lib/security/crypto.ts, src/lib/db/secureBackup.ts, plus any caller you find with grep for encryptString/decryptString.
+Problem: CryptoJS.AES with a passphrase uses a weak MD5-based key derivation and has no authentication.
+Required:
+- Add v2 using WebCrypto (crypto.subtle): PBKDF2-SHA256 with 600000 iterations, random 16-byte salt, AES-GCM with random 12-byte IV. 
+- New backups use envelope: { version: 2, encrypted: true, kdf: "PBKDF2-SHA256", iterations: 600000, salt: <base64>, iv: <base64>, payload: <base64 ciphertext> }.
+- Import must support BOTH: envelopes with version 2 (new path) and the old v1 envelope { version: 1, encrypted: true, payload } (decrypt with the existing CryptoJS code, unchanged). Plain unencrypted JSON import must keep working exactly as today.
+- Wrong passphrase or tampered file in v2 must throw the existing DecryptionError. Keep the DecryptionError class and its behavior for v1.
+- The functions become async; update every caller to await them. Keep MIN_PASSPHRASE_LENGTH and the UI unchanged.
+- If crypto.subtle is unavailable, throw a clear Error instead of silently falling back to v1.
+
+=== Verification (required) ===
+1. Run the typecheck and the production build for artifacts/yaqoot-medical and fix any errors you introduced.
+2. Write a throwaway Node script (do not commit it) that does a v2 encrypt/decrypt round trip, confirms a wrong passphrase throws, and confirms a v1 payload produced by CryptoJS still decrypts. Delete the script afterwards.
+3. Do not run or modify anything under src-tauri.
+
+When done, reply with the list of changed files and one sentence per change. Do not commit unrelated files.

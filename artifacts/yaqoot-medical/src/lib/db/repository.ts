@@ -8,7 +8,7 @@ import {
   VitalThreshold,
 } from './types';
 import { defaultVitalSettings } from './vitalDefaults';
-import { getDatabase } from './database';
+import { getDatabase, resetDatabaseConnection } from './database';
 import { migrateLegacyDataIfNeeded } from './migrateFromLocalStorage';
 import { executeSqlTransaction, SqlStatement } from './transaction';
 import { exportHomeContent, importHomeContent } from '../homeContent';
@@ -43,13 +43,9 @@ export function initializeRepository(): Promise<RepositoryMode> {
       return { mode: 'sqlite' };
     } catch (error) {
       db = undefined;
-      legacy = await import('./repository.legacy');
-      return {
-        mode: 'legacy',
-        warning: `SQLite initialization failed; using legacy local storage. / فشل تشغيل SQLite؛ يتم استخدام التخزين المحلي القديم. ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      };
+      initialization = undefined;
+      resetDatabaseConnection();
+      throw error;
     }
   })();
   return initialization;

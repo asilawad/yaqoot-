@@ -1,12 +1,12 @@
 import * as repo from "./repository";
-import { decryptString, DecryptionError, encryptString } from "@/lib/security/crypto";
+import { decryptString, DecryptionError, encryptString, EncryptedBackupV2 } from "@/lib/security/crypto";
 
 export { DecryptionError };
 
 export async function exportEncryptedBackup(passphrase: string): Promise<string> {
   const plainJson = await repo.exportData();
-  const payload = encryptString(plainJson, passphrase);
-  return JSON.stringify({ version: 1, encrypted: true, payload });
+  const envelope = await encryptString(plainJson, passphrase);
+  return JSON.stringify(envelope);
 }
 
 export async function importEncryptedBackup(
@@ -31,7 +31,15 @@ export async function importEncryptedBackup(
     if (!("payload" in parsed) || typeof parsed.payload !== "string") {
       throw new DecryptionError();
     }
-    await repo.importData(decryptString(parsed.payload, passphrase));
+    let plain: string;
+    if ("version" in parsed && parsed.version === 2) {
+      plain = await decryptString(parsed as EncryptedBackupV2, passphrase);
+    } else if (!("version" in parsed) || parsed.version === 1) {
+      plain = await decryptString(parsed.payload, passphrase);
+    } else {
+      throw new DecryptionError();
+    }
+    await repo.importData(plain);
     return;
   }
 

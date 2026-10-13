@@ -65,6 +65,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [storageMode, setStorageMode] = useState<'sqlite' | 'legacy' | 'uninitialized'>('uninitialized');
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
 
   const refreshData = async () => {
     try {
@@ -82,22 +83,32 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const initializeData = async (cancelled = () => false) => {
+    setIsLoading(true);
+    setInitializationError(null);
+    try {
+      const result = await repo.initializeRepository();
+      if (cancelled()) return;
+      setStorageMode(result.mode);
+      setStorageWarning(result.warning ? t('storage.legacyFallback') : null);
+      if (import.meta.env.DEV) await repo.seedInitialData();
+      await refreshData();
+    } catch (cause) {
+      if (!cancelled()) {
+        const technicalError = cause instanceof Error ? cause.message : String(cause);
+        setError(`${t('data.loadError')} ${technicalError}`);
+        if (Boolean((window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)) {
+          setInitializationError(technicalError);
+        }
+      }
+    } finally {
+      if (!cancelled()) setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const result = await repo.initializeRepository();
-        if (cancelled) return;
-        setStorageMode(result.mode);
-        setStorageWarning(result.warning ? t('storage.legacyFallback') : null);
-        if (import.meta.env.DEV) await repo.seedInitialData();
-        await refreshData();
-      } catch (cause) {
-        if (!cancelled) setError(`${t('data.loadError')} ${cause instanceof Error ? cause.message : String(cause)}`);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+    void initializeData(() => cancelled);
     return () => { cancelled = true; };
   }, []);
 
@@ -192,6 +203,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   if (isLoading) return <div style={{ padding: 48, textAlign: 'center', fontFamily: "'Cairo', sans-serif" }}>{t('data.loading')}</div>;
+  if (initializationError !== null) return (
+    <div role="alert" style={{ minHeight: '100vh', padding: 48, textAlign: 'center', fontFamily: "'Cairo', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <p>{t('data.initializationBlocked')}</p>
+      <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{initializationError}</p>
+      <button onClick={() => void initializeData()} style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: '#50C878', color: '#fff', cursor: 'pointer', fontFamily: "'Cairo', sans-serif" }}>{t('data.retry')}</button>
+    </div>
+  );
   return (
     <DataContext.Provider value={contextValue}>
       {storageWarning && (
