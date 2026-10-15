@@ -172,6 +172,18 @@ export const ar = {
   'analytics.monthVisits': 'زيارات الشهر الحالي',
   'analytics.pendingPayments': 'دفعات معلقة',
   'analytics.serviceDemand': 'الطلب على الخدمات',
+  'analytics.filterYear': 'السنة',
+  'analytics.filterMonth': 'الشهر',
+  'analytics.allYears': 'كل السنوات',
+  'analytics.allMonths': 'كل الأشهر',
+  'analytics.showAll': 'عرض الكل',
+  'analytics.periodVisits': 'عدد الزيارات في هذه الفترة: {count}',
+  'analytics.noVisitsPeriod': 'لا توجد زيارات في هذه الفترة',
+  'analytics.visitsLabel': 'عدد الزيارات',
+  'analytics.month.1': 'يناير', 'analytics.month.2': 'فبراير', 'analytics.month.3': 'مارس',
+  'analytics.month.4': 'أبريل', 'analytics.month.5': 'مايو', 'analytics.month.6': 'يونيو',
+  'analytics.month.7': 'يوليو', 'analytics.month.8': 'أغسطس', 'analytics.month.9': 'سبتمبر',
+  'analytics.month.10': 'أكتوبر', 'analytics.month.11': 'نوفمبر', 'analytics.month.12': 'ديسمبر',
 
   // Vitals Config
   'vitalsConfig.title': 'إعدادات المؤشرات الحيوية',

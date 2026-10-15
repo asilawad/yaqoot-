@@ -172,6 +172,18 @@ export const en = {
   'analytics.monthVisits': 'Current Month Visits',
   'analytics.pendingPayments': 'Pending Payments',
   'analytics.serviceDemand': 'Service Demand',
+  'analytics.filterYear': 'Year',
+  'analytics.filterMonth': 'Month',
+  'analytics.allYears': 'All years',
+  'analytics.allMonths': 'All months',
+  'analytics.showAll': 'Show all',
+  'analytics.periodVisits': 'Visits in this period: {count}',
+  'analytics.noVisitsPeriod': 'No visits in this period',
+  'analytics.visitsLabel': 'Visits',
+  'analytics.month.1': 'January', 'analytics.month.2': 'February', 'analytics.month.3': 'March',
+  'analytics.month.4': 'April', 'analytics.month.5': 'May', 'analytics.month.6': 'June',
+  'analytics.month.7': 'July', 'analytics.month.8': 'August', 'analytics.month.9': 'September',
+  'analytics.month.10': 'October', 'analytics.month.11': 'November', 'analytics.month.12': 'December',
 
   // Vitals Config
   'vitalsConfig.title': 'Vital Signs Configuration',

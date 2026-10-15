@@ -1,0 +1,116 @@
+Make targeted edits to 3 existing files only. Do NOT open any other file. Do NOT touch the 4 KPI cards (they stay global), the data layer, routing, or any other page. No new dependencies, tests, docs. Do NOT run the app, take screenshots, or build. Run ONLY `pnpm --filter @workspace/yaqoot-medical run typecheck` once at the end and fix only errors caused by these edits.
+
+Base path: artifacts/yaqoot-medical/src
+
+==== FILE 1: lib/i18n/ar.ts — ADD these keys next to the other 'analytics.*' keys (keep the file's quote style) ====
+  'analytics.filterYear': 'السنة',
+  'analytics.filterMonth': 'الشهر',
+  'analytics.allYears': 'كل السنوات',
+  'analytics.allMonths': 'كل الأشهر',
+  'analytics.showAll': 'عرض الكل',
+  'analytics.periodVisits': 'عدد الزيارات في هذه الفترة: {count}',
+  'analytics.noVisitsPeriod': 'لا توجد زيارات في هذه الفترة',
+  'analytics.visitsLabel': 'عدد الزيارات',
+  'analytics.month.1': 'يناير', 'analytics.month.2': 'فبراير', 'analytics.month.3': 'مارس',
+  'analytics.month.4': 'أبريل', 'analytics.month.5': 'مايو', 'analytics.month.6': 'يونيو',
+  'analytics.month.7': 'يوليو', 'analytics.month.8': 'أغسطس', 'analytics.month.9': 'سبتمبر',
+  'analytics.month.10': 'أكتوبر', 'analytics.month.11': 'نوفمبر', 'analytics.month.12': 'ديسمبر',
+
+==== FILE 2: lib/i18n/en.ts — ADD the same keys with these values ====
+  'analytics.filterYear': 'Year',
+  'analytics.filterMonth': 'Month',
+  'analytics.allYears': 'All years',
+  'analytics.allMonths': 'All months',
+  'analytics.showAll': 'Show all',
+  'analytics.periodVisits': 'Visits in this period: {count}',
+  'analytics.noVisitsPeriod': 'No visits in this period',
+  'analytics.visitsLabel': 'Visits',
+  'analytics.month.1': 'January', ... 'analytics.month.12': 'December' (full English month names, 1..12)
+
+==== FILE 3: pages/AnalyticsPage.tsx ====
+a) Imports:
+   - add: import { useState, type CSSProperties } from "react";
+   - add: import { formatDate } from "@/lib/date";
+   - in the recharts import add LabelList.
+
+b) Above `export default function AnalyticsPage()` add two module-level constants:
+   const filterSelectStyle: CSSProperties = { border: "1px solid #E5E7EB", borderRadius: 10, padding: "7px 10px", fontSize: 14, fontFamily: "'Cairo', sans-serif", background: "#F9FAFB", color: "#171717" };
+   const showAllBtnStyle: CSSProperties = { background: "none", border: "none", color: "#50C878", fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "'Cairo', sans-serif" };
+
+c) Right after `const { patients, visits, isLoading, error } = useData();` and BEFORE the early `if (isLoading)` return (hooks must stay above early returns) add:
+   const [year, setYear] = useState("");
+   const [month, setMonth] = useState("");
+
+d) After the `pendingPayments` line add:
+   const years = Array.from(new Set([
+     ...visits.map(v => formatDate(v.visitDate).slice(0, 4)).filter(y => /^\d{4}$/.test(y)),
+     ...(year ? [year] : []),
+   ])).sort((a, b) => b.localeCompare(a));
+   const periodVisits = year
+     ? visits.filter(v => {
+         const d = formatDate(v.visitDate);
+         return d.slice(0, 4) === year && (!month || Number(d.slice(5, 7)) === Number(month));
+       })
+     : visits;
+   const periodLabel = year ? (month ? `${t(`analytics.month.${Number(month)}`)} ${year}` : year) : "";
+
+e) In the visitCounts loop change `for (const visit of visits)` to `for (const visit of periodVisits)`. Do NOT change totalVisits / monthVisits / pendingPayments / totalPatients.
+
+f) Replace the whole "Bar Chart" card (the <div className="medical-card"> containing the <h2> with analytics.serviceDemand and the ResponsiveContainer) with:
+
+<div className="medical-card">
+  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+    <div style={{ textAlign: "start" }}>
+      <h2 style={{ fontSize: 17, fontWeight: 700, color: "#171717", margin: 0 }}>
+        {t("analytics.serviceDemand")}{periodLabel ? ` — ${periodLabel}` : ""}
+      </h2>
+      {year && (
+        <div data-testid="text-period-visits" style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>
+          {t("analytics.periodVisits", { count: periodVisits.length })}
+        </div>
+      )}
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <select data-testid="select-analytics-year" aria-label={t("analytics.filterYear")} value={year}
+        onChange={e => { setYear(e.target.value); setMonth(""); }} style={filterSelectStyle}>
+        <option value="">{t("analytics.allYears")}</option>
+        {years.map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
+      <select data-testid="select-analytics-month" aria-label={t("analytics.filterMonth")} value={month} disabled={!year}
+        onChange={e => setMonth(e.target.value)}
+        style={{ ...filterSelectStyle, opacity: year ? 1 : 0.5, cursor: year ? "pointer" : "not-allowed" }}>
+        <option value="">{t("analytics.allMonths")}</option>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+          <option key={m} value={m}>{t(`analytics.month.${m}`)}</option>
+        ))}
+      </select>
+      {year && (
+        <button type="button" data-testid="btn-analytics-show-all" style={showAllBtnStyle}
+          onClick={() => { setYear(""); setMonth(""); }}>
+          {t("analytics.showAll")}
+        </button>
+      )}
+    </div>
+  </div>
+  {year && periodVisits.length === 0 ? (
+    <div data-testid="text-analytics-empty" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: "#717182", fontSize: 14 }}>
+      {t("analytics.noVisitsPeriod")}
+    </div>
+  ) : (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={chartData} margin={{ top: 20, right: 24, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#F1F1F1" />
+        <XAxis dataKey="name" interval={0} tick={{ fontSize: 12, fill: "#717182", fontFamily: "Cairo" }} />
+        <YAxis tick={{ fontSize: 12, fill: "#717182" }} allowDecimals={false} />
+        <Tooltip cursor={{ fill: "rgba(80,200,120,0.08)" }} contentStyle={{ fontFamily: "Cairo", borderRadius: 8, border: "1px solid #F1F1F1" }} />
+        <Bar dataKey="count" name={t("analytics.visitsLabel")} fill="#50C878" radius={[6, 6, 0, 0]}>
+          <LabelList dataKey="count" position="top"
+            formatter={(v: unknown) => (typeof v === "number" && v > 0 ? v : "")}
+            style={{ fontSize: 12, fill: "#171717", fontFamily: "Cairo" }} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )}
+</div>
+
+When done, reply ONLY with: "Done" + the typecheck result in one line. No explanation.

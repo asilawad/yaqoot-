@@ -1,15 +1,22 @@
+import { useState, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { Users, Calendar, Clock, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useData } from "@/contexts/DataContext";
 import NavigationBackButton from "@/components/NavigationBackButton";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { SERVICES, matchesServiceFilter } from "@/lib/services";
+import { formatDate } from "@/lib/date";
+
+const filterSelectStyle: CSSProperties = { border: "1px solid #E5E7EB", borderRadius: 10, padding: "7px 10px", fontSize: 14, fontFamily: "'Cairo', sans-serif", background: "#F9FAFB", color: "#171717" };
+const showAllBtnStyle: CSSProperties = { background: "none", border: "none", color: "#50C878", fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "'Cairo', sans-serif" };
 
 export default function AnalyticsPage() {
   const { t, isRTL } = useTranslation();
   const [, setLocation] = useLocation();
   const { patients, visits, isLoading, error } = useData();
+  const [year, setYear] = useState("");
+  const [month, setMonth] = useState("");
   if (isLoading) return <div style={{ padding: 48, textAlign: "center" }}>{t("analytics.loading")}</div>;
   if (error) return <div style={{ padding: 48, textAlign: "center", color: "#b91c1c" }}>{error}</div>;
 
@@ -20,10 +27,21 @@ export default function AnalyticsPage() {
   const totalVisits = visits.length;
   const monthVisits = visits.filter(v => v.visitDate >= startOfMonth).length;
   const pendingPayments = visits.filter(v => v.paymentStatus === "unpaid").length;
+  const years = Array.from(new Set([
+    ...visits.map(v => formatDate(v.visitDate).slice(0, 4)).filter(y => /^\d{4}$/.test(y)),
+    ...(year ? [year] : []),
+  ])).sort((a, b) => b.localeCompare(a));
+  const periodVisits = year
+    ? visits.filter(v => {
+        const d = formatDate(v.visitDate);
+        return d.slice(0, 4) === year && (!month || Number(d.slice(5, 7)) === Number(month));
+      })
+    : visits;
+  const periodLabel = year ? (month ? `${t(`analytics.month.${Number(month)}`)} ${year}` : year) : "";
 
   const otherService = SERVICES.find(service => service.value === "Other");
   const visitCounts = new Map<string, number>(SERVICES.map(service => [service.value, 0] as const));
-  for (const visit of visits) {
+  for (const visit of periodVisits) {
     const matchedService = SERVICES.find(service =>
       service.value !== "Other" && matchesServiceFilter(visit.mainService, visit.subService, service.value, ""),
     );
@@ -66,16 +84,58 @@ export default function AnalyticsPage() {
 
       {/* Bar Chart */}
       <div className="medical-card">
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#171717", marginBottom: 20, textAlign: "start" }}>{t("analytics.serviceDemand")}</h2>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F1F1" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#717182", fontFamily: "Cairo" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#717182" }} allowDecimals={false} />
-            <Tooltip contentStyle={{ fontFamily: "Cairo", borderRadius: 8, border: "1px solid #F1F1F1" }} />
-            <Bar dataKey="count" fill="#50C878" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+          <div style={{ textAlign: "start" }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#171717", margin: 0 }}>
+              {t("analytics.serviceDemand")}{periodLabel ? ` — ${periodLabel}` : ""}
+            </h2>
+            {year && (
+              <div data-testid="text-period-visits" style={{ fontSize: 13, color: "#717182", marginTop: 4 }}>
+                {t("analytics.periodVisits", { count: periodVisits.length })}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <select data-testid="select-analytics-year" aria-label={t("analytics.filterYear")} value={year}
+              onChange={e => { setYear(e.target.value); setMonth(""); }} style={filterSelectStyle}>
+              <option value="">{t("analytics.allYears")}</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select data-testid="select-analytics-month" aria-label={t("analytics.filterMonth")} value={month} disabled={!year}
+              onChange={e => setMonth(e.target.value)}
+              style={{ ...filterSelectStyle, opacity: year ? 1 : 0.5, cursor: year ? "pointer" : "not-allowed" }}>
+              <option value="">{t("analytics.allMonths")}</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{t(`analytics.month.${m}`)}</option>
+              ))}
+            </select>
+            {year && (
+              <button type="button" data-testid="btn-analytics-show-all" style={showAllBtnStyle}
+                onClick={() => { setYear(""); setMonth(""); }}>
+                {t("analytics.showAll")}
+              </button>
+            )}
+          </div>
+        </div>
+        {year && periodVisits.length === 0 ? (
+          <div data-testid="text-analytics-empty" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: "#717182", fontSize: 14 }}>
+            {t("analytics.noVisitsPeriod")}
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={chartData} margin={{ top: 20, right: 24, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F1F1" />
+              <XAxis dataKey="name" interval={0} tick={{ fontSize: 12, fill: "#717182", fontFamily: "Cairo" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#717182" }} allowDecimals={false} />
+              <Tooltip cursor={{ fill: "rgba(80,200,120,0.08)" }} contentStyle={{ fontFamily: "Cairo", borderRadius: 8, border: "1px solid #F1F1F1" }} />
+              <Bar dataKey="count" name={t("analytics.visitsLabel")} fill="#50C878" radius={[6, 6, 0, 0]}>
+                <LabelList dataKey="count" position="top"
+                  formatter={(v: unknown) => (typeof v === "number" && v > 0 ? v : "")}
+                  style={{ fontSize: 12, fill: "#171717", fontFamily: "Cairo" }} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
